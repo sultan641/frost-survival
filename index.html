@@ -19,318 +19,323 @@ h1{font-size:clamp(28px,6vw,42px);margin:10px 0}
 h2{margin-top:0;color:#b8efff}
 p{color:#c2d7e6}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-.game{background:#071b30;border:1px solid #205071;border-radius:12px;padding:15px}
+.game{background:#071b30;border:1px solid #205071;border-radius:12px;padding:15px;min-width:0}
 .game h3{margin-top:0}
-.btn{display:inline-block;background:#087fb2;color:white;text-decoration:none;border:0;border-radius:9px;padding:11px 15px;font-weight:bold;text-align:center;cursor:pointer}
-.game .btn{display:block}
-.buttons{display:flex;gap:10px;flex-wrap:wrap}
-.promo{font-size:32px;font-weight:bold;letter-spacing:5px;color:#b8efff}
+.btn{display:inline-block;background:#087fb2;color:white;text-decoration:none;border:0;border-radius:9px;padding:11px 15px;font-weight:bold;text-align:center;cursor:pointer;font-size:14px}
+.game>.btn{display:block;width:100%}
+.buttons{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.promo{font-size:25px;font-weight:bold;letter-spacing:4px;color:#b8efff}
 .notice{border-left:3px solid #27c9ff;padding:10px;background:#071b30}
 footer{text-align:center;color:#a8c1d2;padding:10px}
+@media(max-width:480px){main{padding:10px}header,section{padding:14px}.top{justify-content:center}.brand{width:100%;text-align:center}.game{padding:13px}.buttons .btn{flex:1}}
 </style>
 </head>
 <body>
 <main>
 <header>
-  <div class="top">
-    <div class="brand">❄ FROST SURVIVAL | Sultan</div>
-    <label>🌐
-      <select id="language" aria-label="Language">
-        <option value="en">English</option>
-        <option value="ur">Urdu</option>
-        <option value="ar">Arabic</option>
-        <option value="zh">Chinese</option>
-        <option value="tr">Turkish</option>
-        <option value="id">Indonesian</option>
-        <option value="es">Spanish</option>
-        <option value="fr">French</option>
-        <option value="ru">Russian</option>
-        <option value="de">German</option>
-        <option value="pt">Portuguese</option>
-        <option value="ja">Japanese</option>
-        <option value="ko">Korean</option>
-        <option value="vi">Vietnamese</option>
-        <option value="th">Thai</option>
-      </select>
-    </label>
-  </div>
-
-  <img class="banner" src="frost-banner.png" alt="Frost Survival banner"
-       onerror="this.style.display='none'">
-
-  <h1 data-t="title">Frost Survival</h1>
-  <p data-t="intro">Game links, community updates and player support — all in one place!</p>
+<div class="top">
+<div class="brand">❄ FROST SURVIVAL | Sultan</div>
+<label>🌐
+<select id="language" aria-label="Language">
+<option value="en">English</option>
+<option value="ur">Urdu</option>
+<option value="ar">Arabic</option>
+<option value="zh">Chinese</option>
+<option value="tr">Turkish</option>
+<option value="id">Indonesian</option>
+<option value="es">Spanish</option>
+<option value="fr">French</option>
+<option value="ru">Russian</option>
+<option value="de">German</option>
+<option value="pt">Portuguese</option>
+<option value="ja">Japanese</option>
+<option value="ko">Korean</option>
+<option value="vi">Vietnamese</option>
+<option value="th">Thai</option>
+</select>
+</label>
+</div>
+<img class="banner" src="frost-banner.png" alt="Frost Survival banner" onerror="this.style.display='none'">
+<h1 data-t="title">Frost Survival</h1>
+<p data-t="intro">Game links, community updates and player support — all in one place!</p>
 </header>
 
 <section>
-  <h2 data-t="games">🎮 Choose Your Game</h2>
-  <div class="grid">
-    <article class="game">
-      <h3>Whiteout Survival V4</h3>
-      <p data-t="v4">V4 registration and download.</p>
-      <a class="btn" href="https://landing.jkqwio.com/?invite=92lKnzFdINCXVccIz65" target="_blank" rel="noopener">Open V4</a>
-    </article>
+<h2 data-t="games">🎮 Choose Your Game</h2>
+<div class="grid">
+<article class="game">
+<h3>Whiteout Survival V4</h3>
+<p data-t="v4">V4 registration and download.</p>
+<a class="btn" href="https://landing.jkqwio.com/?invite=92lKnzFdINCXVccIz65" target="_blank" rel="noopener">Open V4</a>
+</article>
 
-    <article class="game">
-      <h3>Whiteout Survival V5 Chinese</h3>
-      <p data-t="v5c">Chinese V5 registration and download.</p>
-      <a class="btn" href="https://passport.wjdr2.top/ops-register?promo=sultaan" target="_blank" rel="noopener">Open V5 Chinese</a>
-    </article>
+<article class="game">
+<h3>Whiteout Survival V5 Chinese</h3>
+<p data-t="v5c">Chinese V5 registration and download.</p>
+<a class="btn" href="https://passport.wjdr2.top/ops-register?promo=sultaan" target="_blank" rel="noopener">Open V5 Chinese</a>
+</article>
 
-    <article class="game">
-      <h3>Whiteout Survival V5 Europe</h3>
-      <p data-t="v5e">European V5 game website.</p>
-      <a class="btn" href="http://europeeu1.com/" target="_blank" rel="noopener">Open V5 Europe</a>
-    </article>
+<article class="game">
+<h3>Whiteout Survival V5 Europe</h3>
+<p data-t="v5e">European V5 game website.</p>
+<a class="btn" href="http://europeeu1.com/" target="_blank" rel="noopener">Open V5 Europe</a>
+<p><strong data-t="promoLabel">🎁 V5 Europe Promo Code</strong></p>
+<div class="buttons">
+<span class="promo">16365</span>
+<button class="btn" id="copyButton" type="button" data-t="copy">📋 Copy Code</button>
+</div>
+<p id="copyStatus" aria-live="polite"></p>
+</article>
 
-    <article class="game">
-      <h3>KingShot V4</h3>
-      <p data-t="ks">KingShot V4 registration and download.</p>
-      <a class="btn" href="https://landing.yunxiaoze.com/?id=YqZv76nI" target="_blank" rel="noopener">Open KingShot V4</a>
-    </article>
-  </div>
+<article class="game">
+<h3>KingShot V4</h3>
+<p data-t="ks">KingShot V4 registration and download.</p>
+<a class="btn" href="https://landing.yunxiaoze.com/?id=YqZv76nI" target="_blank" rel="noopener">Open KingShot V4</a>
+</article>
+</div>
 </section>
 
 <section>
-  <h2 data-t="promoTitle">🎁 V5 Europe Promo Code</h2>
-  <p data-t="promoDesc">Use this code on the V5 Europe platform.</p>
-  <div class="promo" id="promoCode">16365</div>
-  <button class="btn" id="copyButton" data-t="copy">📋 Copy Code</button>
-  <p id="copyStatus" aria-live="polite"></p>
+<h2 data-t="helpTitle">🛠️ Help & Bug Reports</h2>
+<p data-t="helpText">Need help with registration, login, payments, downloads or bugs? Contact our support team through Discord. Include your game version and a short explanation. Never share your password.</p>
+<div class="buttons">
+<a class="btn" href="https://discord.gg/NVf6zsb35" target="_blank" rel="noopener" data-t="support">🎫 Discord Support / Tickets</a>
+<a class="btn" href="https://discord.com/users/1358805412694069550" target="_blank" rel="noopener" data-t="chat">💬 Chat with Sultan</a>
+</div>
+<p class="notice" data-t="ticketNote">Private tickets require a ticket system configured on Discord.</p>
 </section>
 
 <section>
-  <h2 data-t="helpTitle">🛠️ Help & Bug Reports</h2>
-  <p data-t="helpText">Need help with registration, login, payments, downloads or bugs? Contact our support team through Discord. Include your game version, a short explanation and screenshots when helpful. Never share your password.</p>
-  <div class="buttons">
-    <a class="btn" href="https://discord.gg/NVf6zsb35" target="_blank" rel="noopener" data-t="support">🎫 Discord Support / Tickets</a>
-    <a class="btn" href="https://discord.com/users/1358805412694069550" target="_blank" rel="noopener" data-t="chat">💬 Chat with Sultan</a>
-  </div>
-  <p class="notice" data-t="ticketNote">This website does not store private tickets or screenshots. Private tickets depend on the Discord server's ticket system being configured.</p>
-</section>
-
-<section>
-  <h2 data-t="communityTitle">🌐 Join Our Community</h2>
-  <div class="buttons">
-    <a class="btn" href="https://discord.gg/NVf6zsb35" target="_blank" rel="noopener">Discord</a>
-    <a class="btn" href="https://t.me/frostsurvival" target="_blank" rel="noopener">Telegram</a>
-    <a class="btn" href="https://youtube.com/@gm_sultaan" target="_blank" rel="noopener">YouTube</a>
-    <a class="btn" href="https://www.tiktok.com/@wolfwos" target="_blank" rel="noopener">TikTok</a>
-  </div>
+<h2 data-t="communityTitle">🌐 Join Our Community</h2>
+<div class="buttons">
+<a class="btn" href="https://discord.gg/NVf6zsb35" target="_blank" rel="noopener">Discord</a>
+<a class="btn" href="https://t.me/frostsurvival" target="_blank" rel="noopener">Telegram</a>
+<a class="btn" href="https://youtube.com/@gm_sultaan" target="_blank" rel="noopener">YouTube</a>
+<a class="btn" href="https://www.tiktok.com/@wolfwos" target="_blank" rel="noopener">TikTok</a>
+</div>
 </section>
 
 <footer>© <span id="year"></span> Frost Survival | Admin: Sultan</footer>
 </main>
-
 <script>
 const translations = {
 en:{
 title:"Frost Survival",intro:"Game links, community updates and player support — all in one place!",
 games:"🎮 Choose Your Game",v4:"V4 registration and download.",
 v5c:"Chinese V5 registration and download.",v5e:"European V5 game website.",
-ks:"KingShot V4 registration and download.",promoTitle:"🎁 V5 Europe Promo Code",
-promoDesc:"Use this code on the V5 Europe platform.",copy:"📋 Copy Code",
-copied:"Code copied!",failed:"Copy failed. Please copy 16365 manually.",
+ks:"KingShot V4 registration and download.",promoLabel:"🎁 V5 Europe Promo Code",
+copy:"📋 Copy Code",copied:"Code copied!",failed:"Copy failed. Please copy 16365 manually.",
 helpTitle:"🛠️ Help & Bug Reports",
-helpText:"Need help with registration, login, payments, downloads or bugs? Contact our support team through Discord. Include your game version, a short explanation and screenshots when helpful. Never share your password.",
+helpText:"Need help with registration, login, payments, downloads or bugs? Contact our support team through Discord. Include your game version and a short explanation. Never share your password.",
 support:"🎫 Discord Support / Tickets",chat:"💬 Chat with Sultan",
-ticketNote:"This website does not store private tickets or screenshots. Private tickets depend on the Discord server's ticket system being configured.",
+ticketNote:"Private tickets require a ticket system configured on Discord.",
 communityTitle:"🌐 Join Our Community"
 },
 ur:{
 title:"فراسٹ سروائیول",intro:"گیم لنکس، کمیونٹی اپڈیٹس اور پلیئر سپورٹ ایک ہی جگہ!",
 games:"🎮 اپنی گیم منتخب کریں",v4:"V4 رجسٹریشن اور ڈاؤن لوڈ۔",
 v5c:"چائنیز V5 رجسٹریشن اور ڈاؤن لوڈ۔",v5e:"یورپی V5 گیم ویب سائٹ۔",
-ks:"KingShot V4 رجسٹریشن اور ڈاؤن لوڈ۔",promoTitle:"🎁 V5 یورپ پرومو کوڈ",
-promoDesc:"V5 یورپ پلیٹ فارم پر یہ کوڈ استعمال کریں۔",copy:"📋 کوڈ کاپی کریں",
-copied:"کوڈ کاپی ہوگیا!",failed:"کاپی نہیں ہوا۔ 16365 خود کاپی کریں۔",
+ks:"KingShot V4 رجسٹریشن اور ڈاؤن لوڈ۔",promoLabel:"🎁 V5 یورپ پرومو کوڈ",
+copy:"📋 کوڈ کاپی کریں",copied:"کوڈ کاپی ہوگیا!",failed:"کاپی نہیں ہوا۔ 16365 خود کاپی کریں۔",
 helpTitle:"🛠️ مدد اور بگ رپورٹ",
-helpText:"رجسٹریشن، لاگ اِن، ادائیگی، ڈاؤن لوڈ یا بگ کے لیے Discord پر سپورٹ ٹیم سے رابطہ کریں۔ گیم ورژن، مختصر تفصیل اور ضرورت ہو تو اسکرین شاٹس بھیجیں۔ پاس ورڈ کبھی نہ بھیجیں۔",
+helpText:"رجسٹریشن، لاگ اِن، ادائیگی، ڈاؤن لوڈ یا بگ کے لیے Discord سپورٹ سے رابطہ کریں۔ گیم ورژن اور مختصر تفصیل بھیجیں۔ پاس ورڈ کبھی نہ بھیجیں۔",
 support:"🎫 Discord سپورٹ / ٹکٹس",chat:"💬 سلطان سے رابطہ",
-ticketNote:"یہ ویب سائٹ نجی ٹکٹس یا اسکرین شاٹس محفوظ نہیں کرتی۔ نجی ٹکٹس کے لیے Discord سرور پر ٹکٹ سسٹم ہونا ضروری ہے۔",
+ticketNote:"نجی ٹکٹس کے لیے Discord پر ٹکٹ سسٹم ضروری ہے۔",
 communityTitle:"🌐 ہماری کمیونٹی میں شامل ہوں"
 },
 ar:{
 title:"فروست سيرفايفل",intro:"روابط الألعاب وتحديثات المجتمع ودعم اللاعبين في مكان واحد!",
 games:"🎮 اختر لعبتك",v4:"تسجيل وتنزيل V4.",
 v5c:"تسجيل وتنزيل V5 الصينية.",v5e:"موقع لعبة V5 الأوروبية.",
-ks:"تسجيل وتنزيل KingShot V4.",promoTitle:"🎁 رمز V5 Europe",
-promoDesc:"استخدم هذا الرمز على منصة V5 Europe.",copy:"📋 نسخ الرمز",
-copied:"تم نسخ الرمز!",failed:"تعذر النسخ. انسخ 16365 يدويًا.",
+ks:"تسجيل وتنزيل KingShot V4.",promoLabel:"🎁 رمز V5 Europe",
+copy:"📋 نسخ الرمز",copied:"تم نسخ الرمز!",failed:"تعذر النسخ. انسخ 16365 يدويًا.",
 helpTitle:"🛠️ المساعدة والإبلاغ عن الأخطاء",
-helpText:"للمساعدة في التسجيل أو الدخول أو الدفع أو التنزيل، تواصل مع فريق الدعم عبر Discord. أرسل إصدار اللعبة وشرحًا مختصرًا ولقطات شاشة عند الحاجة. لا تشارك كلمة المرور.",
+helpText:"للمساعدة في التسجيل أو الدخول أو الدفع أو التنزيل، تواصل مع الدعم عبر Discord. اذكر إصدار اللعبة واشرح المشكلة باختصار. لا تشارك كلمة المرور.",
 support:"🎫 دعم Discord / التذاكر",chat:"💬 تواصل مع سلطان",
-ticketNote:"هذا الموقع لا يحفظ التذاكر الخاصة أو الصور. تعتمد التذاكر الخاصة على إعداد نظام التذاكر في خادم Discord.",
+ticketNote:"تحتاج التذاكر الخاصة إلى نظام تذاكر مُعدّ على Discord.",
 communityTitle:"🌐 انضم إلى مجتمعنا"
 },
 zh:{
 title:"Frost Survival",intro:"游戏链接、社区更新与玩家支持，一站获取！",
 games:"🎮 选择游戏",v4:"V4 注册与下载。",v5c:"中国版 V5 注册与下载。",
 v5e:"欧洲版 V5 游戏网站。",ks:"KingShot V4 注册与下载。",
-promoTitle:"🎁 欧洲版 V5 推广码",promoDesc:"请在欧洲版 V5 平台使用此代码。",
-copy:"📋 复制代码",copied:"代码已复制！",failed:"复制失败，请手动复制 16365。",
+promoLabel:"🎁 欧洲版 V5 推广码",copy:"📋 复制代码",
+copied:"代码已复制！",failed:"复制失败，请手动复制 16365。",
 helpTitle:"🛠️ 帮助与错误报告",
-helpText:"注册、登录、付款、下载或遇到错误时，请通过 Discord 联系支持团队。请提供游戏版本、简短说明及必要的截图。不要分享密码。",
+helpText:"注册、登录、付款或下载遇到问题时，请通过 Discord 联系支持团队。请提供游戏版本和简短说明。不要分享密码。",
 support:"🎫 Discord 支持 / 工单",chat:"💬 联系 Sultan",
-ticketNote:"本网站不存储私人工单或截图。私人工单需要 Discord 服务器配置相应系统。",
+ticketNote:"私人工单需要在 Discord 上配置工单系统。",
 communityTitle:"🌐 加入我们的社区"
+},
+tr:{
+title:"Frost Survival",intro:"Oyun bağlantıları, topluluk haberleri ve oyuncu desteği tek yerde.",
+games:"🎮 Oyununuzu Seçin",v4:"V4 kayıt ve indirme.",
+v5c:"Çin V5 kayıt ve indirme.",v5e:"Avrupa V5 oyun sitesi.",
+ks:"KingShot V4 kayıt ve indirme.",promoLabel:"🎁 V5 Avrupa Kodu",
+copy:"📋 Kodu Kopyala",copied:"Kod kopyalandı!",failed:"Kopyalanamadı. 16365 kodunu kopyalayın.",
+helpTitle:"🛠️ Yardım ve Hata Bildirimi",
+helpText:"Kayıt, giriş, ödeme veya indirme sorunları için Discord desteğine ulaşın. Oyun sürümünü ve kısa açıklamayı ekleyin. Şifrenizi paylaşmayın.",
+support:"🎫 Discord Destek / Biletler",chat:"💬 Sultan ile Sohbet",
+ticketNote:"Özel biletler için Discord sunucusunda bir bilet sistemi kurulmalıdır.",
+communityTitle:"🌐 Topluluğumuza Katılın"
+},
+id:{
+title:"Frost Survival",intro:"Tautan game, kabar komunitas, dan bantuan pemain di satu tempat.",
+games:"🎮 Pilih Game",v4:"Pendaftaran dan unduhan V4.",
+v5c:"Pendaftaran dan unduhan V5 Tiongkok.",v5e:"Situs game V5 Eropa.",
+ks:"Pendaftaran dan unduhan KingShot V4.",promoLabel:"🎁 Kode V5 Eropa",
+copy:"📋 Salin Kode",copied:"Kode disalin!",failed:"Gagal menyalin. Salin 16365 secara manual.",
+helpTitle:"🛠️ Bantuan dan Laporan Bug",
+helpText:"Untuk masalah pendaftaran, login, pembayaran, atau unduhan, hubungi dukungan melalui Discord. Sertakan versi game dan penjelasan singkat. Jangan bagikan kata sandi.",
+support:"🎫 Dukungan Discord / Tiket",chat:"💬 Chat dengan Sultan",
+ticketNote:"Tiket privat memerlukan sistem tiket yang dikonfigurasi di Discord.",
+communityTitle:"🌐 Gabung Komunitas"
 },
 es:{
 title:"Frost Survival",intro:"Enlaces de juegos, novedades y ayuda para jugadores en un solo lugar.",
-games:"🎮 Elige tu juego",v4:"Registro y descarga V4.",v5c:"Registro y descarga de V5 chino.",
-v5e:"Sitio del juego V5 Europa.",ks:"Registro y descarga KingShot V4.",
-promoTitle:"🎁 Código V5 Europa",promoDesc:"Usa este código en la plataforma V5 Europa.",
+games:"🎮 Elige tu juego",v4:"Registro y descarga V4.",
+v5c:"Registro y descarga de V5 chino.",v5e:"Sitio del juego V5 Europa.",
+ks:"Registro y descarga KingShot V4.",promoLabel:"🎁 Código V5 Europa",
 copy:"📋 Copiar código",copied:"¡Código copiado!",failed:"No se pudo copiar. Copia 16365 manualmente.",
 helpTitle:"🛠️ Ayuda e informes de errores",
-helpText:"Para problemas de registro, inicio de sesión, pagos, descargas o errores, contacta con soporte por Discord. Indica la versión del juego y añade una explicación breve y capturas si hace falta. No compartas contraseñas.",
+helpText:"Para problemas de registro, inicio de sesión, pagos o descargas, contacta con soporte por Discord. Indica la versión del juego y explica brevemente el problema. No compartas contraseñas.",
 support:"🎫 Soporte / tickets de Discord",chat:"💬 Hablar con Sultan",
-ticketNote:"Este sitio no guarda tickets privados ni capturas. Los tickets requieren un sistema configurado en Discord.",
+ticketNote:"Los tickets privados requieren un sistema configurado en Discord.",
 communityTitle:"🌐 Únete a nuestra comunidad"
 },
 fr:{
 title:"Frost Survival",intro:"Liens de jeux, actualités et assistance aux joueurs au même endroit.",
 games:"🎮 Choisissez votre jeu",v4:"Inscription et téléchargement V4.",
 v5c:"Inscription et téléchargement V5 chinois.",v5e:"Site du jeu V5 Europe.",
-ks:"Inscription et téléchargement KingShot V4.",promoTitle:"🎁 Code V5 Europe",
-promoDesc:"Utilisez ce code sur la plateforme V5 Europe.",copy:"📋 Copier le code",
-copied:"Code copié !",failed:"Échec. Copiez 16365 manuellement.",
+ks:"Inscription et téléchargement KingShot V4.",promoLabel:"🎁 Code V5 Europe",
+copy:"📋 Copier le code",copied:"Code copié !",failed:"Échec. Copiez 16365 manuellement.",
 helpTitle:"🛠️ Aide et signalement de bugs",
-helpText:"Pour un problème d'inscription, de connexion, de paiement ou de téléchargement, contactez le support sur Discord. Indiquez la version du jeu et ajoutez une courte explication et des captures si nécessaire. Ne partagez pas vos mots de passe.",
+helpText:"Pour un problème d'inscription, de connexion, de paiement ou de téléchargement, contactez le support sur Discord. Indiquez la version du jeu et décrivez brièvement le problème. Ne partagez pas vos mots de passe.",
 support:"🎫 Assistance / tickets Discord",chat:"💬 Contacter Sultan",
-ticketNote:"Ce site ne stocke ni tickets privés ni captures. Les tickets nécessitent un système configuré sur Discord.",
+ticketNote:"Les tickets privés nécessitent un système configuré sur Discord.",
 communityTitle:"🌐 Rejoignez notre communauté"
+},
+ru:{
+title:"Frost Survival",intro:"Ссылки на игры, новости сообщества и помощь игрокам в одном месте.",
+games:"🎮 Выберите игру",v4:"Регистрация и загрузка V4.",
+v5c:"Регистрация и загрузка китайской V5.",v5e:"Сайт европейской V5.",
+ks:"Регистрация и загрузка KingShot V4.",promoLabel:"🎁 Код V5 Europe",
+copy:"📋 Копировать код",copied:"Код скопирован!",failed:"Не удалось. Скопируйте 16365 вручную.",
+helpTitle:"🛠️ Помощь и сообщения об ошибках",
+helpText:"При проблемах с регистрацией, входом, оплатой или загрузкой обратитесь в поддержку Discord. Укажите версию игры и кратко опишите проблему. Не отправляйте пароли.",
+support:"🎫 Поддержка / тикеты Discord",chat:"💬 Написать Sultan",
+ticketNote:"Для личных тикетов нужна настроенная система в Discord.",
+communityTitle:"🌐 Присоединяйтесь к сообществу"
 },
 de:{
 title:"Frost Survival",intro:"Spiellinks, Community-News und Spielerhilfe an einem Ort.",
 games:"🎮 Spiel auswählen",v4:"V4-Registrierung und Download.",
 v5c:"Registrierung und Download für V5 China.",v5e:"Website für V5 Europe.",
-ks:"KingShot V4 Registrierung und Download.",promoTitle:"🎁 V5-Europe-Code",
-promoDesc:"Verwende diesen Code auf der V5-Europe-Plattform.",copy:"📋 Code kopieren",
-copied:"Code kopiert!",failed:"Fehler. Kopiere 16365 manuell.",
+ks:"KingShot V4 Registrierung und Download.",promoLabel:"🎁 V5-Europe-Code",
+copy:"📋 Code kopieren",copied:"Code kopiert!",failed:"Fehler. Kopiere 16365 manuell.",
 helpTitle:"🛠️ Hilfe und Fehler melden",
-helpText:"Bei Problemen mit Registrierung, Anmeldung, Zahlung oder Download kontaktiere den Support über Discord. Nenne die Spielversion und füge bei Bedarf eine kurze Beschreibung und Screenshots hinzu. Keine Passwörter teilen.",
+helpText:"Bei Problemen mit Registrierung, Anmeldung, Zahlung oder Download kontaktiere den Support über Discord. Nenne die Spielversion und beschreibe das Problem kurz. Teile keine Passwörter.",
 support:"🎫 Discord-Support / Tickets",chat:"💬 Sultan kontaktieren",
-ticketNote:"Diese Website speichert keine privaten Tickets oder Screenshots. Ein Ticketsystem muss auf Discord eingerichtet sein.",
+ticketNote:"Private Tickets benötigen ein eingerichtetes Ticketsystem auf Discord.",
 communityTitle:"🌐 Tritt unserer Community bei"
-},
-tr:{
-title:"Frost Survival",intro:"Oyun bağlantıları, topluluk haberleri ve oyuncu desteği tek yerde.",
-games:"🎮 Oyununuzu Seçin",v4:"V4 kayıt ve indirme.",v5c:"Çin V5 kayıt ve indirme.",
-v5e:"Avrupa V5 oyun sitesi.",ks:"KingShot V4 kayıt ve indirme.",
-promoTitle:"🎁 V5 Avrupa Kodu",promoDesc:"Bu kodu V5 Avrupa platformunda kullanın.",
-copy:"📋 Kodu Kopyala",copied:"Kod kopyalandı!",failed:"Kopyalanamadı. 16365 kodunu kopyalayın.",
-helpTitle:"🛠️ Yardım ve Hata Bildirimi",
-helpText:"Kayıt, giriş, ödeme veya indirme sorunları için Discord destek ekibine ulaşın. Oyun sürümünü, kısa açıklamayı ve gerekirse ekran görüntülerini ekleyin. Şifrenizi paylaşmayın.",
-support:"🎫 Discord Destek / Biletler",chat:"💬 Sultan ile Sohbet",
-ticketNote:"Bu site özel bilet veya ekran görüntüsü saklamaz. Özel biletler için Discord sunucusunda sistem kurulmalıdır.",
-communityTitle:"🌐 Topluluğumuza Katılın"
-},
-id:{
-title:"Frost Survival",intro:"Tautan game, kabar komunitas, dan bantuan pemain di satu tempat.",
-games:"🎮 Pilih Game",v4:"Pendaftaran dan unduhan V4.",v5c:"Pendaftaran dan unduhan V5 Tiongkok.",
-v5e:"Situs game V5 Eropa.",ks:"Pendaftaran dan unduhan KingShot V4.",
-promoTitle:"🎁 Kode V5 Eropa",promoDesc:"Gunakan kode ini di platform V5 Eropa.",
-copy:"📋 Salin Kode",copied:"Kode disalin!",failed:"Gagal menyalin. Salin 16365 secara manual.",
-helpTitle:"🛠️ Bantuan dan Laporan Bug",
-helpText:"Untuk masalah pendaftaran, login, pembayaran, atau unduhan, hubungi tim dukungan melalui Discord. Sertakan versi game, penjelasan singkat, dan tangkapan layar jika perlu. Jangan bagikan kata sandi.",
-support:"🎫 Dukungan Discord / Tiket",chat:"💬 Chat dengan Sultan",
-ticketNote:"Situs ini tidak menyimpan tiket privat atau tangkapan layar. Sistem tiket harus dikonfigurasi di Discord.",
-communityTitle:"🌐 Gabung Komunitas"
 },
 pt:{
 title:"Frost Survival",intro:"Links de jogos, novidades da comunidade e suporte em um só lugar.",
-games:"🎮 Escolha seu jogo",v4:"Cadastro e download V4.",v5c:"Cadastro e download V5 chinês.",
-v5e:"Site do jogo V5 Europa.",ks:"Cadastro e download KingShot V4.",
-promoTitle:"🎁 Código V5 Europa",promoDesc:"Use este código na plataforma V5 Europa.",
+games:"🎮 Escolha seu jogo",v4:"Cadastro e download V4.",
+v5c:"Cadastro e download V5 chinês.",v5e:"Site do jogo V5 Europa.",
+ks:"Cadastro e download KingShot V4.",promoLabel:"🎁 Código V5 Europa",
 copy:"📋 Copiar código",copied:"Código copiado!",failed:"Falha ao copiar. Copie 16365 manualmente.",
 helpTitle:"🛠️ Ajuda e relato de bugs",
-helpText:"Para problemas de cadastro, login, pagamento ou download, fale com o suporte pelo Discord. Informe a versão do jogo, uma breve descrição e capturas se necessário. Não compartilhe senhas.",
+helpText:"Para problemas de cadastro, login, pagamento ou download, fale com o suporte pelo Discord. Informe a versão do jogo e descreva o problema brevemente. Não compartilhe senhas.",
 support:"🎫 Suporte / tickets do Discord",chat:"💬 Falar com Sultan",
-ticketNote:"Este site não armazena tickets privados nem capturas. Os tickets dependem de um sistema configurado no Discord.",
+ticketNote:"Tickets privados precisam de um sistema configurado no Discord.",
 communityTitle:"🌐 Entre na comunidade"
-},
-ru:{
-title:"Frost Survival",intro:"Ссылки на игры, новости сообщества и помощь игрокам в одном месте.",
-games:"🎮 Выберите игру",v4:"Регистрация и загрузка V4.",v5c:"Регистрация и загрузка китайской V5.",
-v5e:"Сайт европейской V5.",ks:"Регистрация и загрузка KingShot V4.",
-promoTitle:"🎁 Код V5 Europe",promoDesc:"Используйте этот код на платформе V5 Europe.",
-copy:"📋 Копировать код",copied:"Код скопирован!",failed:"Не удалось. Скопируйте 16365 вручную.",
-helpTitle:"🛠️ Помощь и сообщения об ошибках",
-helpText:"При проблемах с регистрацией, входом, оплатой или загрузкой обратитесь в поддержку Discord. Укажите версию игры, краткое описание и скриншоты при необходимости. Не отправляйте пароли.",
-support:"🎫 Поддержка / тикеты Discord",chat:"💬 Написать Sultan",
-ticketNote:"Сайт не хранит личные тикеты или скриншоты. Для тикетов нужна настроенная система в Discord.",
-communityTitle:"🌐 Присоединяйтесь к сообществу"
 },
 ja:{
 title:"Frost Survival",intro:"ゲームリンク、お知らせ、プレイヤーサポートをまとめて確認できます。",
-games:"🎮 ゲームを選択",v4:"V4の登録とダウンロード。",v5c:"中国版V5の登録とダウンロード。",
-v5e:"欧州版V5のゲームサイト。",ks:"KingShot V4の登録とダウンロード。",
-promoTitle:"🎁 V5 Europe コード",promoDesc:"V5 Europeでこのコードを使用してください。",
+games:"🎮 ゲームを選択",v4:"V4の登録とダウンロード。",
+v5c:"中国版V5の登録とダウンロード。",v5e:"欧州版V5のゲームサイト。",
+ks:"KingShot V4の登録とダウンロード。",promoLabel:"🎁 V5 Europe コード",
 copy:"📋 コードをコピー",copied:"コピーしました！",failed:"コピーできません。16365を手動でコピーしてください。",
 helpTitle:"🛠️ ヘルプと不具合報告",
-helpText:"登録、ログイン、支払い、ダウンロードの問題はDiscordサポートに連絡してください。ゲームのバージョンと説明、必要に応じてスクリーンショットを送ってください。パスワードは送らないでください。",
+helpText:"登録、ログイン、支払い、ダウンロードの問題はDiscordサポートに連絡してください。ゲームのバージョンと問題の説明を送ってください。パスワードは送らないでください。",
 support:"🎫 Discordサポート / チケット",chat:"💬 Sultanに連絡",
-ticketNote:"このサイトはチケットや画像を保存しません。チケット機能はDiscord側の設定が必要です。",
+ticketNote:"プライベートチケットにはDiscord側の設定が必要です。",
 communityTitle:"🌐 コミュニティに参加"
 },
 ko:{
 title:"Frost Survival",intro:"게임 링크, 커뮤니티 소식, 플레이어 지원을 한곳에서 확인하세요.",
-games:"🎮 게임 선택",v4:"V4 가입 및 다운로드.",v5c:"중국 V5 가입 및 다운로드.",
-v5e:"유럽 V5 게임 웹사이트.",ks:"KingShot V4 가입 및 다운로드.",
-promoTitle:"🎁 V5 유럽 코드",promoDesc:"V5 유럽 플랫폼에서 이 코드를 사용하세요.",
+games:"🎮 게임 선택",v4:"V4 가입 및 다운로드.",
+v5c:"중국 V5 가입 및 다운로드.",v5e:"유럽 V5 게임 웹사이트.",
+ks:"KingShot V4 가입 및 다운로드.",promoLabel:"🎁 V5 유럽 코드",
 copy:"📋 코드 복사",copied:"코드가 복사되었습니다!",failed:"복사 실패. 16365를 직접 복사하세요.",
 helpTitle:"🛠️ 도움말 및 버그 신고",
-helpText:"가입, 로그인, 결제 또는 다운로드 문제는 Discord 지원팀에 문의하세요. 게임 버전과 설명, 필요한 경우 스크린샷을 보내세요. 비밀번호를 공유하지 마세요.",
+helpText:"가입, 로그인, 결제 또는 다운로드 문제는 Discord 지원팀에 문의하세요. 게임 버전과 문제 설명을 보내세요. 비밀번호를 공유하지 마세요.",
 support:"🎫 Discord 지원 / 티켓",chat:"💬 Sultan에게 문의",
-ticketNote:"이 사이트는 티켓이나 스크린샷을 저장하지 않습니다. 티켓 시스템은 Discord에서 설정해야 합니다.",
+ticketNote:"비공개 티켓은 Discord에서 시스템을 설정해야 합니다.",
 communityTitle:"🌐 커뮤니티 참여"
 },
 vi:{
 title:"Frost Survival",intro:"Liên kết game, tin tức cộng đồng và hỗ trợ người chơi tại một nơi.",
-games:"🎮 Chọn trò chơi",v4:"Đăng ký và tải V4.",v5c:"Đăng ký và tải V5 Trung Quốc.",
-v5e:"Trang web game V5 châu Âu.",ks:"Đăng ký và tải KingShot V4.",
-promoTitle:"🎁 Mã V5 Europe",promoDesc:"Dùng mã này trên nền tảng V5 Europe.",
+games:"🎮 Chọn trò chơi",v4:"Đăng ký và tải V4.",
+v5c:"Đăng ký và tải V5 Trung Quốc.",v5e:"Trang web game V5 châu Âu.",
+ks:"Đăng ký và tải KingShot V4.",promoLabel:"🎁 Mã V5 Europe",
 copy:"📋 Sao chép mã",copied:"Đã sao chép mã!",failed:"Không sao chép được. Hãy sao chép 16365 thủ công.",
 helpTitle:"🛠️ Trợ giúp và báo lỗi",
-helpText:"Nếu gặp vấn đề về đăng ký, đăng nhập, thanh toán hoặc tải xuống, hãy liên hệ hỗ trợ qua Discord. Gửi phiên bản game, mô tả ngắn và ảnh chụp màn hình nếu cần. Không gửi mật khẩu.",
+helpText:"Nếu gặp vấn đề về đăng ký, đăng nhập, thanh toán hoặc tải xuống, hãy liên hệ hỗ trợ qua Discord. Gửi phiên bản game và mô tả ngắn. Không gửi mật khẩu.",
 support:"🎫 Hỗ trợ / ticket Discord",chat:"💬 Nhắn Sultan",
-ticketNote:"Trang web này không lưu ticket riêng tư hoặc ảnh chụp. Hệ thống ticket cần được thiết lập trên Discord.",
+ticketNote:"Ticket riêng tư cần được thiết lập trên Discord.",
 communityTitle:"🌐 Tham gia cộng đồng"
 },
 th:{
 title:"Frost Survival",intro:"รวมลิงก์เกม ข่าวชุมชน และการช่วยเหลือผู้เล่นไว้ในที่เดียว",
-games:"🎮 เลือกเกม",v4:"ลงทะเบียนและดาวน์โหลด V4",v5c:"ลงทะเบียนและดาวน์โหลด V5 จีน",
-v5e:"เว็บไซต์เกม V5 Europe",ks:"ลงทะเบียนและดาวน์โหลด KingShot V4",
-promoTitle:"🎁 โค้ด V5 Europe",promoDesc:"ใช้โค้ดนี้บนแพลตฟอร์ม V5 Europe",
+games:"🎮 เลือกเกม",v4:"ลงทะเบียนและดาวน์โหลด V4",
+v5c:"ลงทะเบียนและดาวน์โหลด V5 จีน",v5e:"เว็บไซต์เกม V5 Europe",
+ks:"ลงทะเบียนและดาวน์โหลด KingShot V4",promoLabel:"🎁 โค้ด V5 Europe",
 copy:"📋 คัดลอกโค้ด",copied:"คัดลอกโค้ดแล้ว!",failed:"คัดลอกไม่สำเร็จ โปรดคัดลอก 16365 ด้วยตนเอง",
 helpTitle:"🛠️ ช่วยเหลือและรายงานบั๊ก",
-helpText:"หากมีปัญหาเรื่องสมัคร เข้าสู่ระบบ ชำระเงิน หรือดาวน์โหลด โปรดติดต่อทีมช่วยเหลือผ่าน Discord ระบุเวอร์ชันเกม คำอธิบาย และภาพหน้าจอเมื่อจำเป็น ห้ามส่งรหัสผ่าน",
+helpText:"หากมีปัญหาเรื่องสมัคร เข้าสู่ระบบ ชำระเงิน หรือดาวน์โหลด โปรดติดต่อทีมช่วยเหลือผ่าน Discord ระบุเวอร์ชันเกมและอธิบายปัญหาสั้นๆ ห้ามส่งรหัสผ่าน",
 support:"🎫 Discord Support / Tickets",chat:"💬 ติดต่อ Sultan",
-ticketNote:"เว็บไซต์นี้ไม่จัดเก็บ ticket ส่วนตัวหรือภาพหน้าจอ ต้องตั้งค่าระบบ ticket ใน Discord แยกต่างหาก",
+ticketNote:"ต้องตั้งค่าระบบ ticket บน Discord สำหรับ ticket ส่วนตัว",
 communityTitle:"🌐 เข้าร่วมชุมชน"
 }
 };
 
 function setLanguage(lang){
-  const t=translations[lang]||translations.en;
-  document.documentElement.lang=lang;
-  document.documentElement.dir=(lang==="ur"||lang==="ar")?"rtl":"ltr";
-  document.querySelectorAll("[data-t]").forEach(el=>{
-    const key=el.getAttribute("data-t");
-    if(t[key]) el.textContent=t[key];
-  });
+ const t=translations[lang]||translations.en;
+ document.documentElement.lang=lang;
+ document.documentElement.dir=(lang==="ur"||lang==="ar")?"rtl":"ltr";
+ document.querySelectorAll("[data-t]").forEach(el=>{
+   const key=el.getAttribute("data-t");
+   if(t[key])el.textContent=t[key];
+ });
 }
 document.getElementById("language").addEventListener("change",e=>setLanguage(e.target.value));
+
 document.getElementById("copyButton").addEventListener("click",async()=>{
-  const t=translations[document.getElementById("language").value]||translations.en;
-  const status=document.getElementById("copyStatus");
-  try{
-    await navigator.clipboard.writeText("16365");
-    status.textContent=t.copied;
-  }catch(e){
-    status.textContent=t.failed;
-  }
+ const status=document.getElementById("copyStatus");
+ const lang=document.getElementById("language").value;
+ const t=translations[lang]||translations.en;
+ try{
+   if(navigator.clipboard && window.isSecureContext){
+     await navigator.clipboard.writeText("16365");
+   }else{
+     const temp=document.createElement("textarea");
+     temp.value="16365";
+     temp.style.position="fixed";
+     temp.style.opacity="0";
+     document.body.appendChild(temp);
+     temp.select();
+     const success=document.execCommand("copy");
+     temp.remove();
+     if(!success)throw new Error("Copy failed");
+   }
+   status.textContent=t.copied;
+ }catch(error){
+   status.textContent=t.failed;
+ }
 });
+
 document.getElementById("year").textContent=new Date().getFullYear();
 </script>
 </body>
