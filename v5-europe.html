@@ -170,7 +170,8 @@ async function loadCodes() {
     if (!window.supabase || !window.supabase.from) {
       throw new Error("Supabase client did not load");
     }
-    const { data, error } = await window.supabase
+    const { data, error } = await 
+      supabase
       .from("gift_codes")
       .select("code")
       .eq("game_name", GAME_NAME)
