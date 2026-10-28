@@ -1,16 +1,45 @@
-FROST SURVIVAL WEBSITE — QUICK SETUP
+FROST SURVIVAL — REBUILD PACKAGE
+================================
 
-1. Upload index.html to your GitHub repository, replacing the old index.html. Keep frost-banner.png in the same repository folder if you want your existing banner background.
-2. Gift code search, individual Copy Code, and Copy All work immediately with the 37 codes already included.
-3. The online admin system needs a free Supabase project. Create a project at https://supabase.com/.
-4. In Supabase, open SQL Editor and run the contents of supabase_setup.sql.
-5. In Supabase Authentication, create your admin user (email/password). Copy that user's UUID from Authentication > Users.
-6. In SQL Editor, run: insert into public.gift_code_admins (user_id) values ('PASTE-YOUR-USER-UUID-HERE'); replacing the placeholder with your actual UUID.
-7. In Supabase Project Settings / API, copy the Project URL and the anon/publishable key. Never use the service_role/secret key in website code.
-8. Open your live website, open Admin: Manage Gift Codes, enter the Project URL and anon/publishable key, save, then sign in with the authorized admin email/password.
-9. To add a code later, use the admin panel. Database codes replace the built-in starter list once the database is connected; add your 37 starter codes to the database through the admin panel if you want all codes managed online.
+FILES
+- index.html: complete responsive website. One file routes the main page and all four separate version pages:
+  ?page=wos-v4
+  ?page=v5-europe
+  ?page=v5-china
+  ?page=kingshot-v4
+  ?page=admin
+- supabase_setup.sql: creates protected admin/content/gift-code tables and seeds the 37 V5 Europe codes.
+- SETUP.txt: these instructions.
 
-IMPORTANT:
-- GitHub Pages cannot keep secret credentials private inside front-end code. This setup uses the public anon/publishable key with database Row Level Security. Do not paste a service-role key into the website.
-- This is a static website; the Supabase admin system is not active until you complete the setup steps above.
-- Auto Blocker instructions are shown as requested. Only install APKs from sources you trust, and consider turning protection back on after installation.
+IMPORTANT DESIGN / CONTENT
+- Main page is a dark cyberpunk futuristic game-store design with neon blue/purple lighting.
+- Separate pages for Whiteout Survival V4, V5 Europe, V5 China, and KingShot V4.
+- Promo code 16365 appears on the main V5 Europe card and its V5 Europe page.
+- Every version page has a generic download/installation/account setup section. You can customize instructions later through the admin area.
+- The iOS support notice appears only on V5 Europe.
+- V5 Europe has 37 gift codes, search, Copy Code, and Copy All.
+- Social links include Discord, YouTube, TikTok, Telegram, WhatsApp.
+- Admin route is ?page=admin. Admin UI is not linked publicly except the small header link, but security comes from Supabase authentication and the site_admins authorization table, NOT from hiding the link.
+- The website files do not contain a Supabase secret. Never use a service-role key in the browser.
+
+INSTALL ON GITHUB (ANDROID)
+1. Open https://github.com/sultan641/frost-survival
+2. Open the existing index.html, tap pencil/Edit.
+3. GitHub mobile editor can struggle with very long code. If so, open the repository on Chrome Desktop site and use the file replacement workflow; alternatively upload the new index.html and confirm it replaces the existing tracked file. Do not leave two different index.html files in different folders.
+4. Commit the replacement. Keep frost-banner.png if present, but this design does not require it.
+5. Wait a minute and open https://sultan641.github.io/frost-survival/ . Hard refresh if needed.
+
+SET UP ADMIN (FREE TIERS, SUBJECT TO PROVIDER LIMITS)
+1. Create a Supabase project at https://supabase.com/.
+2. In SQL Editor, run all of supabase_setup.sql.
+3. In Authentication > Users, create an admin user using your email and a strong password.
+4. Copy that user's UUID and run this SQL, replacing the placeholder:
+   insert into public.site_admins(user_id) values ('PASTE-ADMIN-USER-UUID-HERE');
+5. In Supabase project API settings, copy Project URL and the public anon/publishable key. NEVER use service_role/secret key.
+6. Open https://sultan641.github.io/frost-survival/?page=admin
+7. Enter the Project URL and public key, connect, then sign in with the authorized admin email/password.
+
+ADMIN LIMITATION TO BE AWARE OF
+- This first package's admin editor saves version titles/descriptions/instructions/codes/updates into site_content. The public page reads this content from Supabase only after that browser has had the project URL/key saved; for all visitors to see edits consistently, configure the URL/key in the public site code or use a shared config approach. Do not assume the admin panel is fully production-ready until tested end-to-end.
+- Gift code rows in the SQL are seeded to gift_codes. Public page loads them from the configured Supabase connection, but this initial admin UI edits the per-page code list in site_content rather than creating/deleting gift_codes rows. Use the page content code editor for current version code list management.
+- Social link editing is not implemented in this first version; social URLs are in the code.
