@@ -1,0 +1,16 @@
+FROST SURVIVAL WEBSITE — QUICK SETUP
+
+1. Upload index.html to your GitHub repository, replacing the old index.html. Keep frost-banner.png in the same repository folder if you want your existing banner background.
+2. Gift code search, individual Copy Code, and Copy All work immediately with the 37 codes already included.
+3. The online admin system needs a free Supabase project. Create a project at https://supabase.com/.
+4. In Supabase, open SQL Editor and run the contents of supabase_setup.sql.
+5. In Supabase Authentication, create your admin user (email/password). Copy that user's UUID from Authentication > Users.
+6. In SQL Editor, run: insert into public.gift_code_admins (user_id) values ('PASTE-YOUR-USER-UUID-HERE'); replacing the placeholder with your actual UUID.
+7. In Supabase Project Settings / API, copy the Project URL and the anon/publishable key. Never use the service_role/secret key in website code.
+8. Open your live website, open Admin: Manage Gift Codes, enter the Project URL and anon/publishable key, save, then sign in with the authorized admin email/password.
+9. To add a code later, use the admin panel. Database codes replace the built-in starter list once the database is connected; add your 37 starter codes to the database through the admin panel if you want all codes managed online.
+
+IMPORTANT:
+- GitHub Pages cannot keep secret credentials private inside front-end code. This setup uses the public anon/publishable key with database Row Level Security. Do not paste a service-role key into the website.
+- This is a static website; the Supabase admin system is not active until you complete the setup steps above.
+- Auto Blocker instructions are shown as requested. Only install APKs from sources you trust, and consider turning protection back on after installation.
