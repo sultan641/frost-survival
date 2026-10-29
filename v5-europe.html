@@ -38,7 +38,13 @@ h1{font-size:clamp(38px,7vw,72px);line-height:1.05;margin:14px 0;background:line
 .status{color:var(--cyan);min-height:20px;overflow-wrap:anywhere}
 footer{border-top:1px solid var(--line);padding:24px 0 36px;color:var(--muted);margin-top:20px}
 @media(max-width:650px){.code-list{grid-template-columns:1fr}.navlinks{gap:7px}.hero{padding-top:30px}}
-</style><script src="https://unpkg.com/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script></head><body>
+</style><script src="https://unpkg.com/@supabase/supabase-js@2"></script><script>
+const s = document.createElement("script");
+s.src = "./supabase-config.js";
+s.onload = () => console.log("Config loaded");
+s.onerror = () => alert("Config file failed to load");
+document.head.appendChild(s);
+</script></head><body>
 <header class="top">
 <div class="wrap nav">
 <a class="brand" href="index.html">
