@@ -22,6 +22,27 @@ async function refreshAuth() {
 
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  status("BUTTON WORKING");
+
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email: document.getElementById("email").value.trim(),
+      password: document.getElementById("password").value
+    });
+
+    if (error) {
+      status("Login failed: " + error.message);
+      return;
+    }
+
+    status("Login successful: " + !!data.session);
+    await refreshAuth();
+
+  } catch (err) {
+    status("Error: " + err.message);
+  }
+});
+  e.preventDefault();
   status("Signing in...");
 
   try {
