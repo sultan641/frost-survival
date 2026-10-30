@@ -1,3 +1,4 @@
+document.getElementById("adminStatus").textContent = "ADMIN JS LOADED";
 const URL = "https://xnixsavppmmvbzfnybus.supabase.co";
 const KEY = "sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
 
