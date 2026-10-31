@@ -552,31 +552,70 @@ async function showTab(tab) {
     .limit(100);
 
   const area = $("globalRecords");
-
   if (error) {
     area.textContent = "Error: " + error.message;
     return;
   }
-
   if (!data || !data.length) {
     area.textContent = "No records found.";
     return;
   }
 
   area.innerHTML = "";
-
-  data.forEach(record => {
+  for (const record of data) {
     const card = document.createElement("div");
     card.className = "admin-record";
 
-    const pre = document.createElement("pre");
-    pre.textContent = JSON.stringify(record, null, 2);
-    pre.style.whiteSpace = "pre-wrap";
-    pre.style.overflowWrap = "anywhere";
-
-    card.appendChild(pre);
+    if (tab === "apps") {
+      card.innerHTML = `
+        <h3>${safe(record.name || "Application")}</h3>
+        <p><strong>Role:</strong> ${safe(record.role)}</p>
+        <p><strong>Discord:</strong> ${safe(record.contact)}</p>
+        <p><strong>Channel:</strong> ${safe(record.social_links)}</p>
+        <p><strong>Experience:</strong> ${safe(record.experience)}</p>
+        <p><strong>Message:</strong><br>${safe(record.message)}</p>
+        <small>${safe(record.created_at)}</small>
+      `;
+    } else {
+      card.innerHTML = `
+        <h3>${safe(record.game_name)} — #${safe(record.id)}</h3>
+        <p><strong>Player:</strong> ${safe(record.player_name)}</p>
+        <p><strong>Issue:</strong><br>${safe(record.issue)}</p>
+        <p><strong>Steps:</strong><br>${safe(record.steps_to_reproduce || "Not provided")}</p>
+        <p><strong>Status:</strong> ${safe(record.status)}</p>
+        <div class="bug-screenshot">Loading screenshot...</div>
+        <label>Update status</label>
+        <select class="bug-status">
+          <option value="new" ${record.status === "new" ? "selected" : ""}>New</option>
+          <option value="reviewing" ${record.status === "reviewing" ? "selected" : ""}>Reviewing</option>
+          <option value="resolved" ${record.status === "resolved" ? "selected" : ""}>Resolved</option>
+        </select>
+        <button type="button" class="save-bug-status">Save Status</button>
+        <small>${safe(record.created_at)}</small>
+      `;
+      const screenshotArea = card.querySelector(".bug-screenshot");
+      if (record.screenshot_path) {
+        const { data: signed, error: signedError } = await db.storage
+          .from("bug-screenshots")
+          .createSignedUrl(record.screenshot_path, 300);
+        if (signedError) {
+          screenshotArea.textContent = "Screenshot unavailable: " + signedError.message;
+        } else {
+          screenshotArea.innerHTML = `<a href="${safe(signed.signedUrl)}" target="_blank" rel="noopener">Open private screenshot</a>`;
+        }
+      } else {
+        screenshotArea.textContent = "No screenshot attached.";
+      }
+      card.querySelector(".save-bug-status").addEventListener("click", async () => {
+        const nextStatus = card.querySelector(".bug-status").value;
+        const { error: updateError } = await db.from("bug_reports")
+          .update({ status: nextStatus }).eq("id", record.id);
+        status(updateError ? "Status update failed: " + updateError.message : "Bug report status updated.");
+        if (!updateError) await showTab("bugs");
+      });
+    }
     area.appendChild(card);
-  });
+  }
 }
 
 // AUTH SESSION
