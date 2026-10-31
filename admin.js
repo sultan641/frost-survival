@@ -242,6 +242,12 @@ async function loadGameSettings() {
         <textarea name="description" rows="4">${safe(record.description)}</textarea>
 
         <label class="share-lock-control">
+          <input type="checkbox" name="share_enabled" ${record.share_enabled === true ? "checked" : ""}>
+          Enable Share Button on this game page
+        </label>
+        <p class="hint">When enabled, visitors can share this exact game-version page.</p>
+
+        <label class="share-lock-control">
           <input type="checkbox" name="share_lock" ${record.share_lock === true ? "checked" : ""}>
           Enable Share Lock for this game page
         </label>
@@ -306,6 +312,7 @@ async function saveGameSettings(event) {
     game_name: selectedGame,
     description: form.get("description"),
     share_lock: form.get("share_lock") === "on",
+    share_enabled: form.get("share_enabled") === "on",
     download_url: form.get("download_url"),
     registration_url: form.get("registration_url"),
     apk_url: form.get("apk_url"),
