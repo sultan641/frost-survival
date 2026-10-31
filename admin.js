@@ -243,6 +243,12 @@ async function loadGameSettings() {
         <label>Description</label>
         <textarea name="description" rows="4">${safe(record.description)}</textarea>
 
+        <label class="share-lock-control">
+          <input type="checkbox" name="share_lock" ${record.share_lock === true ? "checked" : ""}>
+          Enable Share Lock for this game page
+        </label>
+        <p class="hint">When enabled, visitors stay focused on this game's page and internal navigation links are hidden/blocked.</p>
+
         <label>Download URL</label>
         <input name="download_url" value="${safe(record.download_url)}">
 
@@ -301,6 +307,7 @@ async function saveGameSettings(event) {
   const record = {
     game_name: selectedGame,
     description: form.get("description"),
+    share_lock: form.get("share_lock") === "on",
     download_url: form.get("download_url"),
     registration_url: form.get("registration_url"),
     apk_url: form.get("apk_url"),
