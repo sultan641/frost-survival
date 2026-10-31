@@ -161,7 +161,7 @@ async function loadAnnouncements(client, gameName) {
     const { data, error } = await client
       .from("announcements")
       .select("title,message,created_at")
-      .eq("game_name", gameName)
+      .or(`game_name.eq.${gameName},game_name.eq.All Games`)
       .order("created_at", { ascending: false })
       .limit(10);
 
