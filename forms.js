@@ -1,6 +1,73 @@
 const FROST_URL="https://xnixsavppmmvbzfnybus.supabase.co";
 const FROST_KEY="sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
 const client=window.supabase?.createClient(FROST_URL,FROST_KEY);
-async function submitForm(form,table,mapper){const status=document.getElementById("formStatus");status.textContent="Submitting…";try{if(!client)throw Error("Supabase SDK did not load.");const payload=await mapper(new FormData(form));const {error}=await client.from(table).insert(payload);if(error)throw error;status.textContent="Submitted successfully. Thank you!";form.reset()}catch(e){console.error(e);status.textContent="Submission not configured or failed. Ask management to finish the SQL/RLS setup. ("+e.message+")"}}
-const app=document.getElementById("applicationForm");if(app)app.addEventListener("submit",e=>{e.preventDefault();submitForm(app,"team_applications",async f=>({name:f.get("name"),discord_username:f.get("discord"),role:f.get("role"),channel_url:f.get("channel")||null,livestream:f.get("live"),experience:f.get("experience")||null,message:f.get("message")}))});
-const bug=document.getElementById("bugForm");if(bug)bug.addEventListener("submit",e=>{e.preventDefault();submitForm(bug,"bug_reports",async f=>{let screenshot_url=null;const file=f.get("screenshot");if(file&&file.size){if(file.size>5*1024*1024)throw Error("Screenshot must be 5 MB or smaller.");if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Please use PNG, JPG, or WebP.");throw Error("Screenshot upload requires the private Storage bucket and upload policy from README. Remove the file and submit text, or configure Storage first.")}return {name:f.get("name"),game_name:f.get("game"),bug_location:f.get("location"),description:f.get("description"),suggested_solution:f.get("solution")||null,improvement_ideas:f.get("ideas")||null,screenshot_url}})});
+
+async function submitForm(form,table,mapper){
+  const status=document.getElementById("formStatus");
+  const button=form.querySelector('button[type="submit"]');
+  if(button)button.disabled=true;
+  status.textContent="Submitting…";
+  let uploadedPath=null;
+  try{
+    if(!client)throw Error("Supabase SDK did not load.");
+    const payload=await mapper(new FormData(form),path=>uploadedPath=path);
+    const {error}=await client.from(table).insert(payload);
+    if(error)throw error;
+    status.textContent="Submitted successfully. Thank you!";
+    form.reset();
+  }catch(e){
+    console.error(e);
+    if(uploadedPath){
+      const {error:removeError}=await client.storage.from("bug-screenshots").remove([uploadedPath]);
+      if(removeError)console.error("Screenshot cleanup failed:",removeError);
+    }
+    status.textContent="Submission failed: "+(e.message||"Please try again.");
+  }finally{
+    if(button)button.disabled=false;
+  }
+}
+
+const app=document.getElementById("applicationForm");
+if(app)app.addEventListener("submit",e=>{
+  e.preventDefault();
+  submitForm(app,"team_applications",async f=>({
+    name:f.get("name"),
+    role:f.get("role"),
+    contact:f.get("discord"),
+    social_links:f.get("channel")||null,
+    experience:[f.get("live")||"",f.get("experience")||""].filter(Boolean).join(" | ")||null,
+    message:f.get("message")
+  }));
+});
+
+const bug=document.getElementById("bugForm");
+if(bug)bug.addEventListener("submit",e=>{
+  e.preventDefault();
+  submitForm(bug,"bug_reports",async(f,setUploadedPath)=>{
+    let screenshot_path=null;
+    const file=f.get("screenshot");
+    if(file&&file.size){
+      if(file.size>5*1024*1024)throw Error("Screenshot must be 5 MB or smaller.");
+      if(!["image/png","image/jpeg","image/webp"].includes(file.type))throw Error("Please use PNG, JPG, or WebP.");
+      const extension={ "image/png":"png","image/jpeg":"jpg","image/webp":"webp" }[file.type];
+      const randomId=window.crypto?.randomUUID?.()||Date.now()+"-"+Math.random().toString(36).slice(2);
+      screenshot_path="reports/"+randomId+"."+extension;
+      const {error}=await client.storage.from("bug-screenshots").upload(screenshot_path,file,{contentType:file.type,upsert:false});
+      if(error)throw error;
+      setUploadedPath(screenshot_path);
+    }
+    const issue=[
+      "Location: "+f.get("location"),
+      "Problem: "+f.get("description"),
+      f.get("solution")?"Suggested solution: "+f.get("solution"):"",
+      f.get("ideas")?"Improvement ideas: "+f.get("ideas"):""
+    ].filter(Boolean).join("\n\n");
+    return {
+      game_name:f.get("game"),
+      player_name:f.get("name"),
+      issue,
+      steps_to_reproduce:null,
+      screenshot_path
+    };
+  });
+});
