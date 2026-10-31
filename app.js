@@ -287,8 +287,49 @@ function applyShareLock(enabled) {
   }, true);
 }
 
+function addGameShareButton(settings) {
+  if (settings.share_enabled !== true) return;
+
+  const actions = document.querySelector(".hero .actions");
+  if (!actions || document.getElementById("gameShareButton")) return;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.id = "gameShareButton";
+  button.className = "btn secondary";
+  button.textContent = "↗ Share This Page";
+
+  button.addEventListener("click", async () => {
+    const shareData = {
+      title: document.title,
+      text: document.querySelector(".hero h1")?.textContent || "Frost Survival",
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareData.url);
+        button.textContent = "Link Copied!";
+        setTimeout(() => button.textContent = "↗ Share This Page", 1600);
+      } else {
+        window.prompt("Copy this page link:", shareData.url);
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        window.prompt("Copy this page link:", shareData.url);
+      }
+    }
+  });
+
+  actions.appendChild(button);
+}
+
 function renderGameSettings(settings) {
   if (!settings) return;
+
+  addGameShareButton(settings);
 
   if (settings.share_lock === true) applyShareLock(true);
 
