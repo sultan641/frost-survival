@@ -193,8 +193,6 @@ async function openGame(index) {
 
     <div class="actions">
       <button onclick="showGameSection('settings')">Game Settings</button>
-      <button onclick="showGameSection('codes')">Gift Codes</button>
-      <button onclick="showGameSection('announcements')">Announcements</button>
     </div>
 
     <div id="gameSection"></div>
@@ -531,11 +529,6 @@ async function deleteAnnouncement(id) {
 // GLOBAL APPLICATIONS AND BUG REPORTS
 
 async function showTab(tab) {
-  if (tab === "codes" || tab === "announcements") {
-    showDashboard();
-    return;
-  }
-
   const table = tab === "apps" ? "team_applications" : "bug_reports";
   const title = tab === "apps" ? "Applications" : "Bug Reports";
 
