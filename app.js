@@ -239,8 +239,58 @@ function renderInstallationGuide(guide) {
   return section;
 }
 
+function applyShareLock(enabled) {
+  if (!enabled) return;
+
+  document.body.classList.add("share-lock-enabled");
+  document.body.dataset.shareLock = "true";
+
+  // Hide site navigation and internal links that leave this game page.
+  const style = document.createElement("style");
+  style.id = "shareLockStyles";
+  style.textContent = `
+    .share-lock-enabled header nav,
+    .share-lock-enabled footer a[href*="index.html"],
+    .share-lock-enabled a[href$=".html"]:not([href*="#"]) {
+      display: none !important;
+    }
+    .share-lock-banner {
+      margin: 12px auto;
+      max-width: 1100px;
+      padding: 10px 14px;
+      border: 1px solid rgba(120,190,255,.35);
+      border-radius: 10px;
+      color: #dceeff;
+      background: rgba(24,55,82,.75);
+      text-align: center;
+      font-size: 14px;
+    }
+  `;
+  document.head.appendChild(style);
+
+  const banner = document.createElement("div");
+  banner.className = "share-lock-banner";
+  banner.textContent = "🔒 This shared game page is in focused mode.";
+  const main = document.querySelector("main");
+  if (main) main.prepend(banner);
+
+  document.addEventListener("click", event => {
+    const link = event.target.closest("a[href]");
+    if (!link) return;
+    const href = link.getAttribute("href") || "";
+    const isInternalPage = /^(index|wos-v4|v5-europe|v5-china|kingshot-v4)\\.html(?:$|[?#])/i.test(href);
+    if (isInternalPage) {
+      event.preventDefault();
+      event.stopPropagation();
+      banner.textContent = "🔒 Navigation is disabled on this shared game page.";
+    }
+  }, true);
+}
+
 function renderGameSettings(settings) {
   if (!settings) return;
+
+  if (settings.share_lock === true) applyShareLock(true);
 
   // Description
   const description = findHeroDescription();
