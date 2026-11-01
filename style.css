@@ -13,3 +13,17 @@
 
 /* Homepage language selector */
 .nav-actions{gap:10px}.language-picker{display:flex;align-items:center;gap:5px;padding:6px 8px;border:1px solid #126da5;border-radius:9px;background:#04172b;color:#dff7ff;min-width:112px}.language-picker>span{font-size:17px}.language-picker select{max-width:115px;width:100%;border:0;outline:0;background:#04172b;color:#e9f8ff;font-size:12px;padding:4px 0}.language-picker option{background:#04172b;color:#fff}#google_translate_element{min-width:0}#google_translate_element .goog-te-gadget{font:12px var(--font)!important;color:#dff7ff!important}#google_translate_element .goog-te-gadget-simple{background:transparent!important;border:0!important;padding:0!important}#google_translate_element .goog-te-gadget-simple .goog-te-menu-value{color:#e9f8ff!important}#google_translate_element .goog-te-gadget-simple img{display:none!important}.goog-te-banner-frame.skiptranslate{display:none!important}body{top:0!important}.goog-te-gadget span{display:none!important}@media(max-width:650px){.nav-actions{gap:6px}.language-picker{min-width:0;padding:6px}.language-picker select{max-width:85px;font-size:11px}.nav-discord{font-size:10px!important}}
+
+
+/* Functional homepage guides, rewards, and news sections */
+.hub-section{scroll-margin-top:24px}
+.hub-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.hub-card{min-width:0;padding:20px;border:1px solid #155b88;border-radius:14px;background:linear-gradient(145deg,#08233e,#041426 78%);box-shadow:0 10px 28px #0003}
+.hub-card h3{font:800 23px var(--display);margin:9px 0;color:#eaf9ff;overflow-wrap:anywhere}
+.hub-card p{color:#b7cde1;font-size:14px;line-height:1.65}
+.hub-icon{font-size:26px}.hub-tag{display:inline-block;padding:5px 8px;border:1px solid #087fb6;border-radius:6px;color:#7be5ff;background:#03203a;font-size:11px;font-weight:800;letter-spacing:.5px}
+.hub-card-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.hub-card .btn{cursor:pointer}.hub-card .outline-link{display:inline-block;margin-top:10px}
+.reward-card .hub-card-actions .outline-link{margin-top:0}.news-card small{color:#7fa7c7}
+@media(max-width:800px){.hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.hub-grid{grid-template-columns:1fr}.hub-card{padding:16px}.hub-card h3{font-size:21px}.hub-card p{font-size:13px}}
