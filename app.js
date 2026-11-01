@@ -20,7 +20,7 @@ function esc(value) {
 function safeHttpUrl(value) {
   try {
     const url = new URL(String(value ?? "").trim());
-    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+    return url.protocol === "https:" ? url.href : "";
   } catch (_) {
     return "";
   }
