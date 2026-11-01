@@ -17,6 +17,15 @@ function esc(value) {
   })[char]);
 }
 
+function safeHttpUrl(value) {
+  try {
+    const url = new URL(String(value ?? "").trim());
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : "";
+  } catch (_) {
+    return "";
+  }
+}
+
 function getClient() {
   if (!window.supabase) {
     throw new Error("Supabase SDK did not load.");
@@ -163,7 +172,7 @@ async function loadAnnouncements(client, gameName) {
     const { data, error } = await client
       .from("announcements")
       .select("title,message,created_at")
-      .or(`game_name.eq.${gameName},game_name.eq.All Games`)
+      .in("game_name", [gameName, "All Games"])
       .order("created_at", { ascending: false })
       .limit(10);
 
@@ -204,11 +213,13 @@ function renderExtraLinks(links) {
       <h2>Useful Links</h2>
       <div class="actions">
         ${links.map(link => {
-          if (!link || typeof link !== "object" || !link.url) return "";
+          if (!link || typeof link !== "object") return "";
+          const url = safeHttpUrl(link.url);
+          if (!url) return "";
 
           return `
             <a class="btn secondary"
-               href="${esc(link.url)}"
+               href="${esc(url)}"
                target="_blank"
                rel="noopener noreferrer">
               ${esc(link.label || "Open Link")} ↗
@@ -353,8 +364,9 @@ function renderGameSettings(settings) {
   const downloadURL =
     settings.download_url || settings.registration_url;
 
-  if (downloadButton && downloadURL) {
-    downloadButton.href = downloadURL;
+  const safeDownloadURL = safeHttpUrl(downloadURL);
+  if (downloadButton && safeDownloadURL) {
+    downloadButton.href = safeDownloadURL;
   }
 
   // Version information
@@ -401,7 +413,10 @@ function renderGameSettings(settings) {
   // APK and iOS links
   let appLinks = document.getElementById("adminAppLinks");
 
-  if (!appLinks && (settings.apk_url || settings.ios_url)) {
+  const safeApkURL = safeHttpUrl(settings.apk_url);
+  const safeIosURL = safeHttpUrl(settings.ios_url);
+
+  if (!appLinks && (safeApkURL || safeIosURL)) {
     appLinks = document.createElement("section");
     appLinks.id = "adminAppLinks";
     appLinks.className = "section";
@@ -413,19 +428,19 @@ function renderGameSettings(settings) {
   }
 
   if (appLinks) {
-    appLinks.innerHTML = `
+    appLinks.innerHTML = (safeApkURL || safeIosURL) ? `
       <h2>Download Options</h2>
       <div class="actions">
-        ${settings.apk_url
-          ? `<a class="btn" href="${esc(settings.apk_url)}"
+        ${safeApkURL
+          ? `<a class="btn" href="${esc(safeApkURL)}"
                target="_blank" rel="noopener noreferrer">Download APK ↗</a>`
           : ""}
-        ${settings.ios_url
-          ? `<a class="btn secondary" href="${esc(settings.ios_url)}"
+        ${safeIosURL
+          ? `<a class="btn secondary" href="${esc(safeIosURL)}"
                target="_blank" rel="noopener noreferrer">iOS Download ↗</a>`
           : ""}
       </div>
-    `;
+    ` : "";
   }
 
   // Installation instructions
