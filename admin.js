@@ -193,6 +193,8 @@ async function openGame(index) {
 
     <div class="actions">
       <button onclick="showGameSection('settings')">Game Settings</button>
+      <button onclick="showGameSection('codes')">Gift Codes</button>
+      <button onclick="showGameSection('announcements')">News &amp; Announcements</button>
     </div>
 
     <div id="gameSection"></div>
