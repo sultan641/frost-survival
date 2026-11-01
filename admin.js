@@ -409,7 +409,7 @@ function renderGameCodes() {
     ? giftCodes.map(code => `
       <div class="admin-record">
         <strong>${safe(code.code)}</strong>
-        <p>${code.active ? "Active" : "Inactive"}</p>
+        <p>${!code.active ? "Inactive" : code.expires_at && new Date(code.expires_at) <= new Date() ? "Expired" : "Active"}</p>\n        <p>${code.expires_at ? "Expires: " + safe(new Date(code.expires_at).toLocaleString()) : "No expiry"}</p>
 
         <button onclick="toggleGameCode(${code.id}, ${!code.active})">
           ${code.active ? "Deactivate" : "Activate"}
