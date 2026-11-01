@@ -280,7 +280,12 @@ function applyShareLock(enabled) {
     const link = event.target.closest("a[href]");
     if (!link) return;
     const href = link.getAttribute("href") || "";
-    const isInternalPage = /^(index|wos-v4|v5-europe|v5-china|kingshot-v4)\\.html(?:$|[?#])/i.test(href);
+    let isInternalPage = false;
+    try {
+      const target = new URL(href, window.location.href);
+      const internalPages = new Set(["index.html", "wos-v4.html", "v5-europe.html", "v5-china.html", "kingshot-v4.html"]);
+      isInternalPage = target.origin === window.location.origin && internalPages.has(target.pathname.split("/").pop().toLowerCase());
+    } catch (_) {}
     if (isInternalPage) {
       event.preventDefault();
       event.stopPropagation();
