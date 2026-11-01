@@ -133,13 +133,15 @@ async function loadGiftCodes(client, gameName) {
   try {
     const { data, error } = await client
       .from("gift_codes")
-      .select("code")
+      .select("code,expires_at")
       .eq("game_name", gameName)
       .eq("active", true);
 
     if (error) throw error;
 
+    const now = Date.now();
     window.CODES = (data || [])
+      .filter(row => !row.expires_at || new Date(row.expires_at).getTime() > now)
       .flatMap(row =>
         String(row.code || "").trim().split(/\s+/)
       )
@@ -542,10 +544,11 @@ async function loadHomepageHub(client) {
   if (rewards) {
     try {
       const { data, error } = await client.from("gift_codes")
-        .select("game_name,code,created_at")
+        .select("game_name,code,created_at,expires_at")
         .eq("active", true).order("created_at", { ascending: false }).limit(40);
       if (error) throw error;
-      const rows = data || [];
+      const now = Date.now();
+      const rows = (data || []).filter(row => !row.expires_at || new Date(row.expires_at).getTime() > now);
       rewards.innerHTML = rows.length ? rows.map(row => {
         const game = HOME_GAMES.find(item => item.name === row.game_name);
         return `<article class="hub-card reward-card"><span class="hub-tag">${esc(game?.label || row.game_name || "Game")}</span><h3>${esc(row.code)}</h3><p>Active gift code. Availability may change; redeem in the matching game.</p><div class="hub-card-actions"><button class="btn" type="button" data-home-copy="${esc(row.code || "")}">Copy Code</button><a class="outline-link" href="${esc(game?.href || "#games")}">Game page →</a></div></article>`;
