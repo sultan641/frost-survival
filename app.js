@@ -499,3 +499,81 @@ document.addEventListener("DOMContentLoaded", () => {
     loadGameData(gameName);
   }
 });
+
+
+// HOMEPAGE LIVE REWARDS + NEWS
+const HOME_GAMES = [
+  { name: "Whiteout Survival V4", label: "WOS V4", href: "wos-v4.html" },
+  { name: "Whiteout Survival V5 Europe", label: "WOS V5 Europe", href: "v5-europe.html" },
+  { name: "Whiteout Survival V5 China", label: "WOS V5 China", href: "v5-china.html" },
+  { name: "KingShot V4", label: "KingShot V4", href: "kingshot-v4.html" }
+];
+
+async function loadHomepageHub(client) {
+  const rewards = document.getElementById("homeRewards");
+  const news = document.getElementById("homeNews");
+  if (!rewards && !news) return;
+
+  if (rewards) {
+    try {
+      const { data, error } = await client.from("gift_codes")
+        .select("game_name,code,created_at")
+        .eq("active", true).order("created_at", { ascending: false }).limit(40);
+      if (error) throw error;
+      const rows = data || [];
+      rewards.innerHTML = rows.length ? rows.map(row => {
+        const game = HOME_GAMES.find(item => item.name === row.game_name);
+        return `<article class="hub-card reward-card"><span class="hub-tag">${esc(game?.label || row.game_name || "Game")}</span><h3>${esc(row.code)}</h3><p>Active gift code. Availability may change; redeem in the matching game.</p><div class="hub-card-actions"><button class="btn" onclick="copyText(${JSON.stringify(String(row.code || ""))},this)">Copy Code</button><a class="outline-link" href="${esc(game?.href || "#games")}">Game page →</a></div></article>`;
+      }).join("") : '<div class="hub-card"><h3>No active codes yet</h3><p>New codes will appear here when the team publishes them.</p></div>';
+      const status = document.getElementById("homeRewardsStatus");
+      if (status) status.textContent = rows.length ? `${rows.length} active code entries loaded from the database.` : "No active codes currently published.";
+    } catch (error) {
+      rewards.innerHTML = '<div class="hub-card"><h3>Rewards temporarily unavailable</h3><p>Please try again later or check the game pages.</p></div>';
+      const status = document.getElementById("homeRewardsStatus");
+      if (status) status.textContent = "Could not connect to the rewards database.";
+    }
+  }
+
+  if (news) {
+    try {
+      const { data, error } = await client.from("announcements")
+        .select("title,message,game_name,created_at")
+        .order("created_at", { ascending: false }).limit(6);
+      if (error) throw error;
+      const rows = data || [];
+      news.innerHTML = rows.length ? rows.map(item => {
+        const game = HOME_GAMES.find(g => g.name === item.game_name);
+        const date = item.created_at ? new Date(item.created_at).toLocaleDateString() : "";
+        return `<article class="hub-card news-card"><span class="hub-tag">${esc(item.game_name || "All Games")}</span><h3>${esc(item.title || "Frost Survival Update")}</h3><p>${esc(item.message || "")}</p><small>${esc(date)}</small>${game ? `<p><a class="outline-link" href="${esc(game.href)}">Open game page →</a></p>` : ""}</article>`;
+      }).join("") : '<div class="hub-card"><h3>No announcements yet</h3><p>Team news and updates will appear here when published.</p></div>';
+      const status = document.getElementById("homeNewsStatus");
+      if (status) status.textContent = rows.length ? "Showing the latest published announcements." : "No news currently published.";
+    } catch (error) {
+      news.innerHTML = '<div class="hub-card"><h3>News temporarily unavailable</h3><p>Please check again later.</p></div>';
+      const status = document.getElementById("homeNewsStatus");
+      if (status) status.textContent = "Could not connect to the announcements database.";
+    }
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!document.getElementById("homeRewards") && !document.getElementById("homeNews")) return;
+  const start = () => {
+    try { loadHomepageHub(getClient()); }
+    catch (error) {
+      const status = document.getElementById("homeRewardsStatus");
+      if (status) status.textContent = "Rewards database could not be initialized.";
+    }
+  };
+  if (window.supabase) start();
+  else {
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+    script.onload = start;
+    script.onerror = () => {
+      const status = document.getElementById("homeRewardsStatus");
+      if (status) status.textContent = "Could not load the rewards service.";
+    };
+    document.head.appendChild(script);
+  }
+});
