@@ -384,10 +384,13 @@ function renderGameSettings(settings) {
     promoterBox.innerHTML = `
       <strong>${esc(settings.promoter_label || "Promoter Code")}:</strong>
       <span class="code">${esc(settings.promoter_code)}</span>
-      <button onclick="copyText(${JSON.stringify(settings.promoter_code)},this)">
+      <button type="button" data-copy-promoter="${esc(settings.promoter_code)}">
         Copy Code
       </button>
     `;
+    promoterBox.querySelector("[data-copy-promoter]")?.addEventListener("click", event => {
+      copyText(event.currentTarget.dataset.copyPromoter || "", event.currentTarget);
+    });
   }
 
   // APK and iOS links
