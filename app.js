@@ -202,7 +202,7 @@ async function loadAnnouncements(client, gameName) {
 // GAME SETTINGS
 
 function findHeroDescription() {
-  return document.querySelector(".hero > p");
+  return document.querySelector(".game-hero-copy > p, .hero > p");
 }
 
 function renderExtraLinks(links) {
@@ -308,7 +308,7 @@ function applyShareLock(enabled) {
 function addGameShareButton(settings) {
   if (settings.share_enabled !== true) return;
 
-  const actions = document.querySelector(".hero .actions");
+  const actions = document.querySelector(".game-hero-copy .actions, .hero .actions");
   if (!actions || document.getElementById("gameShareButton")) return;
 
   const button = document.createElement("button");
@@ -320,7 +320,7 @@ function addGameShareButton(settings) {
   button.addEventListener("click", async () => {
     const shareData = {
       title: document.title,
-      text: document.querySelector(".hero h1")?.textContent || "Frost Survival",
+      text: document.querySelector(".game-hero-copy h1, .hero h1")?.textContent || "Frost Survival",
       url: window.location.href
     };
 
@@ -359,7 +359,7 @@ function renderGameSettings(settings) {
   }
 
   // Main download button
-  const downloadButton = document.querySelector(".hero .actions .btn");
+  const downloadButton = document.querySelector(".game-hero-copy .actions .btn:not(.secondary), .hero .actions .btn:not(.secondary)");
 
   const downloadURL =
     settings.download_url || settings.registration_url;
@@ -378,7 +378,7 @@ function renderGameSettings(settings) {
       versionBox.id = "adminVersionInfo";
       versionBox.className = "notice";
 
-      const hero = document.querySelector(".hero");
+      const hero = document.querySelector(".game-hero-copy, .hero");
       if (hero) hero.appendChild(versionBox);
     }
 
