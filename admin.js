@@ -388,7 +388,10 @@ async function addGameCode(event) {
   const record = {
     game_name: selectedGame,
     code: form.get("code").trim(),
-    active: form.get("active") === "on"
+    active: form.get("active") === "on",
+    expires_at: form.get("expiry_days") === "never"
+      ? null
+      : new Date(Date.now() + Number(form.get("expiry_days")) * 86400000).toISOString()
   };
 
   if (!record.code) return status("Enter a gift code.");
