@@ -394,7 +394,7 @@ function renderGameSettings(settings) {
       promoterBox.id = "adminPromoterInfo";
       promoterBox.className = "promo";
 
-      const hero = document.querySelector(".hero");
+      const hero = document.querySelector(".game-hero-copy, .hero");
       if (hero) hero.appendChild(promoterBox);
     }
 
