@@ -636,4 +636,287 @@ db.auth.onAuthStateChange(() => {
 refreshAuth().catch(error => {
   console.error("Initial authentication check failed:", error);
   status("Could not check login status. Please reload the page.");
+});        <label>Expires After</label>
+        <select name="expiry_days">
+          <option value="1">1 day</option>
+          <option value="3">3 days</option>
+          <option value="7" selected>7 days</option>
+          <option value="14">14 days</option>
+          <option value="30">30 days</option>
+          <option value="never">Never expires</option>
+        </select>
+
+        <label>
+          <input type="checkbox" name="active" checked>
+          Active
+        </label>
+
+        <button type="submit">Add Gift Code</button>
+      </form>
+    </div>
+
+    <div id="gameCodeList"></div>
+  `;
+
+  $("codeForm").onsubmit = addGameCode;
+
+  renderGameCodes();
+}
+
+async function addGameCode(event) {
+  event.preventDefault();
+
+  const form = new FormData(event.target);
+
+  const record = {
+    game_name: selectedGame,
+    code: form.get("code").trim(),
+    active: form.get("active") === "on"
+  };
+
+  if (!record.code) return status("Enter a gift code.");
+
+  const { error } = await db.from("gift_codes").insert(record);
+
+  if (error) {
+    status("Could not add code: " + error.message);
+    return;
+  }
+
+  status("Gift code added.");
+  await loadGameCodes();
+}
+
+function renderGameCodes() {
+  $("gameCodeList").innerHTML = giftCodes.length
+    ? giftCodes.map(code => `
+      <div class="admin-record">
+        <strong>${safe(code.code)}</strong>
+        <p>${!code.active ? "Inactive" : code.expires_at && new Date(code.expires_at) <= new Date() ? "Expired" : "Active"}</p>\n        <p>${code.expires_at ? "Expires: " + safe(new Date(code.expires_at).toLocaleString()) : "No expiry"}</p>
+
+        <button onclick="toggleGameCode(${code.id}, ${!code.active})">
+          ${code.active ? "Deactivate" : "Activate"}
+        </button>
+
+        <button class="danger" onclick="deleteGameCode(${code.id})">
+          Delete
+        </button>
+      </div>
+    `).join("")
+    : "<p>No gift codes for this game.</p>";
+}
+
+async function toggleGameCode(id, active) {
+  const { error } = await db
+    .from("gift_codes")
+    .update({ active })
+    .eq("id", id);
+
+  if (error) return status(error.message);
+
+  status("Gift code status updated.");
+  await loadGameCodes();
+}
+
+async function deleteGameCode(id) {
+  if (!confirm("Delete this gift code permanently?")) return;
+
+  const { error } = await db
+    .from("gift_codes")
+    .delete()
+    .eq("id", id);
+
+  if (error) return status(error.message);
+
+  status("Gift code deleted.");
+  await loadGameCodes();
+}
+
+// ANNOUNCEMENTS
+
+async function loadGameAnnouncements() {
+  const area = $("gameSection");
+  area.innerHTML = "Loading announcements...";
+
+  const { data, error } = await db
+    .from("announcements")
+    .select("*")
+    .eq("game_name", selectedGame)
+    .order("id", { ascending: false });
+
+  if (error) {
+    area.textContent = "Error: " + error.message;
+    return;
+  }
+
+  announcements = data || [];
+
+  area.innerHTML = `
+    <div class="admin-section">
+      <h3>Publish Announcement</h3>
+
+      <form id="announcementForm">
+        <label>Title</label>
+        <input name="title" required>
+
+        <label>Message</label>
+        <textarea name="message" rows="5" required></textarea>
+
+        <button type="submit">Publish</button>
+      </form>
+    </div>
+
+    <div id="announcementList"></div>
+  `;
+
+  $("announcementForm").onsubmit = addAnnouncement;
+
+  $("announcementList").innerHTML = announcements.length
+    ? announcements.map(item => `
+      <div class="admin-record">
+        <h3>${safe(item.title)}</h3>
+        <p>${safe(item.message)}</p>
+        <button class="danger" onclick="deleteAnnouncement(${item.id})">
+          Delete
+        </button>
+      </div>
+    `).join("")
+    : "<p>No announcements for this game.</p>";
+}
+
+async function addAnnouncement(event) {
+  event.preventDefault();
+
+  const form = new FormData(event.target);
+
+  const { error } = await db.from("announcements").insert({
+    game_name: selectedGame,
+    title: form.get("title"),
+    message: form.get("message")
+  });
+
+  if (error) {
+    status("Publish failed: " + error.message);
+    return;
+  }
+
+  status("Announcement published.");
+  await loadGameAnnouncements();
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm("Delete this announcement?")) return;
+
+  const { error } = await db
+    .from("announcements")
+    .delete()
+    .eq("id", id);
+
+  if (error) return status(error.message);
+
+  status("Announcement deleted.");
+  await loadGameAnnouncements();
+}
+
+// GLOBAL APPLICATIONS AND BUG REPORTS
+
+async function showTab(tab) {
+  const table = tab === "apps" ? "team_applications" : "bug_reports";
+  const title = tab === "apps" ? "Applications" : "Bug Reports";
+
+  $("adminContent").innerHTML = `
+    <button class="secondary" onclick="showDashboard()">← Dashboard</button>
+    <h2>${title}</h2>
+    <div id="globalRecords">Loading...</div>
+  `;
+
+  const { data, error } = await db
+    .from(table)
+    .select("*")
+    .order("id", { ascending: false })
+    .limit(100);
+
+  const area = $("globalRecords");
+  if (error) {
+    area.textContent = "Error: " + error.message;
+    return;
+  }
+  if (!data || !data.length) {
+    area.textContent = "No records found.";
+    return;
+  }
+
+  area.innerHTML = "";
+  for (const record of data) {
+    const card = document.createElement("div");
+    card.className = "admin-record";
+
+    if (tab === "apps") {
+      card.innerHTML = `
+        <h3>${safe(record.name || "Application")}</h3>
+        <p><strong>Role:</strong> ${safe(record.role)}</p>
+        <p><strong>Discord:</strong> ${safe(record.contact)}</p>
+        <p><strong>Channel:</strong> ${safe(record.social_links)}</p>
+        <p><strong>Experience:</strong> ${safe(record.experience)}</p>
+        <p><strong>Message:</strong><br>${safe(record.message)}</p>
+        <small>${safe(record.created_at)}</small>
+      `;
+    } else {
+      card.innerHTML = `
+        <h3>${safe(record.game_name)} — #${safe(record.id)}</h3>
+        <p><strong>Player:</strong> ${safe(record.player_name)}</p>
+        <p><strong>Issue:</strong><br>${safe(record.issue)}</p>
+        <p><strong>Steps:</strong><br>${safe(record.steps_to_reproduce || "Not provided")}</p>
+        <p><strong>Status:</strong> ${safe(record.status)}</p>
+        <div class="bug-screenshot">Loading screenshot...</div>
+        <label>Update status</label>
+        <select class="bug-status">
+          <option value="new" ${record.status === "new" ? "selected" : ""}>New</option>
+          <option value="reviewing" ${record.status === "reviewing" ? "selected" : ""}>Reviewing</option>
+          <option value="resolved" ${record.status === "resolved" ? "selected" : ""}>Resolved</option>
+        </select>
+        <button type="button" class="save-bug-status">Save Status</button>
+        <small>${safe(record.created_at)}</small>
+      `;
+      const screenshotArea = card.querySelector(".bug-screenshot");
+      if (record.screenshot_path) {
+        const { data: signed, error: signedError } = await db.storage
+          .from("bug-screenshots")
+          .createSignedUrl(record.screenshot_path, 300);
+        if (signedError) {
+          screenshotArea.textContent = "Screenshot unavailable: " + signedError.message;
+        } else {
+          screenshotArea.innerHTML = `<a href="${safe(signed.signedUrl)}" target="_blank" rel="noopener">Open private screenshot</a>`;
+        }
+      } else {
+        screenshotArea.textContent = "No screenshot attached.";
+      }
+      card.querySelector(".save-bug-status").addEventListener("click", async () => {
+        const nextStatus = card.querySelector(".bug-status").value;
+        const { error: updateError } = await db.from("bug_reports")
+          .update({ status: nextStatus }).eq("id", record.id);
+        status(updateError ? "Status update failed: " + updateError.message : "Bug report status updated.");
+        if (!updateError) await showTab("bugs");
+      });
+    }
+    area.appendChild(card);
+  }
+}
+
+// AUTH SESSION
+
+// Defer session refresh until the auth callback has completed to avoid
+// re-entering Supabase auth methods from inside onAuthStateChange.
+db.auth.onAuthStateChange(() => {
+  queueMicrotask(() => {
+    refreshAuth().catch(error => {
+      console.error("Authentication refresh failed:", error);
+      status("Could not refresh login status. Please reload the page.");
+    });
+  });
+});
+
+refreshAuth().catch(error => {
+  console.error("Initial authentication check failed:", error);
+  status("Could not check login status. Please reload the page.");
 });
