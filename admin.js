@@ -622,8 +622,18 @@ async function showTab(tab) {
 
 // AUTH SESSION
 
+// Defer session refresh until the auth callback has completed to avoid
+// re-entering Supabase auth methods from inside onAuthStateChange.
 db.auth.onAuthStateChange(() => {
-  refreshAuth();
+  queueMicrotask(() => {
+    refreshAuth().catch(error => {
+      console.error("Authentication refresh failed:", error);
+      status("Could not refresh login status. Please reload the page.");
+    });
+  });
 });
 
-refreshAuth();
+refreshAuth().catch(error => {
+  console.error("Initial authentication check failed:", error);
+  status("Could not check login status. Please reload the page.");
+});
