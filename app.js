@@ -96,12 +96,14 @@ function drawCodes(codes) {
     ? codes.map(code => `
         <div class="code-row">
           <span class="code">${esc(code)}</span>
-          <button onclick="copyText(${JSON.stringify(code)},this)">
-            Copy
-          </button>
+          <button type="button" data-copy-code="${esc(code)}">Copy</button>
         </div>
       `).join("")
     : '<p class="muted">No active gift codes found.</p>';
+
+  area.querySelectorAll("[data-copy-code]").forEach(button => {
+    button.addEventListener("click", () => copyText(button.dataset.copyCode || "", button));
+  });
 }
 
 function filterCodes() {
@@ -523,8 +525,11 @@ async function loadHomepageHub(client) {
       const rows = data || [];
       rewards.innerHTML = rows.length ? rows.map(row => {
         const game = HOME_GAMES.find(item => item.name === row.game_name);
-        return `<article class="hub-card reward-card"><span class="hub-tag">${esc(game?.label || row.game_name || "Game")}</span><h3>${esc(row.code)}</h3><p>Active gift code. Availability may change; redeem in the matching game.</p><div class="hub-card-actions"><button class="btn" onclick="copyText(${JSON.stringify(String(row.code || ""))},this)">Copy Code</button><a class="outline-link" href="${esc(game?.href || "#games")}">Game page →</a></div></article>`;
+        return `<article class="hub-card reward-card"><span class="hub-tag">${esc(game?.label || row.game_name || "Game")}</span><h3>${esc(row.code)}</h3><p>Active gift code. Availability may change; redeem in the matching game.</p><div class="hub-card-actions"><button class="btn" type="button" data-home-copy="${esc(row.code || "")}">Copy Code</button><a class="outline-link" href="${esc(game?.href || "#games")}">Game page →</a></div></article>`;
       }).join("") : '<div class="hub-card"><h3>No active codes yet</h3><p>New codes will appear here when the team publishes them.</p></div>';
+      rewards.querySelectorAll("[data-home-copy]").forEach(button => {
+        button.addEventListener("click", () => copyText(button.dataset.homeCopy || "", button));
+      });
       const status = document.getElementById("homeRewardsStatus");
       if (status) status.textContent = rows.length ? `${rows.length} active code entries loaded from the database.` : "No active codes currently published.";
     } catch (error) {
