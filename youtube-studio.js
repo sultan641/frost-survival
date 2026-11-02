@@ -18,11 +18,40 @@ async function checkYouTube(){
   }catch(err){btn.textContent="Connect YouTube with Google";say("youtubeStatus","Could not verify connection: "+err.message);}
 }
 
+function uploadFileWithProgress(path,file,accessToken){
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    const encodedPath=path.split("/").map(encodeURIComponent).join("/");
+    xhr.open("POST",SUPABASE_URL+"/storage/v1/object/youtube-studio-private/"+encodedPath);
+    xhr.setRequestHeader("apikey",SUPABASE_KEY);
+    xhr.setRequestHeader("Authorization","Bearer "+accessToken);
+    xhr.setRequestHeader("Content-Type",file.type);
+    xhr.setRequestHeader("x-upsert","false");
+    xhr.upload.addEventListener("progress",event=>{
+      if(!event.lengthComputable)return;
+      const sent=Math.min(event.loaded,file.size);
+      const total=file.size;
+      const percent=Math.min(100,Math.round(sent/total*100));
+      const mb=n=>(n/1048576).toFixed(1);
+      $("progressBar").style.width=percent+"%";
+      say("uploadStatus","Uploading: "+percent+"% • "+mb(sent)+" MB / "+mb(total)+" MB • "+mb(total-sent)+" MB left");
+    });
+    xhr.addEventListener("load",()=>{
+      let data={};try{data=JSON.parse(xhr.responseText||"{}");}catch{}
+      if(xhr.status>=200&&xhr.status<300)resolve(data);
+      else reject(new Error(data.message||data.error||data.msg||("Storage upload failed ("+xhr.status+")")));
+    });
+    xhr.addEventListener("error",()=>reject(new Error("Network/CORS error: the browser could not reach private storage.")));
+    xhr.addEventListener("abort",()=>reject(new Error("Upload was cancelled.")));
+    xhr.send(file);
+  });
+}
+
 async function checkAdmin(){const {data,error}=await db.auth.getSession();if(error){say("loginStatus",error.message);return;}const user=data.session?.user;if(user&&user.id!==ADMIN_UID){await db.auth.signOut();say("loginStatus","Access denied. Administrator only.");return;}const ok=!!user;$("loginBox").hidden=ok;$("studio").hidden=!ok;if(ok){await loadJobs();await checkYouTube();}}
 $("loginForm").addEventListener("submit",async e=>{e.preventDefault();say("loginStatus","Signing in…");const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){say("loginStatus","Sign in failed: "+error.message);return;}await checkAdmin();});
 $("connectYoutubeBtn").addEventListener("click",async()=>{const {data:{session}}=await db.auth.getSession();if(!session||session.user.id!==ADMIN_UID){say("youtubeStatus","Admin session expired. Sign in again.");return;}const btn=$("connectYoutubeBtn");btn.disabled=true;say("youtubeStatus","Opening Google authorization…");try{const res=await fetch(SUPABASE_URL+"/functions/v1/youtube-oauth-start",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,apikey:SUPABASE_KEY,"Content-Type":"application/json"},body:"{}"});const data=await res.json();if(!res.ok||!data.url)throw new Error(data.message||"Could not start Google authorization.");window.location.href=data.url;}catch(err){say("youtubeStatus","Connection failed: "+err.message);btn.disabled=false;}});
 $("logoutBtn").addEventListener("click",async()=>{await db.auth.signOut();$("studio").hidden=true;$("loginBox").hidden=false;say("loginStatus","Signed out.");});
-$("uploadForm").addEventListener("submit",async e=>{e.preventDefault();const file=$("videoFile").files[0];if(!file)return;if(file.size>524288000){say("uploadStatus","File is larger than 500 MB.");return;}if(!["video/mp4","video/quicktime","video/webm"].includes(file.type)){say("uploadStatus","Please choose an MP4, MOV or WebM video.");return;}const {data:{session}}=await db.auth.getSession();if(!session||session.user.id!==ADMIN_UID){say("uploadStatus","Admin session expired. Sign in again.");return;}const btn=$("uploadBtn");btn.disabled=true;$( "progressBar").style.width="5%";say("uploadStatus","Starting secure upload…");let path=null;try{const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");path=session.user.id+"/"+crypto.randomUUID()+"-"+safeName;say("uploadStatus","Uploading securely…");const up=await db.storage.from("youtube-studio-private").upload(path,file,{contentType:file.type,upsert:false});if(up.error)throw new Error(up.error.message);$("progressBar").style.width="80%";const ins=await db.from("youtube_studio_jobs").insert({owner_id:session.user.id,original_path:path,original_name:file.name,mime_type:file.type,file_size:file.size,status:"uploaded",description:$("editNotes").value.trim()||null});if(ins.error){await db.storage.from("youtube-studio-private").remove([path]);path=null;throw new Error("Video uploaded, but queue registration failed: "+ins.error.message);} $("progressBar").style.width="100%";say("uploadStatus","Video uploaded and saved privately. AI processing is awaiting backend setup.");e.target.reset();await loadJobs();}catch(err){console.error("Frost Survival video upload error:",err);$("progressBar").style.width="0%";const msg=err?.message||String(err);say("uploadStatus",msg==="Failed to fetch"?"Network/CORS error: the browser could not reach private storage. Try another network or Chrome, then retry.": "Upload failed: "+msg);}finally{btn.disabled=false;}});
+$("uploadForm").addEventListener("submit",async e=>{e.preventDefault();const file=$("videoFile").files[0];if(!file)return;if(file.size>524288000){say("uploadStatus","File is larger than 500 MB.");return;}if(!["video/mp4","video/quicktime","video/webm"].includes(file.type)){say("uploadStatus","Please choose an MP4, MOV or WebM video.");return;}const {data:{session}}=await db.auth.getSession();if(!session||session.user.id!==ADMIN_UID){say("uploadStatus","Admin session expired. Sign in again.");return;}const btn=$("uploadBtn");btn.disabled=true;$( "progressBar").style.width="5%";say("uploadStatus","Starting secure upload…");let path=null;try{const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");path=session.user.id+"/"+crypto.randomUUID()+"-"+safeName;say("uploadStatus","Uploading securely…");await uploadFileWithProgress(path,file,session.access_token);$("progressBar").style.width="95%";say("uploadStatus","Upload complete. Saving to your queue…");const ins=await db.from("youtube_studio_jobs").insert({owner_id:session.user.id,original_path:path,original_name:file.name,mime_type:file.type,file_size:file.size,status:"uploaded",description:$("editNotes").value.trim()||null});if(ins.error){await db.storage.from("youtube-studio-private").remove([path]);path=null;throw new Error("Video uploaded, but queue registration failed: "+ins.error.message);} $("progressBar").style.width="100%";say("uploadStatus","Video uploaded and saved privately. AI processing is awaiting backend setup.");e.target.reset();await loadJobs();}catch(err){console.error("Frost Survival video upload error:",err);$("progressBar").style.width="0%";const msg=err?.message||String(err);say("uploadStatus",msg==="Failed to fetch"?"Network/CORS error: the browser could not reach private storage. Try another network or Chrome, then retry.": "Upload failed: "+msg);}finally{btn.disabled=false;}});
 async function loadJobs(){const {data,error}=await db.from("youtube_studio_jobs").select("id,original_name,file_size,status,title,youtube_video_id,error_message,created_at").order("created_at",{ascending:false}).limit(30);const el=$("jobs");if(error){el.textContent="Could not load queue: "+error.message;return;}if(!data?.length){el.innerHTML='<p class="yt-muted">No uploads yet.</p>';return;}el.innerHTML=data.map(j=>'<div class="yt-job"><strong>'+esc(j.original_name)+'</strong><p class="yt-muted">'+(j.file_size/1048576).toFixed(1)+' MB • '+new Date(j.created_at).toLocaleString()+'</p><b>Status: '+esc(j.status)+'</b>'+(j.title?'<p>'+esc(j.title)+'</p>':'')+(j.youtube_video_id?'<p>YouTube ID: '+esc(j.youtube_video_id)+'</p>':'')+(j.error_message?'<p>'+esc(j.error_message)+'</p>':'')+'</div>').join("");}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 db.auth.onAuthStateChange(()=>setTimeout(checkAdmin,0));checkAdmin();
