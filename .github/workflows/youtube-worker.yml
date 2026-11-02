@@ -1,0 +1,30 @@
+name: Frost Survival YouTube Worker
+on:
+  workflow_dispatch:
+  # Keep automatic scheduling disabled until repository secrets are configured.
+permissions:
+  contents: read
+jobs:
+  process-one-video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Install worker dependencies
+        run: pip install -r worker/requirements.txt
+      - name: Process one queued video
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GOOGLE_TOKEN_ENCRYPTION_KEY: ${{ secrets.GOOGLE_TOKEN_ENCRYPTION_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          ADMIN_UID: ${{ secrets.ADMIN_UID }}
+        run: python worker/process_video.py
