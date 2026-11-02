@@ -18,9 +18,21 @@ async function checkYouTube(){
   }catch(err){btn.textContent="Connect YouTube with Google";say("youtubeStatus","Could not verify connection: "+err.message);}
 }
 
-function uploadFileWithProgress(path,file,accessToken){
+let tusLibraryPromise;
+function loadTusLibrary(){
+  if(window.tus)return Promise.resolve(window.tus);
+  if(!tusLibraryPromise)tusLibraryPromise=new Promise((resolve,reject)=>{
+    const script=document.createElement("script");
+    script.src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js";
+    script.onload=()=>window.tus?resolve(window.tus):reject(new Error("Resumable upload library did not load."));
+    script.onerror=()=>reject(new Error("Could not load resumable upload support. Check your connection."));
+    document.head.appendChild(script);
+  });
+  return tusLibraryPromise;
+}
+async function uploadFileWithProgress(path,file,accessToken){
+  const tus=await loadTusLibrary();
   return new Promise((resolve,reject)=>{
-    if(!window.tus?.Upload){reject(new Error("Resumable upload library did not load. Refresh the page and retry."));return;}
     const upload=new tus.Upload(file,{
       endpoint:"https://xnixsavppmmvbzfnybus.storage.supabase.co/storage/v1/upload/resumable",
       retryDelays:[0,3000,5000,10000,20000],
@@ -30,11 +42,11 @@ function uploadFileWithProgress(path,file,accessToken){
       chunkSize:6*1024*1024,
       metadata:{bucketName:"youtube-studio-private",objectName:path,contentType:file.type,cacheControl:"3600"},
       onError:error=>reject(error),
-      onProgress:(sent,total)=>{
-        const percent=Math.min(100,Math.round(sent/total*100));
+      onProgress:(uploaded,total)=>{
+        const percent=Math.min(100,Math.round(uploaded/total*100));
         const mb=n=>(n/1048576).toFixed(1);
         $("progressBar").style.width=percent+"%";
-        say("uploadStatus","Uploading: "+percent+"% • "+mb(sent)+" MB / "+mb(total)+" MB • "+mb(total-sent)+" MB left");
+        say("uploadStatus","Uploading: "+percent+"% • "+mb(uploaded)+" MB / "+mb(total)+" MB • "+mb(Math.max(0,total-uploaded))+" MB left");
       },
       onSuccess:()=>resolve()
     });
