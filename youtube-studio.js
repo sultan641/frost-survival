@@ -20,30 +20,23 @@ async function checkYouTube(){
 
 function uploadFileWithProgress(path,file,accessToken){
   return new Promise((resolve,reject)=>{
-    const xhr=new XMLHttpRequest();
-    const encodedPath=path.split("/").map(encodeURIComponent).join("/");
-    xhr.open("POST",SUPABASE_URL+"/storage/v1/object/youtube-studio-private/"+encodedPath);
-    xhr.setRequestHeader("apikey",SUPABASE_KEY);
-    xhr.setRequestHeader("Authorization","Bearer "+accessToken);
-    xhr.setRequestHeader("Content-Type",file.type);
-    xhr.setRequestHeader("x-upsert","false");
-    xhr.upload.addEventListener("progress",event=>{
-      if(!event.lengthComputable)return;
-      const sent=Math.min(event.loaded,file.size);
-      const total=file.size;
-      const percent=Math.min(100,Math.round(sent/total*100));
-      const mb=n=>(n/1048576).toFixed(1);
-      $("progressBar").style.width=percent+"%";
-      say("uploadStatus","Uploading: "+percent+"% • "+mb(sent)+" MB / "+mb(total)+" MB • "+mb(total-sent)+" MB left");
+    if(!window.tus?.Upload){reject(new Error("Resumable upload library did not load. Refresh the page and try again."));return;}
+    const mb=n=>(n/1048576).toFixed(1);
+    const upload=new tus.Upload(file,{
+      endpoint:SUPABASE_URL+"/storage/v1/upload/resumable",
+      retryDelays:[0,1000,3000,5000,10000],
+      chunkSize:6*1024*1024,
+      headers:{authorization:"Bearer "+accessToken,apikey:SUPABASE_KEY,"x-upsert":"false"},
+      metadata:{bucketName:"youtube-studio-private",objectName:path,contentType:file.type,cacheControl:"3600"},
+      onError:error=>reject(error),
+      onProgress:(sent,total)=>{
+        const percent=Math.min(100,Math.round(sent/total*100));
+        $("progressBar").style.width=percent+"%";
+        say("uploadStatus","Uploading: "+percent+"% • "+mb(sent)+" MB / "+mb(total)+" MB • "+mb(total-sent)+" MB left");
+      },
+      onSuccess:()=>resolve({})
     });
-    xhr.addEventListener("load",()=>{
-      let data={};try{data=JSON.parse(xhr.responseText||"{}");}catch{}
-      if(xhr.status>=200&&xhr.status<300)resolve(data);
-      else reject(new Error(data.message||data.error||data.msg||("Storage upload failed ("+xhr.status+")")));
-    });
-    xhr.addEventListener("error",()=>reject(new Error("Network/CORS error: the browser could not reach private storage.")));
-    xhr.addEventListener("abort",()=>reject(new Error("Upload was cancelled.")));
-    xhr.send(file);
+    upload.start();
   });
 }
 
