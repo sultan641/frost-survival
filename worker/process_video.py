@@ -72,7 +72,9 @@ def main():
     patch = lambda values: db(f"youtube_studio_jobs?id=eq.{job_id}&owner_id=eq.{ADMIN}", "PATCH", json=values, headers={"Prefer":"return=minimal"})
     patch({"status":"processing", "error_message":None, "updated_at":datetime.now(timezone.utc).isoformat()})
     try:
-        signed = db(f"storage/v1/object/sign/{BUCKET}/{job['original_path']}", "POST", json={"expiresIn":3600}).json()
+        signed_response = requests.post(URL + f"/storage/v1/object/sign/{BUCKET}/{job['original_path']}", headers=HEADERS, json={"expiresIn":3600}, timeout=60)
+        signed_response.raise_for_status()
+        signed = signed_response.json()
         signed_url = signed.get("signedURL") or signed.get("signedUrl")
         if not signed_url:
             raise RuntimeError("Could not create a private download link.")
