@@ -20,23 +20,28 @@ async function checkYouTube(){
 
 function uploadFileWithProgress(path,file,accessToken){
   return new Promise((resolve,reject)=>{
-    if(!window.tus?.Upload){reject(new Error("Resumable upload library did not load. Refresh the page and try again."));return;}
-    const mb=n=>(n/1048576).toFixed(1);
+    if(!window.tus?.Upload){reject(new Error("Resumable upload library did not load. Refresh the page and retry."));return;}
     const upload=new tus.Upload(file,{
-      endpoint:SUPABASE_URL+"/storage/v1/upload/resumable",
-      retryDelays:[0,1000,3000,5000,10000],
-      chunkSize:6*1024*1024,
+      endpoint:"https://xnixsavppmmvbzfnybus.storage.supabase.co/storage/v1/upload/resumable",
+      retryDelays:[0,3000,5000,10000,20000],
       headers:{authorization:"Bearer "+accessToken,apikey:SUPABASE_KEY,"x-upsert":"false"},
+      uploadDataDuringCreation:true,
+      removeFingerprintOnSuccess:true,
+      chunkSize:6*1024*1024,
       metadata:{bucketName:"youtube-studio-private",objectName:path,contentType:file.type,cacheControl:"3600"},
       onError:error=>reject(error),
       onProgress:(sent,total)=>{
         const percent=Math.min(100,Math.round(sent/total*100));
+        const mb=n=>(n/1048576).toFixed(1);
         $("progressBar").style.width=percent+"%";
         say("uploadStatus","Uploading: "+percent+"% • "+mb(sent)+" MB / "+mb(total)+" MB • "+mb(total-sent)+" MB left");
       },
-      onSuccess:()=>resolve({})
+      onSuccess:()=>resolve()
     });
-    upload.start();
+    upload.findPreviousUploads().then(previous=>{
+      if(previous.length)upload.resumeFromPreviousUpload(previous[0]);
+      upload.start();
+    }).catch(reject);
   });
 }
 
