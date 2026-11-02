@@ -91,10 +91,10 @@ def main():
                 "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k",
                 "-movflags","+faststart",str(output_file)]
             subprocess.run(cmd, check=True, capture_output=True, text=True)
-            output_path = f"{ADMIN}/processed/{job_id}.mp4"
+            output_path = f"{ADMIN}/processed/{job_id}-{int(datetime.now(timezone.utc).timestamp())}.mp4"
             with output_file.open("rb") as f:
                 up = requests.post(URL + f"/storage/v1/object/{BUCKET}/{output_path}",
-                    headers={**HEADERS,"Content-Type":"video/mp4","x-upsert":"true"},
+                    headers={**HEADERS,"Content-Type":"video/mp4","x-upsert":"false"},
                     data=f, timeout=600)
                 up.raise_for_status()
             notes = (job.get("description") or "").strip()
@@ -111,7 +111,7 @@ def main():
             response = None
             while response is None:
                 _, response = request.next_chunk()
-            patch({"status":"published_private","title":title,"output_path":output_path,
+            patch({"status":"published","title":title,"output_path":output_path,
                    "youtube_video_id":response["id"],"error_message":None,
                    "updated_at":datetime.now(timezone.utc).isoformat()})
             print("Processed and uploaded privately:", response["id"])
