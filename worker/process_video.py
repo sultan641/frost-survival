@@ -66,7 +66,7 @@ def safe_title(name, notes):
     return title[:100]
 
 def main():
-    jobs = db(f"youtube_studio_jobs?owner_id=eq.{ADMIN}&status=eq.uploaded&select=*&order=created_at.asc&limit=1").json()
+    jobs = db(f"youtube_studio_jobs?owner_id=eq.{ADMIN}&status=in.(uploaded,queued)&select=*&order=created_at.asc&limit=1").json()
     if not jobs:
         print("No uploaded jobs waiting.")
         return
@@ -74,6 +74,7 @@ def main():
     job_id = job["id"]
     patch = lambda values: db(f"youtube_studio_jobs?id=eq.{job_id}&owner_id=eq.{ADMIN}", "PATCH", json=values, headers={"Prefer":"return=minimal"})
     patch({"status":"processing", "error_message":None, "updated_at":datetime.now(timezone.utc).isoformat()})
+    print(f"Processing job {job_id}: {job.get('original_name', 'video')} ({job.get('file_size', 0)} bytes)")
     try:
         signed_response = requests.post(URL + f"/storage/v1/object/sign/{BUCKET}/{job['original_path']}", headers=HEADERS, json={"expiresIn":3600}, timeout=60)
         signed_response.raise_for_status()
@@ -118,6 +119,7 @@ def main():
                    "youtube_video_id":response["id"],"error_message":None,
                    "updated_at":datetime.now(timezone.utc).isoformat()})
             print("Processed and uploaded privately:", response["id"])
+            print("Private YouTube URL: https://www.youtube.com/watch?v=" + response["id"])
     except Exception as e:
         patch({"status":"failed","error_message":str(e)[:1000],
                "updated_at":datetime.now(timezone.utc).isoformat()})
