@@ -271,9 +271,14 @@ def main():
                 voice = voice_map.get(language, "en-US-GuyNeural")
                 try:
                     asyncio.run(edge_tts.Communicate(narration_text, voice).save(str(voiceover_file)))
+                    if not voiceover_file.exists() or voiceover_file.stat().st_size < 1000:
+                        raise RuntimeError("Voiceover file was empty or incomplete.")
                 except Exception as tts_error:
-                    raise RuntimeError("AI voiceover was requested but narration generation failed: " + str(tts_error)[:400])
-            has_voice = voiceover_enabled and voiceover_file.exists() and voiceover_file.stat().st_size
+                    # A temporary TTS/network failure should not cancel video editing.
+                    print("AI voiceover unavailable; continuing with captions and gameplay audio:", str(tts_error)[:400], flush=True)
+                    voiceover_file.unlink(missing_ok=True)
+                    voiceover_enabled = False
+            has_voice = voiceover_enabled and voiceover_file.exists() and voiceover_file.stat().st_size >= 1000
             if music_enabled and has_voice:
                 cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-i",str(music_file),"-t","180","-vf",vf,
                     "-filter_complex","[0:a]volume=0.18[game];[1:a]volume=0.95[narration];[2:a]volume=0.12[music];[game][narration][music]amix=inputs=3:duration=first:dropout_transition=2[a]",
