@@ -233,10 +233,11 @@ def main():
                         continue
                     count += 1
                     captions.write(f"{count}\n{stamp(start_time)} --> {stamp(end_time)}\n{caption_text}\n\n")
-                # Add creator notes as an opening caption when footage has no speech.
-                if count == 0 and edit_notes:
+                # Always show the creator's key instruction/code as an opening overlay.
+                if edit_notes:
                     count += 1
-                    captions.write(f"{count}\n{stamp(0)} --> {stamp(min(7.0, clip_length))}\n{edit_notes[:180]}\n\n")
+                    opening = re.sub(r"\s+", " ", edit_notes).strip()[:120]
+                    captions.write(f"{count}\n{stamp(0)} --> {stamp(min(6.0, clip_length))}\n{opening}\n\n")
             print(f"Auto-selected highlight: {highlight_start:.1f}s to {highlight_end:.1f}s")
             progress("rendering", 52, "Building vertical video, captions, narration and music")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
@@ -271,8 +272,7 @@ def main():
                 try:
                     asyncio.run(edge_tts.Communicate(narration_text, voice).save(str(voiceover_file)))
                 except Exception as tts_error:
-                    print("Neural voiceover unavailable; keeping original game audio:", str(tts_error)[:300])
-                    voiceover_enabled = False
+                    raise RuntimeError("AI voiceover was requested but narration generation failed: " + str(tts_error)[:400])
             has_voice = voiceover_enabled and voiceover_file.exists() and voiceover_file.stat().st_size
             if music_enabled and has_voice:
                 cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-i",str(music_file),"-t","180","-vf",vf,
@@ -330,13 +330,14 @@ def main():
             # the camera filename. Only claim a specific reward when the notes say it.
             content_text = (notes + " " + transcript).strip()
             content_lower = content_text.lower()
-            version_match = re.search(r"\b(v[45])\\b", content_lower)
+            version_match = re.search(r"\b(v[45])\b", content_lower)
             version_label = (" " + version_match.group(1).upper()) if version_match else ""
-            code_match = re.search(r"\b(?=[A-Za-z0-9]{6,12}\\b)(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[0-9])[A-Za-z0-9]+\\b", content_text)
+            code_match = re.search(r"\b[A-Z0-9]{6,16}\b", content_text.upper())
             code_value = code_match.group(0) if code_match else ""
-            if re.search(r"gift\\s*code|redeem\\s*code|\\bcode\\b", content_lower) or code_value:
-                reward_phrase = "Free Frost Stars" if re.search(r"frost\\s*stars", content_lower) else "Free Rewards"
-                title = f"NEW {game_name}{version_label} Gift Code! Claim {reward_phrase} 🎁"
+            if re.search(r"gift\s*code|redeem\s*code|\bcode\b", content_lower) or code_value:
+                # Never promise a specific reward unless the creator's notes verify it.
+                reward_phrase = "Free Frost Stars" if re.search(r"frost\s*stars", content_lower) else ("Free Gems" if re.search(r"\bgems?\b", content_lower) else "Free Rewards")
+                title = f"NEW{version_label} {game_name} Gift Code! Claim {reward_phrase} 🎁"
                 if code_value:
                     title += f" | {code_value}"
             elif job.get("title"):
@@ -393,14 +394,18 @@ def main():
             response = None
             while response is None:
                 _, response = request.next_chunk()
+            thumbnail_warning = None
             try:
                 thumb_media = MediaFileUpload(str(thumbnail_file), mimetype="image/jpeg", resumable=False)
                 youtube.thumbnails().set(videoId=response["id"], media_body=thumb_media).execute()
                 print("Custom thumbnail uploaded.")
             except Exception as thumb_error:
-                print("Thumbnail upload failed:", str(thumb_error)[:400])
+                thumbnail_warning = "Video published, but YouTube rejected the custom thumbnail: " + str(thumb_error)[:500]
+                print(thumbnail_warning, flush=True)
             patch({"status":"published","title":title,"output_path":output_path,
-                   "youtube_video_id":response["id"],"progress_stage":"published","progress_percent":100,"progress_message":"Published successfully to YouTube","error_message":None,
+                   "youtube_video_id":response["id"],"progress_stage":"published","progress_percent":100,
+                   "progress_message":"Published successfully to YouTube" + (" (thumbnail needs attention)" if thumbnail_warning else ""),
+                   "error_message":thumbnail_warning,
                    "updated_at":datetime.now(timezone.utc).isoformat()})
             actual_privacy = job.get("publish_privacy") if job.get("publish_privacy") in ("private", "unlisted", "public") else "private"
             print(f"Processed and uploaded with visibility={actual_privacy}: {response['id']}")
