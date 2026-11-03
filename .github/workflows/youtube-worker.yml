@@ -1,4 +1,5 @@
 name: Frost Survival YouTube Worker
+# Triggered worker retry after restoring queued video.
 on:
   workflow_dispatch:
   push:
