@@ -148,22 +148,48 @@ def main():
             model = WhisperModel("base", device="cpu", compute_type="int8")
             segments, transcription_info = model.transcribe(str(input_file), vad_filter=True)
             progress("selecting_highlight", 38, "Finding the strongest highlight")
-            # Choose the 45-second window with the most spoken words.
-            # This is a first-pass highlight heuristic, not visual game-event AI.
+            # Score windows using speech activity and visual scene changes.
+            # Scene changes are a visual-activity proxy, not recognition of specific game events.
             all_segments = [seg for seg in segments if seg.start < 180]
-            duration = min(180.0, max(1.0, all_segments[-1].end if all_segments else 45.0))
+            probe_duration = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(input_file)],
+                capture_output=True, text=True, check=True)
+            duration = min(180.0, max(1.0, float(probe_duration.stdout.strip() or 45.0)))
             clip_length = min(45.0, duration)
             starts = [float(x) for x in range(0, max(1, int(duration - clip_length) + 1), 5)] or [0.0]
-            def score_window(window_start):
+            scene_times = []
+            try:
+                scene_scan = subprocess.run(
+                    ["ffmpeg", "-hide_banner", "-i", str(input_file), "-vf",
+                     "scale=320:-2,select='gt(scene,0.18)',showinfo", "-an", "-f", "null", "-"],
+                    capture_output=True, text=True, timeout=240)
+                scene_times = [float(x) for x in re.findall(r"pts_time:([0-9.]+)", scene_scan.stderr)]
+                scene_times = [t for t in scene_times if 0 <= t < duration]
+                print(f"Visual activity scan found {len(scene_times)} scene changes.", flush=True)
+            except Exception as scan_error:
+                print("Visual scene scan unavailable; using speech activity only:", str(scan_error)[:250])
+
+            def speech_score(window_start):
                 window_end = window_start + clip_length
-                score = 0
+                score = 0.0
                 for seg in all_segments:
                     overlap = max(0.0, min(window_end, seg.end) - max(window_start, seg.start))
                     if overlap:
-                        score += len(re.findall(r"\w+", seg.text)) * overlap / max(0.25, seg.end - seg.start)
+                        score += len(re.findall(r"\\w+", seg.text)) * overlap / max(0.25, seg.end - seg.start)
                 return score
-            highlight_start = max(starts, key=score_window)
+
+            speech_scores = [speech_score(start) for start in starts]
+            scene_scores = [sum(start <= t < start + clip_length for t in scene_times) for start in starts]
+            max_speech = max(speech_scores, default=0.0)
+            max_scenes = max(scene_scores, default=0)
+            def combined_score(index):
+                speech = speech_scores[index] / max_speech if max_speech else 0.0
+                visual = scene_scores[index] / max_scenes if max_scenes else 0.0
+                return (0.55 * speech) + (0.45 * visual)
+            best_index = max(range(len(starts)), key=combined_score)
+            highlight_start = starts[best_index]
             highlight_end = highlight_start + clip_length
+            print(f"Highlight score: speech={speech_scores[best_index]:.1f}, scene_changes={scene_scores[best_index]}, combined={combined_score(best_index):.2f}", flush=True)
             selected_segments = [seg for seg in all_segments if seg.end > highlight_start and seg.start < highlight_end]
             transcript_parts = [brand_for_frost(seg.text) for seg in selected_segments if seg.text.strip()]
             clip_file = Path(td) / "selected-highlight.mp4"
