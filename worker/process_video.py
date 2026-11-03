@@ -98,6 +98,7 @@ def main():
             model = WhisperModel("base", device="cpu", compute_type="int8")
             segments, _ = model.transcribe(str(input_file), vad_filter=True)
             subtitle_file = Path(td) / "captions.srt"
+            transcript_parts = []
             def stamp(seconds):
                 ms = int(seconds * 1000)
                 hours, ms = divmod(ms, 3600000)
@@ -111,6 +112,7 @@ def main():
                     start, end = max(0, segment.start), min(180, segment.end)
                     caption_text = re.sub(r"\s+", " ", segment.text).strip()
                     if not caption_text or end <= start: continue
+                    transcript_parts.append(caption_text)
                     count += 1
                     captions.write(f"{count}\n{stamp(start)} --> {stamp(end)}\n{caption_text}\n\n")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
@@ -125,8 +127,22 @@ def main():
                     data=f, timeout=600)
                 up.raise_for_status()
             notes = (job.get("description") or "").strip()
+            transcript = " ".join(transcript_parts)
             title = job.get("title") or safe_title(job["original_name"], notes)
-            description = (notes + "\n\n" if notes else "") + "Frost Survival gaming • Sultan\n#WhiteoutSurvival #Gaming #Shorts"
+            if transcript and not notes and Path(job["original_name"]).stem.lower() in ("video","recording","screenrecording"):
+                words = re.findall(r"[A-Za-z0-9']+", transcript)
+                if words:
+                    title = ("Whiteout Survival | " + " ".join(words[:9])).strip()[:100]
+            tags = ["WhiteoutSurvival","Gaming","FrostSurvival","Sultan","Shorts"]
+            if "kingshot" in (job["original_name"]+" "+notes).lower():
+                tags = ["KingShot","Gaming","FrostSurvival","Sultan","Shorts"]
+            hashtags = " ".join("#"+x for x in tags)
+            description = (notes + "\\n\\n" if notes else "") + "Frost Survival gaming • Sultan\\n" + hashtags
+            thumbnail_file = Path(td) / "thumbnail.jpg"
+            thumb_title = title.replace("'", "").replace(":", " ").replace("%", "")
+            thumb_filter = "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,drawbox=x=0:y=500:w=iw:h=220:color=black@0.68:t=fill,drawtext=text='" + thumb_title[:48] + "':fontcolor=white:fontsize=44:x=50:y=555:box=0"
+            subprocess.run(["ffmpeg","-y","-ss","2","-i",str(input_file),"-frames:v","1","-vf",thumb_filter,"-q:v","2",str(thumbnail_file)],check=True,capture_output=True,text=True)
+
             if job.get("approval_required", False):
                 patch({"status":"ready","title":title,"output_path":output_path,"error_message":None,"updated_at":datetime.now(timezone.utc).isoformat()})
                 print("Edited video is ready for your approval; not uploaded yet.")
@@ -136,12 +152,18 @@ def main():
             media = MediaFileUpload(str(output_file), mimetype="video/mp4", resumable=True, chunksize=8*1024*1024)
             request = youtube.videos().insert(part="snippet,status", body={
                 "snippet":{"title":title,"description":description[:5000],"categoryId":"20",
-                           "tags":["Whiteout Survival","Gaming","Frost Survival","Sultan"]},
+                           "tags":tags},
                 "status":{"privacyStatus":job.get("publish_privacy") if job.get("publish_privacy") in ("private","unlisted","public") else "private","selfDeclaredMadeForKids":False}
             }, media_body=media)
             response = None
             while response is None:
                 _, response = request.next_chunk()
+            try:
+                thumb_media = MediaFileUpload(str(thumbnail_file), mimetype="image/jpeg", resumable=False)
+                youtube.thumbnails().set(videoId=response["id"], media_body=thumb_media).execute()
+                print("Custom thumbnail uploaded.")
+            except Exception as thumb_error:
+                print("Thumbnail upload failed:", str(thumb_error)[:400])
             patch({"status":"published","title":title,"output_path":output_path,
                    "youtube_video_id":response["id"],"error_message":None,
                    "updated_at":datetime.now(timezone.utc).isoformat()})
