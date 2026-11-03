@@ -14,12 +14,13 @@ function loadStudioSettings(){
   if(typeof saved.backgroundMusicEnabled==="boolean")$("backgroundMusicEnabled").checked=saved.backgroundMusicEnabled;
 }
 function saveStudioSettings(){
-  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({
-    publishPrivacy:$("publishPrivacy").value,
-    autoPublish:$("autoPublish").checked,
-    voiceoverEnabled:$("voiceoverEnabled").checked,
-    backgroundMusicEnabled:$("backgroundMusicEnabled").checked
-  }));}catch(err){console.warn("Could not save Studio settings:",err);}
+  try{
+    const settings={publishPrivacy:$("publishPrivacy").value,autoPublish:$("autoPublish").checked,voiceoverEnabled:$("voiceoverEnabled").checked,backgroundMusicEnabled:$("backgroundMusicEnabled").checked};
+    localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));
+    const check=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null");
+    if(!check||check.publishPrivacy!==settings.publishPrivacy)throw new Error("Saved value could not be verified.");
+    return true;
+  }catch(err){console.warn("Could not save Studio settings:",err);return false;}
 }
 
 
@@ -180,7 +181,16 @@ async function retryVideoJob(id){
   await loadJobs();
 }
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-$("saveSettingsBtn").addEventListener("click",()=>{saveStudioSettings();say("settingsStatus","Saved ✓ Your visibility and editing settings will stay selected on this device.");});\n["publishPrivacy","autoPublish","voiceoverEnabled","backgroundMusicEnabled"].forEach(id=>$(id).addEventListener("change",()=>{saveStudioSettings();say("settingsStatus","Changes saved automatically.");}));loadStudioSettings();
+$("saveSettingsBtn").addEventListener("click",()=>{
+  const btn=$("saveSettingsBtn");btn.disabled=true;btn.textContent="Saving…";say("settingsStatus","Saving…");
+  requestAnimationFrame(()=>{
+    const ok=saveStudioSettings();btn.disabled=false;btn.textContent="Save settings";
+    say("settingsStatus",ok?"✓ Successfully saved on this device. Visibility: "+$("publishPrivacy").value.toUpperCase()+".":"⚠ Save failed. Browser storage may be blocked.");
+  });
+});
+["publishPrivacy","autoPublish","voiceoverEnabled","backgroundMusicEnabled"].forEach(id=>$(id).addEventListener("change",()=>{
+  const ok=saveStudioSettings();say("settingsStatus",ok?"✓ Changes saved automatically.":"⚠ Could not save in this browser.");
+}));loadStudioSettings();
 db.auth.onAuthStateChange(()=>setTimeout(checkAdmin,0));checkAdmin();
 async function approveVideoJob(id){const {data:{session}}=await db.auth.getSession();if(!session||session.user.id!==ADMIN_UID){say("uploadStatus","Admin session expired. Sign in again.");return;}const {error}=await db.from("youtube_studio_jobs").update({status:"queued",approval_required:false,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",ADMIN_UID).eq("status","ready");if(error){say("uploadStatus","Could not approve: "+error.message);return;}say("uploadStatus","Approved. Upload will start on the next worker run.");await loadJobs();}
 
