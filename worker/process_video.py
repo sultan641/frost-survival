@@ -175,7 +175,7 @@ def main():
                 for seg in all_segments:
                     overlap = max(0.0, min(window_end, seg.end) - max(window_start, seg.start))
                     if overlap:
-                        score += len(re.findall(r"\\w+", seg.text)) * overlap / max(0.25, seg.end - seg.start)
+                        score += len(re.findall(r"\w+", seg.text)) * overlap / max(0.25, seg.end - seg.start)
                 return score
 
             speech_scores = [speech_score(start) for start in starts]
