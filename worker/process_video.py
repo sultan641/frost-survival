@@ -289,12 +289,12 @@ def main():
             except Exception as thumb_error:
                 print("Thumbnail upload failed:", str(thumb_error)[:400])
             patch({"status":"published","title":title,"output_path":output_path,
-                   "youtube_video_id":response["id"],"error_message":None,
+                   "youtube_video_id":response["id"],"progress_stage":"published","progress_percent":100,"progress_message":"Published successfully to YouTube","error_message":None,
                    "updated_at":datetime.now(timezone.utc).isoformat()})
             print("Processed and uploaded privately:", response["id"])
             print("Private YouTube URL: https://www.youtube.com/watch?v=" + response["id"])
     except Exception as e:
-        patch({"status":"failed","error_message":str(e)[:1000],
+        patch({"status":"failed","progress_stage":"failed","progress_message":"Processing failed","error_message":str(e)[:1000],
                "updated_at":datetime.now(timezone.utc).isoformat()})
         raise
 
