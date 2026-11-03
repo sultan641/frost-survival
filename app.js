@@ -91,11 +91,11 @@ function copyAll(button) {
     alert("No active codes available.");
     return;
   }
-
-  copyText(window.CODES.join("\n"), button);
+  copyText(window.CODES.map(row => row.code).join("\n"), button);
 }
 
 // GIFT CODES
+
 
 function countdownLabel(expiresAt) {
   if (!expiresAt) return "No expiry";
@@ -628,4 +628,5 @@ document.addEventListener("DOMContentLoaded", () => {
     document.head.appendChild(script);
   }
 });
-\nsetInterval(refreshGiftCodeCountdowns, 60000);\n
+
+setInterval(refreshGiftCodeCountdowns, 60000);
