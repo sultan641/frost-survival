@@ -80,12 +80,23 @@ def brand_for_frost(text):
     return value
 
 def safe_title(name, notes):
-    stem = Path(name).stem.replace("_", " ").replace("-", " ")
-    stem = re.sub(r"\s+", " ", stem).strip()
-    title = (stem or "Whiteout Survival Gameplay")[:85]
-    if "whiteout" not in title.lower() and "kingshot" not in title.lower():
-        title = "Whiteout Survival | " + title
-    return title[:100]
+    text = re.sub(r"\s+", " ", str(notes or "")).strip()
+    code_match = re.search(r"\b[A-Z0-9]{6,16}\b", text)
+    code = code_match.group(0) if code_match else ""
+    is_kingshot = "kingshot" in (str(name) + " " + text).lower()
+    game = "KingShot" if is_kingshot else "Whiteout Survival"
+    low = text.lower()
+    if code and any(word in low for word in ("gift code", "code", "redeem", "reward")):
+        if "frost star" in low:
+            payoff = "FREE FROST STARS"
+        elif "gem" in low:
+            payoff = "FREE GEMS"
+        else:
+            payoff = "FREE REWARDS"
+        return f"NEW {game} Gift Code! {payoff} 🎁 | {code}"[:100]
+    if text and len(text) > 8:
+        return f"{game}: {text[:72]}".strip()[:100]
+    return f"{game} | New Gameplay Highlights"
 
 def make_original_music(path, duration=180, sample_rate=22050):
     # Procedurally composed ambient synth bed; no samples or copyrighted melodies.
@@ -192,6 +203,8 @@ def main():
             print(f"Highlight score: speech={speech_scores[best_index]:.1f}, scene_changes={scene_scores[best_index]}, combined={combined_score(best_index):.2f}", flush=True)
             selected_segments = [seg for seg in all_segments if seg.end > highlight_start and seg.start < highlight_end]
             transcript_parts = [brand_for_frost(seg.text) for seg in selected_segments if seg.text.strip()]
+            edit_notes = brand_for_frost(job.get("description") or "")
+            narration_source = " ".join(transcript_parts).strip() or edit_notes
             clip_file = Path(td) / "selected-highlight.mp4"
             subprocess.run(["ffmpeg", "-y", "-ss", str(highlight_start), "-i", str(input_file), "-t", str(clip_length), "-c", "copy", str(clip_file)], check=True, capture_output=True, text=True)
             # Ensure every clip has an audio stream so the narration/music filters
@@ -220,12 +233,16 @@ def main():
                         continue
                     count += 1
                     captions.write(f"{count}\n{stamp(start_time)} --> {stamp(end_time)}\n{caption_text}\n\n")
+                # Add creator notes as an opening caption when footage has no speech.
+                if count == 0 and edit_notes:
+                    count += 1
+                    captions.write(f"{count}\n{stamp(0)} --> {stamp(min(7.0, clip_length))}\n{edit_notes[:180]}\n\n")
             print(f"Auto-selected highlight: {highlight_start:.1f}s to {highlight_end:.1f}s")
             progress("rendering", 52, "Building vertical video, captions, narration and music")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
             voiceover_file = Path(td) / "voiceover.mp3"
             music_file = Path(td) / "original-ambient-music.wav"
-            voiceover_enabled = bool(job.get("voiceover_enabled", True)) and bool(transcript_parts) and edge_tts is not None
+            voiceover_enabled = bool(job.get("voiceover_enabled", True)) and bool(narration_source) and edge_tts is not None
             music_enabled = bool(job.get("background_music_enabled", True))
             if music_enabled:
                 make_original_music(music_file)
@@ -248,7 +265,7 @@ def main():
                     "ko": "Frost Survival에 오신 것을 환영합니다. 저희는 FS 팀입니다."
                 }
                 narration_text = (intros.get(language, intros["en"]) + " " +
-                                  re.sub(r"\s+", " ", " ".join(transcript_parts)).strip())[:4500]
+                                  re.sub(r"\s+", " ", narration_source).strip())[:4500]
                 voice_map = {"en":"en-US-GuyNeural","ur":"ur-PK-AsadNeural","es":"es-ES-AlvaroNeural","pt":"pt-BR-AntonioNeural","fr":"fr-FR-HenriNeural","de":"de-DE-ConradNeural","ru":"ru-RU-DmitryNeural","ar":"ar-SA-HamedNeural","tr":"tr-TR-AhmetNeural","id":"id-ID-ArdiNeural","zh":"zh-CN-YunxiNeural","ja":"ja-JP-KeitaNeural","ko":"ko-KR-InJoonNeural"}
                 voice = voice_map.get(language, "en-US-GuyNeural")
                 try:
@@ -329,7 +346,7 @@ def main():
                 safe_tags.append(tag)
                 tag_chars += extra
             tags = safe_tags
-            hashtags = " ".join("#"+x for x in tags[:60])
+            hashtags = " ".join("#"+x for x in (["WhiteoutSurvival","WOSGiftCode","GamingShorts"] if not is_kingshot else ["KingShot","KingShotGiftCode","GamingShorts"]))
             game_links = (
                 "Whiteout Survival V4: https://landing.jkqwio.com/?invite=92lKnzFdINCXVccIz65\n"
                 "Whiteout Survival V5 China: https://passport.wjdr2.top/ops-register?promo=sultaan\n"
