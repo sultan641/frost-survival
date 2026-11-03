@@ -92,29 +92,41 @@ function loadTusLibrary(){
 }
 async function uploadFileWithProgress(path,file,accessToken){
   const tus=await loadTusLibrary();
-  return new Promise((resolve,reject)=>{
-    const upload=new tus.Upload(file,{
-      endpoint:"https://xnixsavppmmvbzfnybus.storage.supabase.co/storage/v1/upload/resumable",
-      retryDelays:[0,3000,5000,10000,20000],
-      headers:{authorization:"Bearer "+accessToken,apikey:SUPABASE_KEY,"x-upsert":"false"},
-      uploadDataDuringCreation:false,
-      removeFingerprintOnSuccess:true,
-      chunkSize:6*1024*1024,
-      metadata:{bucketName:"youtube-studio-private",objectName:path,contentType:file.type,cacheControl:"3600"},
-      onError:error=>reject(error),
-      onProgress:(uploaded,total)=>{
-        const percent=Math.min(100,Math.round(uploaded/total*100));
-        const mb=n=>(n/1048576).toFixed(1);
-        $("progressBar").style.width=percent+"%";
-        say("uploadStatus","Uploading: "+percent+"% • "+mb(uploaded)+" MB / "+mb(total)+" MB • "+mb(Math.max(0,total-uploaded))+" MB left");
-      },
-      onSuccess:()=>resolve()
-    });
-    upload.findPreviousUploads().then(previous=>{
-      if(previous.length)upload.resumeFromPreviousUpload(previous[0]);
-      upload.start();
-    }).catch(reject);
-  });
+  const retryWait=[3000,10000,20000,30000,60000,120000];
+  let lastError;
+  for(let attempt=0;attempt<retryWait.length+1;attempt++){
+    try{
+      await new Promise((resolve,reject)=>{
+        const upload=new tus.Upload(file,{
+          endpoint:"https://xnixsavppmmvbzfnybus.storage.supabase.co/storage/v1/upload/resumable",
+          retryDelays:[0,3000,5000,10000,20000,30000,60000],
+          headers:{authorization:"Bearer "+accessToken,apikey:SUPABASE_KEY,"x-upsert":"false"},
+          uploadDataDuringCreation:false,removeFingerprintOnSuccess:true,chunkSize:6*1024*1024,
+          metadata:{bucketName:"youtube-studio-private",objectName:path,contentType:file.type,cacheControl:"3600"},
+          onError:reject,
+          onProgress:(uploaded,total)=>{
+            const percent=Math.min(100,Math.round(uploaded/total*100));
+            const mb=n=>(n/1048576).toFixed(1);
+            $("progressBar").style.width=percent+"%";
+            say("uploadStatus","Uploading: "+percent+"% • "+mb(uploaded)+" MB / "+mb(total)+" MB");
+          },
+          onSuccess:resolve
+        });
+        upload.findPreviousUploads().then(previous=>{
+          if(previous.length)upload.resumeFromPreviousUpload(previous[0]);
+          upload.start();
+        }).catch(reject);
+      });
+      return;
+    }catch(error){
+      lastError=error;
+      if(attempt>=retryWait.length)break;
+      const seconds=Math.round(retryWait[attempt]/1000);
+      say("uploadStatus","Upload interrupted. Auto-retrying in "+seconds+" seconds… Your saved video is safe.");
+      await new Promise(resolve=>setTimeout(resolve,retryWait[attempt]));
+    }
+  }
+  throw new Error("Upload could not finish after automatic retries. Your video is saved on this device; reopen Studio and tap Resume saved upload. "+(lastError?.message||""));
 }
 
 async function checkAdmin(){const {data,error}=await db.auth.getSession();if(error){say("loginStatus",error.message);return;}const user=data.session?.user;if(user&&user.id!==ADMIN_UID){await db.auth.signOut();say("loginStatus","Access denied. Administrator only.");return;}const ok=!!user;$("loginBox").hidden=ok;$("studio").hidden=!ok;if(ok){await loadJobs();await checkYouTube();await restorePendingUpload();}}
