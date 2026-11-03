@@ -330,9 +330,9 @@ def main():
             # the camera filename. Only claim a specific reward when the notes say it.
             content_text = (notes + " " + transcript).strip()
             content_lower = content_text.lower()
-            version_match = re.search(r"\\b(v[45])\\b", content_lower)
+            version_match = re.search(r"\b(v[45])\\b", content_lower)
             version_label = (" " + version_match.group(1).upper()) if version_match else ""
-            code_match = re.search(r"\\b(?=[A-Za-z0-9]{6,12}\\b)(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[0-9])[A-Za-z0-9]+\\b", content_text)
+            code_match = re.search(r"\b(?=[A-Za-z0-9]{6,12}\\b)(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[0-9])[A-Za-z0-9]+\\b", content_text)
             code_value = code_match.group(0) if code_match else ""
             if re.search(r"gift\\s*code|redeem\\s*code|\\bcode\\b", content_lower) or code_value:
                 reward_phrase = "Free Frost Stars" if re.search(r"frost\\s*stars", content_lower) else "Free Rewards"
