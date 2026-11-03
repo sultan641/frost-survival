@@ -595,6 +595,45 @@ async function deleteAnnouncement(id) {
 // GLOBAL APPLICATIONS AND BUG REPORTS
 
 async function showTab(tab) {
+  if (tab === "analytics") {
+    $("adminContent").innerHTML = `
+      <button class="secondary" onclick="showDashboard()">← Dashboard</button>
+      <h2>Traffic Analytics</h2>
+      <p>Privacy-friendly totals; no visitor IDs or cookies are collected.</p>
+      <div id="globalRecords">Loading analytics…</div>
+    `;
+    const area = $("globalRecords");
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await db.from("site_analytics")
+      .select("event_type,page_path,device_type,created_at")
+      .gte("created_at", since).order("created_at", { ascending: false }).limit(5000);
+    if (error) { area.textContent = "Analytics error: " + error.message; return; }
+    const rows = data || [];
+    const count = type => rows.filter(row => row.event_type === type).length;
+    const pages = {};
+    const events = {};
+    rows.forEach(row => {
+      pages[row.page_path || "/"] = (pages[row.page_path || "/"] || 0) + (row.event_type === "page_view" ? 1 : 0);
+      events[row.event_type] = (events[row.event_type] || 0) + 1;
+    });
+    const topPages = Object.entries(pages).filter(x => x[1] > 0).sort((a,b) => b[1]-a[1]).slice(0,8);
+    area.innerHTML = `
+      <div class="admin-game-grid">
+        <div class="admin-record"><h3>${count("page_view")}</h3><p>Page views · 7 days</p></div>
+        <div class="admin-record"><h3>${count("discord_click")}</h3><p>Discord clicks</p></div>
+        <div class="admin-record"><h3>${count("youtube_click")}</h3><p>YouTube clicks</p></div>
+        <div class="admin-record"><h3>${count("game_click")}</h3><p>Game/download clicks</p></div>
+        <div class="admin-record"><h3>${count("gift_code_copy")}</h3><p>Gift-code copy clicks</p></div>
+        <div class="admin-record"><h3>${count("tool_use")}</h3><p>Tool navigation clicks</p></div>
+      </div>
+      <h3>Top pages · 7 days</h3>
+      ${topPages.length ? topPages.map(([path,total]) => `<div class="admin-record"><strong>${safe(path)}</strong><p>${total} page views</p></div>`).join("") : "<p>No page views recorded yet.</p>"}
+      <h3>Events summary</h3>
+      ${Object.entries(events).sort((a,b)=>b[1]-a[1]).map(([name,total])=>`<div class="admin-record"><strong>${safe(name)}</strong><p>${total}</p></div>`).join("")}
+      <p class="muted">Showing up to 5,000 events from the last 7 days.</p>
+    `;
+    return;
+  }
   const table = tab === "apps" ? "team_applications" : "bug_reports";
   const title = tab === "apps" ? "Applications" : "Bug Reports";
 
