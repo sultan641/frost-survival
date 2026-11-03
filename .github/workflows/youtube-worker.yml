@@ -9,6 +9,11 @@ on:
       - '.github/workflows/youtube-worker.yml'
   schedule:
     - cron: "*/15 * * * *"
+# Serialize scheduled, manual, and push-triggered runs to avoid duplicate processing.
+concurrency:
+  group: frost-survival-youtube-worker
+  cancel-in-progress: false
+
 permissions:
   contents: read
 jobs:
