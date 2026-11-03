@@ -124,24 +124,45 @@ def main():
             # Local speech transcription and vertical Shorts output (maximum 3 minutes).
             model = WhisperModel("base", device="cpu", compute_type="int8")
             segments, transcription_info = model.transcribe(str(input_file), vad_filter=True)
+            # Choose the 45-second window with the most spoken words.
+            # This is a first-pass highlight heuristic, not visual game-event AI.
+            all_segments = [seg for seg in segments if seg.start < 180]
+            duration = min(180.0, max(1.0, all_segments[-1].end if all_segments else 45.0))
+            clip_length = min(45.0, duration)
+            starts = [float(x) for x in range(0, max(1, int(duration - clip_length) + 1), 5)] or [0.0]
+            def score_window(window_start):
+                window_end = window_start + clip_length
+                score = 0
+                for seg in all_segments:
+                    overlap = max(0.0, min(window_end, seg.end) - max(window_start, seg.start))
+                    if overlap:
+                        score += len(re.findall(r"\\w+", seg.text)) * overlap / max(0.25, seg.end - seg.start)
+                return score
+            highlight_start = max(starts, key=score_window)
+            highlight_end = highlight_start + clip_length
+            selected_segments = [seg for seg in all_segments if seg.end > highlight_start and seg.start < highlight_end]
+            transcript_parts = [re.sub(r"\\s+", " ", seg.text).strip() for seg in selected_segments if seg.text.strip()]
+            clip_file = Path(td) / "selected-highlight.mp4"
+            subprocess.run(["ffmpeg", "-y", "-ss", str(highlight_start), "-i", str(input_file), "-t", str(clip_length), "-c", "copy", str(clip_file)], check=True, capture_output=True, text=True)
+            input_file = clip_file
             subtitle_file = Path(td) / "captions.srt"
-            transcript_parts = []
             def stamp(seconds):
-                ms = int(seconds * 1000)
+                ms = int(max(0, seconds) * 1000)
                 hours, ms = divmod(ms, 3600000)
                 minutes, ms = divmod(ms, 60000)
                 secs, ms = divmod(ms, 1000)
                 return f"{hours:02}:{minutes:02}:{secs:02},{ms:03}"
             with subtitle_file.open("w", encoding="utf-8") as captions:
                 count = 0
-                for segment in segments:
-                    if segment.start >= 180: break
-                    start, end = max(0, segment.start), min(180, segment.end)
-                    caption_text = re.sub(r"\s+", " ", segment.text).strip()
-                    if not caption_text or end <= start: continue
-                    transcript_parts.append(caption_text)
+                for segment in selected_segments:
+                    start_time = max(0.0, segment.start - highlight_start)
+                    end_time = min(clip_length, segment.end - highlight_start)
+                    caption_text = re.sub(r"\\s+", " ", segment.text).strip()
+                    if not caption_text or end_time <= start_time:
+                        continue
                     count += 1
-                    captions.write(f"{count}\n{stamp(start)} --> {stamp(end)}\n{caption_text}\n\n")
+                    captions.write(f"{count}\\n{stamp(start_time)} --> {stamp(end_time)}\\n{caption_text}\\n\\n")
+            print(f"Auto-selected highlight: {highlight_start:.1f}s to {highlight_end:.1f}s")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
             voiceover_file = Path(td) / "voiceover.mp3"
             music_file = Path(td) / "original-ambient-music.wav"
