@@ -109,6 +109,10 @@ def main():
     job = jobs[0]
     job_id = job["id"]
     patch = lambda values: db(f"youtube_studio_jobs?id=eq.{job_id}&owner_id=eq.{ADMIN}", "PATCH", json=values, headers={"Prefer":"return=minimal"})
+    def progress(stage, percent, message):
+        patch({"status":"processing", "progress_stage":stage, "progress_percent":percent, "progress_message":message, "updated_at":datetime.now(timezone.utc).isoformat()})
+        print(f"PROGRESS {percent}% - {stage}: {message}", flush=True)
+    progress("downloading", 5, "Downloading your private video")
     patch({"status":"processing", "error_message":None, "updated_at":datetime.now(timezone.utc).isoformat()})
     print(f"Processing job {job_id}: {job.get('original_name', 'video')} ({job.get('file_size', 0)} bytes)")
     try:
@@ -126,9 +130,11 @@ def main():
             input_file = Path(td) / "source.mp4"
             output_file = Path(td) / "frost-survival-short.mp4"
             input_file.write_bytes(source.content)
+            progress("transcribing", 18, "Listening to gameplay and creating captions")
             # Local speech transcription and vertical Shorts output (maximum 3 minutes).
             model = WhisperModel("base", device="cpu", compute_type="int8")
             segments, transcription_info = model.transcribe(str(input_file), vad_filter=True)
+            progress("selecting_highlight", 38, "Finding the strongest highlight")
             # Choose the 45-second window with the most spoken words.
             # This is a first-pass highlight heuristic, not visual game-event AI.
             all_segments = [seg for seg in segments if seg.start < 180]
@@ -176,6 +182,7 @@ def main():
                     count += 1
                     captions.write(f"{count}\n{stamp(start_time)} --> {stamp(end_time)}\n{caption_text}\n\n")
             print(f"Auto-selected highlight: {highlight_start:.1f}s to {highlight_end:.1f}s")
+            progress("rendering", 52, "Building vertical video, captions, narration and music")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
             voiceover_file = Path(td) / "voiceover.mp3"
             music_file = Path(td) / "original-ambient-music.wav"
@@ -210,6 +217,7 @@ def main():
                 cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",vf,
                     "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
             subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=td)
+            progress("saving_output", 86, "Saving the edited video privately")
             output_path = f"{ADMIN}/processed/{job_id}-{int(datetime.now(timezone.utc).timestamp())}.mp4"
             with output_file.open("rb") as f:
                 up = requests.post(URL + f"/storage/v1/object/{BUCKET}/{output_path}",
@@ -259,9 +267,10 @@ def main():
             subprocess.run(["ffmpeg","-y","-ss","2","-i",str(input_file),"-frames:v","1","-vf",thumb_filter,"-q:v","2",str(thumbnail_file)],check=True,capture_output=True,text=True)
 
             if job.get("approval_required", False):
-                patch({"status":"ready","title":title,"output_path":output_path,"error_message":None,"updated_at":datetime.now(timezone.utc).isoformat()})
+                patch({"status":"ready","title":title,"output_path":output_path,"progress_stage":"ready","progress_percent":100,"progress_message":"Edited video is ready for review","error_message":None,"updated_at":datetime.now(timezone.utc).isoformat()})
                 print("Edited video is ready for your approval; not uploaded yet.")
                 return
+            progress("publishing", 94, "Uploading the finished video to YouTube")
             creds = get_youtube_credentials()
             youtube = build("youtube","v3",credentials=creds,cache_discovery=False)
             media = MediaFileUpload(str(output_file), mimetype="video/mp4", resumable=True, chunksize=8*1024*1024)
