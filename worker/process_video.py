@@ -335,9 +335,21 @@ def main():
             code_match = re.search(r"\b[A-Z0-9]{6,16}\b", content_text.upper())
             code_value = code_match.group(0) if code_match else ""
             if re.search(r"gift\s*code|redeem\s*code|\bcode\b", content_lower) or code_value:
-                # Never promise a specific reward unless the creator's notes verify it.
-                reward_phrase = "Free Frost Stars" if re.search(r"frost\s*stars", content_lower) else ("Free Gems" if re.search(r"\bgems?\b", content_lower) else "Free Rewards")
-                title = f"NEW{version_label} {game_name} Gift Code! Claim {reward_phrase} 🎁"
+                # Use a creator-style hook, but only name rewards explicitly confirmed in notes/transcript.
+                version_detail = ""
+                if re.search(r"v\s*5\s*europe|v5e|europe", content_lower):
+                    version_detail = " V5 Europe"
+                elif version_match:
+                    version_detail = " " + version_match.group(1).upper()
+                if re.search(r"frost\s*stars?", content_lower):
+                    reward_phrase = "FREE Frost Stars"
+                elif re.search(r"\bgems?\b", content_lower):
+                    reward_phrase = "FREE Gems"
+                elif re.search(r"speed.?ups?", content_lower):
+                    reward_phrase = "FREE Speedups"
+                else:
+                    reward_phrase = "FREE Rewards"
+                title = f"NEW{version_detail} Gift Code! Claim {reward_phrase} 🎁"
                 if code_value:
                     title += f" | {code_value}"
             elif job.get("title"):
