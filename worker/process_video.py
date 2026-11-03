@@ -43,6 +43,9 @@ def get_youtube_credentials():
     expiry = datetime.now(timezone.utc) - timedelta(minutes=1)
     if row.get("expires_at"):
         expiry = datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00"))
+        # Google auth compares expiry against a naive UTC datetime.
+        if expiry.tzinfo is not None:
+            expiry = expiry.astimezone(timezone.utc).replace(tzinfo=None)
     creds = Credentials(token=token, refresh_token=refresh_token,
         token_uri="https://oauth2.googleapis.com/token",
         client_id=os.environ["GOOGLE_CLIENT_ID"],
