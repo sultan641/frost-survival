@@ -3,6 +3,7 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.exceptions import InvalidTag
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -32,7 +33,18 @@ def db(path, method="GET", **kwargs):
 def decrypt(value):
     raw = base64.b64decode(value)
     key = hashlib.sha256(ENC_KEY.encode()).digest()
-    return AESGCM(key).decrypt(raw[:12], raw[12:], None).decode()
+    try:
+        return AESGCM(key).decrypt(raw[:12], raw[12:], None).decode()
+    except InvalidTag as exc:
+        raise RuntimeError(
+            "YouTube token decryption failed: GOOGLE_TOKEN_ENCRYPTION_KEY in GitHub Actions "
+            "does not match the key used by the Supabase OAuth function. Set the exact same "
+            "key in both places, then reconnect YouTube in Studio."
+        ) from exc
+    except (ValueError, TypeError) as exc:
+        raise RuntimeError(
+            "Saved YouTube token is malformed. Reconnect YouTube in Studio, then retry processing."
+        ) from exc
 
 def encrypt(value):
     key = hashlib.sha256(ENC_KEY.encode()).digest()
