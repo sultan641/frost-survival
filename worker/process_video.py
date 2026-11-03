@@ -17,7 +17,10 @@ BUCKET = "youtube-studio-private"
 
 def db(path, method="GET", **kwargs):
     r = requests.request(method, URL + "/rest/v1/" + path, headers={**HEADERS, **kwargs.pop("headers", {})}, timeout=60, **kwargs)
-    r.raise_for_status()
+    if not r.ok:
+        # Include Supabase's response message so permission/key/schema errors are diagnosable.
+        detail = (r.text or "").strip().replace("\\n", " ")[:1200]
+        raise RuntimeError(f"Supabase REST {method} failed ({r.status_code}) for {path.split('?')[0]}: {detail or 'No error details returned'}")
     return r
 
 def decrypt(value):
