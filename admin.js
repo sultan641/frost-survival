@@ -64,6 +64,8 @@ async function refreshAuth() {
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
   status("Signing in...");
+  const submitButton = event.target.querySelector("button[type=submit]");
+  if (submitButton) submitButton.disabled = true;
 
   const email = $("email").value.trim();
   const password = $("password").value;
@@ -75,10 +77,12 @@ $("loginForm").addEventListener("submit", async event => {
 
   if (error) {
     status("Login failed: " + error.message);
+    if (submitButton) submitButton.disabled = false;
     return;
   }
 
   await refreshAuth();
+  if (submitButton) submitButton.disabled = false;
 });
 
 async function signOut() {
@@ -624,21 +628,11 @@ async function showTab(tab) {
 }
 
 // AUTH SESSION
-
-// Defer session refresh until the auth callback has completed to avoid
-// re-entering Supabase auth methods from inside onAuthStateChange.
-db.auth.onAuthStateChange(() => {
-  queueMicrotask(() => {
-    refreshAuth().catch(error => {
-      console.error("Authentication refresh failed:", error);
-      status("Could not refresh login status. Please reload the page.");
-    });
-  });
-});
-
+// Avoid calling Supabase auth methods from inside onAuthStateChange.
+// Login submits directly to Supabase, then refreshes the dashboard.
 refreshAuth().catch(error => {
   console.error("Initial authentication check failed:", error);
-  status("Could not check login status. Please reload the page.");
+  status("Could not check login status: " + (error.message || error));
 });        <label>Expires After</label>
         <select name="expiry_days">
           <option value="1">1 day</option>
