@@ -1,7 +1,8 @@
 name: Frost Survival YouTube Worker
 on:
   workflow_dispatch:
-  # Keep automatic scheduling disabled until repository secrets are configured.
+  schedule:
+    - cron: "*/15 * * * *"
 permissions:
   contents: read
 jobs:
