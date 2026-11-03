@@ -7,6 +7,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
+from faster_whisper import WhisperModel
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -93,11 +94,30 @@ def main():
             input_file = Path(td) / "source.mp4"
             output_file = Path(td) / "frost-survival-short.mp4"
             input_file.write_bytes(source.content)
-            cmd = ["ffmpeg","-y","-i",str(input_file),"-vf",
-                "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
+            # Local speech transcription and vertical Shorts output (maximum 3 minutes).
+            model = WhisperModel("base", device="cpu", compute_type="int8")
+            segments, _ = model.transcribe(str(input_file), vad_filter=True)
+            subtitle_file = Path(td) / "captions.srt"
+            def stamp(seconds):
+                ms = int(seconds * 1000)
+                hours, ms = divmod(ms, 3600000)
+                minutes, ms = divmod(ms, 60000)
+                secs, ms = divmod(ms, 1000)
+                return f"{hours:02}:{minutes:02}:{secs:02},{ms:03}"
+            with subtitle_file.open("w", encoding="utf-8") as captions:
+                count = 0
+                for segment in segments:
+                    if segment.start >= 180: break
+                    start, end = max(0, segment.start), min(180, segment.end)
+                    caption_text = re.sub(r"\\s+", " ", segment.text).strip()
+                    if not caption_text or end <= start: continue
+                    count += 1
+                    captions.write(f"{count}\\n{stamp(start)} --> {stamp(end)}\\n{caption_text}\\n\\n")
+            vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
+            cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",vf,
                 "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k",
                 "-movflags","+faststart",str(output_file)]
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=td)
             output_path = f"{ADMIN}/processed/{job_id}-{int(datetime.now(timezone.utc).timestamp())}.mp4"
             with output_file.open("rb") as f:
                 up = requests.post(URL + f"/storage/v1/object/{BUCKET}/{output_path}",
