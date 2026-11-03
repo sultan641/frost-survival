@@ -52,7 +52,21 @@ if(app)app.addEventListener("submit",e=>{
 });
 
 const bug=document.getElementById("bugForm");
-if(bug)bug.addEventListener("submit",e=>{
+if(bug){
+  const gameSelect=bug.querySelector("#game");
+  const requestedGame=new URLSearchParams(window.location.search).get("game");
+  if(requestedGame&&gameSelect&&[...gameSelect.options].some(option=>option.value===requestedGame||option.text===requestedGame)){
+    gameSelect.value=requestedGame;
+    gameSelect.disabled=true;
+    const fixedGame=document.createElement("input");
+    fixedGame.type="hidden";
+    fixedGame.name="game";
+    fixedGame.value=requestedGame;
+    bug.appendChild(fixedGame);
+    const heading=bug.querySelector("h2");
+    if(heading)heading.textContent=requestedGame+" Bug Report";
+  }
+  bug.addEventListener("submit",e=>{
   e.preventDefault();
   submitForm(bug,"bug_reports",async(f,setUploadedPath)=>{
     let screenshot_path=null;
@@ -74,11 +88,12 @@ if(bug)bug.addEventListener("submit",e=>{
       f.get("ideas")?"Improvement ideas: "+f.get("ideas"):""
     ].filter(Boolean).join("\n\n");
     return {
-      game_name:f.get("game"),
+      game_name:f.get("game")||bug.querySelector("#game")?.value,
       player_name:f.get("name"),
       issue,
       steps_to_reproduce:null,
       screenshot_path
     };
   });
-});
+  });
+}
