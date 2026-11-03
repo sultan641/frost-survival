@@ -8,6 +8,8 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 from faster_whisper import WhisperModel
+import asyncio
+import edge_tts
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -96,7 +98,7 @@ def main():
             input_file.write_bytes(source.content)
             # Local speech transcription and vertical Shorts output (maximum 3 minutes).
             model = WhisperModel("base", device="cpu", compute_type="int8")
-            segments, _ = model.transcribe(str(input_file), vad_filter=True)
+            segments, transcription_info = model.transcribe(str(input_file), vad_filter=True)
             subtitle_file = Path(td) / "captions.srt"
             transcript_parts = []
             def stamp(seconds):
@@ -116,9 +118,27 @@ def main():
                     count += 1
                     captions.write(f"{count}\n{stamp(start)} --> {stamp(end)}\n{caption_text}\n\n")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
-            cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",vf,
-                "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k",
-                "-movflags","+faststart",str(output_file)]
+            voiceover_file = Path(td) / "voiceover.mp3"
+            voiceover_enabled = bool(job.get("voiceover_enabled", True)) and bool(transcript_parts)
+            if voiceover_enabled:
+                # Neural narration reads the detected speech transcript over quieter game audio.
+                narration_text = re.sub(r"\\s+", " ", " ".join(transcript_parts)).strip()[:4500]
+                voice_map = {"en":"en-US-GuyNeural","ur":"ur-PK-AsadNeural","es":"es-ES-AlvaroNeural","pt":"pt-BR-AntonioNeural","fr":"fr-FR-HenriNeural","de":"de-DE-ConradNeural","ru":"ru-RU-DmitryNeural","ar":"ar-SA-HamedNeural","tr":"tr-TR-AhmetNeural","id":"id-ID-ArdiNeural","zh":"zh-CN-YunxiNeural","ja":"ja-JP-KeitaNeural","ko":"ko-KR-InJoonNeural"}
+                voice = voice_map.get(getattr(transcription_info, "language", "en"), "en-US-GuyNeural")
+                try:
+                    asyncio.run(edge_tts.Communicate(narration_text, voice).save(str(voiceover_file)))
+                except Exception as tts_error:
+                    print("Neural voiceover unavailable; keeping original game audio:", str(tts_error)[:300])
+                    voiceover_enabled = False
+            if voiceover_enabled and voiceover_file.exists() and voiceover_file.stat().st_size:
+                cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-t","180","-vf",vf,
+                    "-filter_complex","[0:a]volume=0.22[game];[1:a]volume=1.0[narration];[game][narration]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                    "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","160k",
+                    "-movflags","+faststart",str(output_file)]
+            else:
+                cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",vf,
+                    "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k",
+                    "-movflags","+faststart",str(output_file)]
             subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=td)
             output_path = f"{ADMIN}/processed/{job_id}-{int(datetime.now(timezone.utc).timestamp())}.mp4"
             with output_file.open("rb") as f:
