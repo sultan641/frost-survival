@@ -149,6 +149,14 @@ def main():
             transcript_parts = [re.sub(r"\s+", " ", seg.text).strip() for seg in selected_segments if seg.text.strip()]
             clip_file = Path(td) / "selected-highlight.mp4"
             subprocess.run(["ffmpeg", "-y", "-ss", str(highlight_start), "-i", str(input_file), "-t", str(clip_length), "-c", "copy", str(clip_file)], check=True, capture_output=True, text=True)
+            # Ensure every clip has an audio stream so the narration/music filters
+            # also work with silent screen recordings and muted gameplay captures.
+            probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_type", "-of", "csv=p=0", str(clip_file)], capture_output=True, text=True, check=True)
+            if not probe.stdout.strip():
+                silent_clip = Path(td) / "selected-highlight-with-audio.mp4"
+                subprocess.run(["ffmpeg", "-y", "-i", str(clip_file), "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-shortest", str(silent_clip)], check=True, capture_output=True, text=True)
+                clip_file = silent_clip
+                print("No original audio detected; added a silent audio track for safe editing.")
             input_file = clip_file
             subtitle_file = Path(td) / "captions.srt"
             def stamp(seconds):
