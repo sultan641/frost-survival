@@ -231,9 +231,26 @@ def main():
                 make_original_music(music_file)
             if voiceover_enabled:
                 # Neural narration reads the detected speech transcript over quieter game audio.
-                narration_text = re.sub(r"\s+", " ", " ".join(transcript_parts)).strip()[:4500]
+                language = getattr(transcription_info, "language", "en")
+                intros = {
+                    "en": "Welcome to Frost Survival. We are the FS Team.",
+                    "ur": "فراسٹ سروائیول میں خوش آمدید۔ ہم ایف ایس ٹیم ہیں۔",
+                    "es": "Bienvenidos a Frost Survival. Somos el equipo FS.",
+                    "pt": "Bem-vindos ao Frost Survival. Somos a equipe FS.",
+                    "fr": "Bienvenue dans Frost Survival. Nous sommes la team FS.",
+                    "de": "Willkommen bei Frost Survival. Wir sind das FS Team.",
+                    "ru": "Добро пожаловать в Frost Survival. Мы команда FS.",
+                    "ar": "مرحباً بكم في فروست سيرفايفل. نحن فريق إف إس.",
+                    "tr": "Frost Survival'a hoş geldiniz. Biz FS Ekibiyiz.",
+                    "id": "Selamat datang di Frost Survival. Kami adalah Tim FS.",
+                    "zh": "欢迎来到 Frost Survival。我们是 FS 团队。",
+                    "ja": "Frost Survivalへようこそ。私たちはFSチームです。",
+                    "ko": "Frost Survival에 오신 것을 환영합니다. 저희는 FS 팀입니다."
+                }
+                narration_text = (intros.get(language, intros["en"]) + " " +
+                                  re.sub(r"\s+", " ", " ".join(transcript_parts)).strip())[:4500]
                 voice_map = {"en":"en-US-GuyNeural","ur":"ur-PK-AsadNeural","es":"es-ES-AlvaroNeural","pt":"pt-BR-AntonioNeural","fr":"fr-FR-HenriNeural","de":"de-DE-ConradNeural","ru":"ru-RU-DmitryNeural","ar":"ar-SA-HamedNeural","tr":"tr-TR-AhmetNeural","id":"id-ID-ArdiNeural","zh":"zh-CN-YunxiNeural","ja":"ja-JP-KeitaNeural","ko":"ko-KR-InJoonNeural"}
-                voice = voice_map.get(getattr(transcription_info, "language", "en"), "en-US-GuyNeural")
+                voice = voice_map.get(language, "en-US-GuyNeural")
                 try:
                     asyncio.run(edge_tts.Communicate(narration_text, voice).save(str(voiceover_file)))
                 except Exception as tts_error:
@@ -292,11 +309,13 @@ def main():
             transcript = " ".join(transcript_parts)
             is_kingshot = "kingshot" in (job["original_name"]+" "+notes).lower()
             game_name = "KingShot" if is_kingshot else "Whiteout Survival"
-            title = job.get("title") or safe_title(job["original_name"], notes)
+            title = brand_for_frost(job.get("title") or safe_title(job["original_name"], notes))
             if transcript and not notes:
                 words = re.findall(r"[A-Za-z0-9']+", transcript)
                 if words:
                     title = (game_name + " | " + " ".join(words[:9])).strip()[:100]
+            if not title.lower().startswith("fs team"):
+                title = ("FS Team | " + title)[:100]
             tags = (["KingShot","KingShotV4","KingShotGameplay","Gaming","FrostSurvival","Sultan","Shorts"]
                     if is_kingshot else
                     ["WhiteoutSurvival","WOS","WOSPrivateServer","WhiteoutPrivateServer","WOSGaming","WOSCommunity","WOSUpdates","WOSHeroes","WOSTroops","WOSBuildings","WOSFC10","WOSGameplay","WOSGuide","WOSTips","WOSRewards","WOSAlliance","WOSBattle","WOSRally","WhiteoutGameplay","WhiteoutStrategy","WhiteoutSurvivalGuide","WhiteoutSurvivalTips","FrostSurvival","FrostFamily","FrostGaming","FrostCommunity","SurvivalGaming","StrategyGaming","MobileGaming","PrivateServer","PrivateServerGaming","GamingCommunity","MobileStrategy","StrategyGame","SurvivalGame","GamingShorts","YouTubeShorts","DiscordGaming","SultanGaming","GamingPakistan","PakistaniGamer"])
