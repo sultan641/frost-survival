@@ -33,6 +33,8 @@ jobs:
         run: pip install -r worker/requirements.txt
       - name: Validate worker Python syntax
         run: python -m py_compile worker/process_video.py
+      - name: Validate Studio JavaScript syntax
+        run: node --check youtube-studio.js
       - name: Process one queued video
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
