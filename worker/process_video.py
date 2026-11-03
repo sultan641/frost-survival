@@ -205,15 +205,26 @@ def main():
                 up.raise_for_status()
             notes = (job.get("description") or "").strip()
             transcript = " ".join(transcript_parts)
+            is_kingshot = "kingshot" in (job["original_name"]+" "+notes).lower()
+            game_name = "KingShot" if is_kingshot else "Whiteout Survival"
             title = job.get("title") or safe_title(job["original_name"], notes)
             if transcript and not notes:
                 words = re.findall(r"[A-Za-z0-9']+", transcript)
                 if words:
-                    title = ("Whiteout Survival | " + " ".join(words[:9])).strip()[:100]
-            is_kingshot = "kingshot" in (job["original_name"]+" "+notes).lower()
+                    title = (game_name + " | " + " ".join(words[:9])).strip()[:100]
             tags = (["KingShot","KingShotV4","KingShotGameplay","Gaming","FrostSurvival","Sultan","Shorts"]
                     if is_kingshot else
                     ["WhiteoutSurvival","WOS","WOSPrivateServer","WhiteoutPrivateServer","WOSGaming","WOSCommunity","WOSUpdates","WOSHeroes","WOSTroops","WOSBuildings","WOSFC10","WOSGameplay","WOSGuide","WOSTips","WOSRewards","WOSAlliance","WOSBattle","WOSRally","WhiteoutGameplay","WhiteoutStrategy","WhiteoutSurvivalGuide","WhiteoutSurvivalTips","FrostSurvival","FrostFamily","FrostGaming","FrostCommunity","SurvivalGaming","StrategyGaming","MobileGaming","PrivateServer","PrivateServerGaming","GamingCommunity","MobileStrategy","StrategyGame","SurvivalGame","GamingShorts","YouTubeShorts","DiscordGaming","SultanGaming","GamingPakistan","PakistaniGamer"])
+            # YouTube allows at most 500 characters across all video tags.
+            safe_tags = []
+            tag_chars = 0
+            for tag in tags:
+                extra = len(tag) + (1 if safe_tags else 0)
+                if tag_chars + extra > 500:
+                    break
+                safe_tags.append(tag)
+                tag_chars += extra
+            tags = safe_tags
             hashtags = " ".join("#"+x for x in tags[:60])
             game_links = (
                 "Whiteout Survival V4: https://landing.jkqwio.com/?invite=92lKnzFdINCXVccIz65\n"
