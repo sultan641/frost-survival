@@ -38,51 +38,68 @@ function safe(value) {
 
 async function refreshAuth() {
   const { data, error } = await db.auth.getSession();
-
   if (error) {
-    status(error.message);
+    status("Session check failed: " + error.message);
     return;
   }
 
-  const session = data.session;
-  const loggedIn = !!session;
-
-  $("loginBox").hidden = loggedIn;
-  $("adminBox").hidden = !loggedIn;
-
-  if (loggedIn && session.user.id !== ADMIN_UID) {
-    await db.auth.signOut();
+  const session = data?.session;
+  if (!session) {
     $("loginBox").hidden = false;
     $("adminBox").hidden = true;
-    status("Access denied. Administrator only.");
+    status("No active session. Please sign in.");
     return;
   }
 
-  if (loggedIn) showDashboard();
+  if (session.user.id !== ADMIN_UID) {
+    $("loginBox").hidden = false;
+    $("adminBox").hidden = true;
+    status("Access denied. Signed-in account is not the configured administrator.");
+    await db.auth.signOut();
+    return;
+  }
+
+  $("loginBox").hidden = true;
+  $("adminBox").hidden = false;
+  status("Admin login successful.");
+  showDashboard();
 }
 
 $("loginForm").addEventListener("submit", async event => {
   event.preventDefault();
-  status("Signing in...");
-  const submitButton = event.target.querySelector("button[type=submit]");
-  if (submitButton) submitButton.disabled = true;
-
+  const button = event.currentTarget.querySelector('button[type="submit"]');
   const email = $("email").value.trim();
   const password = $("password").value;
+  if (button) button.disabled = true;
+  status("Signing in...");
 
-  const { error } = await db.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    status("Login failed: " + error.message);
-    if (submitButton) submitButton.disabled = false;
-    return;
+  try {
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) {
+      status("Login failed: " + error.message);
+      return;
+    }
+    if (!data?.session || !data?.user) {
+      status("Sign-in returned no session. Check Supabase Auth settings.");
+      return;
+    }
+    if (data.user.id !== ADMIN_UID) {
+      status("Access denied. This email belongs to a different Supabase user ID.");
+      await db.auth.signOut();
+      return;
+    }
+    $("loginBox").hidden = true;
+    $("adminBox").hidden = false;
+    $("email").value = "";
+    $("password").value = "";
+    status("Admin login successful.");
+    showDashboard();
+  } catch (error) {
+    console.error("Admin sign-in error:", error);
+    status("Login error: " + (error?.message || String(error)));
+  } finally {
+    if (button) button.disabled = false;
   }
-
-  await refreshAuth();
-  if (submitButton) submitButton.disabled = false;
 });
 
 async function signOut() {
