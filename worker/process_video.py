@@ -326,13 +326,24 @@ def main():
             transcript = " ".join(transcript_parts)
             is_kingshot = "kingshot" in (job["original_name"]+" "+notes).lower()
             game_name = "KingShot" if is_kingshot else "Whiteout Survival"
-            title = brand_for_frost(job.get("title") or safe_title(job["original_name"], notes))
-            if transcript and not notes:
-                words = re.findall(r"[A-Za-z0-9']+", transcript)
-                if words:
-                    title = (game_name + " | " + " ".join(words[:9])).strip()[:100]
-            if not title.lower().startswith("fs team"):
-                title = ("FS Team | " + title)[:100]
+            # Build a topic-aware title from the creator notes/transcript, never from
+            # the camera filename. Only claim a specific reward when the notes say it.
+            content_text = (notes + " " + transcript).strip()
+            content_lower = content_text.lower()
+            version_match = re.search(r"\\b(v[45])\\b", content_lower)
+            version_label = (" " + version_match.group(1).upper()) if version_match else ""
+            code_match = re.search(r"\\b(?=[A-Za-z0-9]{6,12}\\b)(?=[A-Za-z0-9]*[A-Z])(?=[A-Za-z0-9]*[0-9])[A-Za-z0-9]+\\b", content_text)
+            code_value = code_match.group(0) if code_match else ""
+            if re.search(r"gift\\s*code|redeem\\s*code|\\bcode\\b", content_lower) or code_value:
+                reward_phrase = "Free Frost Stars" if re.search(r"frost\\s*stars", content_lower) else "Free Rewards"
+                title = f"NEW {game_name}{version_label} Gift Code! Claim {reward_phrase} 🎁"
+                if code_value:
+                    title += f" | {code_value}"
+            elif job.get("title"):
+                title = brand_for_frost(job["title"])
+            else:
+                title = safe_title(job["original_name"], notes)
+            title = title[:100]
             tags = (["KingShot","KingShotV4","KingShotGameplay","Gaming","FrostSurvival","Sultan","Shorts"]
                     if is_kingshot else
                     ["WhiteoutSurvival","WOS","WOSPrivateServer","WhiteoutPrivateServer","WOSGaming","WOSCommunity","WOSUpdates","WOSHeroes","WOSTroops","WOSBuildings","WOSFC10","WOSGameplay","WOSGuide","WOSTips","WOSRewards","WOSAlliance","WOSBattle","WOSRally","WhiteoutGameplay","WhiteoutStrategy","WhiteoutSurvivalGuide","WhiteoutSurvivalTips","FrostSurvival","FrostFamily","FrostGaming","FrostCommunity","SurvivalGaming","StrategyGaming","MobileGaming","PrivateServer","PrivateServerGaming","GamingCommunity","MobileStrategy","StrategyGame","SurvivalGame","GamingShorts","YouTubeShorts","DiscordGaming","SultanGaming","GamingPakistan","PakistaniGamer"])
