@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css?v=20261101-tools1">
+<style>.home-page #homeRewards,.home-page #homeNews,.home-page #rewards,.home-page #announcements,.home-page .home-rewards,.home-page .home-news{display:none!important}</style>
 </head>
 <body class="home-page">
 <header class="top"><div class="wrap nav">
@@ -51,6 +52,7 @@ function googleTranslateElementInit() {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (async function(){
+ document.querySelectorAll("#homeRewards,#homeNews,#rewards,#announcements,.home-rewards,.home-news").forEach(el=>el.remove());
  const link=document.getElementById("ownerStudioLink");
  if(!link||!window.supabase)return;
  const client=window.supabase.createClient("https://xnixsavppmmvbzfnybus.supabase.co","sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT");
@@ -58,5 +60,5 @@ function googleTranslateElementInit() {
  client.auth.onAuthStateChange((_event,session)=>{link.hidden=session?.user?.id!=="9cd04a06-6937-474a-9b13-ea39b2c3bd35";});
 })();
 </script>
-<script src="app.js?v=20261101-expiry1"></script>
+<script src="app.js?v=20261103-homeclean2"></script>
 </body></html>
