@@ -216,7 +216,32 @@ def main():
             else:
                 cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",vf,
                     "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
-            subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=td)
+            try:
+                subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=td)
+            except subprocess.CalledProcessError as render_error:
+                detail = (render_error.stderr or render_error.stdout or str(render_error))[-1800:]
+                print("Full FFmpeg render failed; retrying with a simplified render:", detail, flush=True)
+                if output_file.exists():
+                    output_file.unlink()
+                # Fallback keeps vertical crop and captions but removes optional audio mixing.
+                fallback_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt"
+                fallback_cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",fallback_vf,
+                    "-map","0:v:0","-map","0:a:0?","-c:v","libx264","-preset","veryfast","-crf","25",
+                    "-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
+                try:
+                    subprocess.run(fallback_cmd, check=True, capture_output=True, text=True, cwd=td)
+                    print("Simplified render succeeded; optional voice/music mix was skipped.", flush=True)
+                except subprocess.CalledProcessError as fallback_error:
+                    fallback_detail = (fallback_error.stderr or fallback_error.stdout or str(fallback_error))[-1800:]
+                    print("Caption fallback failed; trying clean vertical render:", fallback_detail, flush=True)
+                    if output_file.exists():
+                        output_file.unlink()
+                    clean_cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180",
+                        "-vf","scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
+                        "-map","0:v:0","-map","0:a:0?","-c:v","libx264","-preset","veryfast","-crf","25",
+                        "-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
+                    subprocess.run(clean_cmd, check=True, capture_output=True, text=True, cwd=td)
+                    print("Clean vertical render succeeded; captions and optional audio mix were skipped.", flush=True)
             progress("saving_output", 86, "Saving the edited video privately")
             output_path = f"{ADMIN}/processed/{job_id}-{int(datetime.now(timezone.utc).timestamp())}.mp4"
             with output_file.open("rb") as f:
@@ -294,8 +319,14 @@ def main():
             print("Processed and uploaded privately:", response["id"])
             print("Private YouTube URL: https://www.youtube.com/watch?v=" + response["id"])
     except Exception as e:
-        patch({"status":"failed","progress_stage":"failed","progress_message":"Processing failed","error_message":str(e)[:1000],
+        attempts = int(job.get("retry_count") or 0) + 1
+        retry = attempts < 3
+        message = f"Attempt {attempts}/3 failed. Automatic retry scheduled." if retry else f"Failed after {attempts} attempts."
+        patch({"status":"queued" if retry else "failed","retry_count":attempts,
+               "progress_stage":"retry_wait" if retry else "failed","progress_percent":0 if retry else 52,
+               "progress_message":message,"error_message":str(e)[:1800],
                "updated_at":datetime.now(timezone.utc).isoformat()})
+        print(message, flush=True)
         raise
 
 if __name__ == "__main__":
