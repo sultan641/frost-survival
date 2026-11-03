@@ -373,6 +373,10 @@ async function loadGameCodes() {
   const area = $("gameSection");
   area.innerHTML = "Loading gift codes...";
 
+  await db.from("gift_codes").update({ active: false })
+    .eq("game_name", selectedGame).eq("active", true)
+    .lt("expires_at", new Date().toISOString());
+
   const { data, error } = await db
     .from("gift_codes")
     .select("*")
@@ -393,13 +397,15 @@ async function loadGameCodes() {
       <form id="codeForm">
         <label>Gift Code</label>
         <textarea name="code" rows="3" required></textarea>
-
-        <label>
-          <input type="checkbox" name="active" checked>
-          Active
-        </label>
-
+        <label>Code validity</label>
+        <select name="expiry_days" required>
+          <option value="1">1 day</option><option value="2">2 days</option>
+          <option value="3" selected>3 days</option><option value="7">7 days</option>
+          <option value="30">30 days</option><option value="never">Never expires</option>
+        </select>
+        <label><input type="checkbox" name="active" checked> Active</label>
         <button type="submit">Add Gift Code</button>
+        <p class="hint">Countdown starts when added. Expired codes are deactivated and hidden from public pages.</p>
       </form>
     </div>
 
@@ -438,23 +444,40 @@ async function addGameCode(event) {
   await loadGameCodes();
 }
 
+function adminCodeCountdown(expiresAt) {
+  if (!expiresAt) return "Never expires";
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) return "Expired";
+  const days = Math.ceil(ms / 86400000);
+  return days === 1 ? "1 day left" : days + " days left";
+}
+
 function renderGameCodes() {
   $("gameCodeList").innerHTML = giftCodes.length
-    ? giftCodes.map(code => `
+    ? giftCodes.map(code => {
+      const expired = code.expires_at && new Date(code.expires_at).getTime() <= Date.now();
+      const state = expired ? "Expired" : (!code.active ? "Inactive" : "Active");
+      return `
       <div class="admin-record">
         <strong>${safe(code.code)}</strong>
-        <p>${!code.active ? "Inactive" : code.expires_at && new Date(code.expires_at) <= new Date() ? "Expired" : "Active"}</p>\n        <p>${code.expires_at ? "Expires: " + safe(new Date(code.expires_at).toLocaleString()) : "No expiry"}</p>
-
-        <button onclick="toggleGameCode(${code.id}, ${!code.active})">
-          ${code.active ? "Deactivate" : "Activate"}
-        </button>
-
-        <button class="danger" onclick="deleteGameCode(${code.id})">
-          Delete
-        </button>
-      </div>
-    `).join("")
+        <p>${state}${code.expires_at ? " • " + adminCodeCountdown(code.expires_at) : ""}</p>
+        <p>${code.expires_at ? "Expires: " + safe(new Date(code.expires_at).toLocaleString()) : "No expiry"}</p>
+        <button onclick="toggleGameCode(${code.id}, ${!code.active})" ${expired ? "disabled" : ""}>${code.active ? "Deactivate" : "Activate"}</button>
+        <button class="danger" onclick="deleteGameCode(${code.id})">Delete</button>
+      </div>`;
+    }).join("")
     : "<p>No gift codes for this game.</p>";
+  if (window.adminGiftCodeTimer) clearInterval(window.adminGiftCodeTimer);
+  window.adminGiftCodeTimer = setInterval(() => {
+    document.querySelectorAll("#gameCodeList .admin-record").forEach((card, i) => {
+      const code = giftCodes[i];
+      if (!code) return;
+      const expired = code.expires_at && new Date(code.expires_at).getTime() <= Date.now();
+      const p = card.querySelector("p");
+      if (p) p.textContent = (expired ? "Expired" : (!code.active ? "Inactive" : "Active")) +
+        (code.expires_at ? " • " + adminCodeCountdown(code.expires_at) : "");
+    });
+  }, 60000);
 }
 
 async function toggleGameCode(id, active) {
