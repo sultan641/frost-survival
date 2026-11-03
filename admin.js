@@ -103,17 +103,27 @@ $("loginForm").addEventListener("submit", async event => {
 });
 
 async function signOut() {
+  status("Signing out...");
   const { error } = await db.auth.signOut();
 
   if (error) {
-    status(error.message);
+    status("Sign-out failed: " + error.message);
     return;
   }
 
   $("loginBox").hidden = false;
   $("adminBox").hidden = true;
-  status("Signed out.");
+  $("email").value = "";
+  $("password").value = "";
+  status("Signed out. Please sign in again.");
 }
+
+$("signOutButton").addEventListener("click", () => {
+  signOut().catch(error => {
+    console.error("Admin sign-out error:", error);
+    status("Sign-out error: " + (error?.message || String(error)));
+  });
+});
 
 // MAIN DASHBOARD
 
