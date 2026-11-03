@@ -74,6 +74,28 @@ def safe_title(name, notes):
         title = "Whiteout Survival | " + title
     return title[:100]
 
+def make_original_music(path, duration=180, sample_rate=22050):
+    # Procedurally composed ambient synth bed; no samples or copyrighted melodies.
+    import math, struct, wave
+    chords = [(110.00, 130.81, 164.81), (98.00, 123.47, 146.83),
+              (87.31, 110.00, 130.81), (98.00, 123.47, 164.81)]
+    frames = duration * sample_rate
+    with wave.open(str(path), "wb") as out:
+        out.setnchannels(1); out.setsampwidth(2); out.setframerate(sample_rate)
+        chunk = 8192
+        for base in range(0, frames, chunk):
+            samples = bytearray()
+            for n in range(base, min(base + chunk, frames)):
+                t = n / sample_rate
+                chord = chords[int(t // 15) % len(chords)]
+                fade = min(1.0, t / 2.5, max(0.0, (duration - t) / 3.0))
+                pad = sum(math.sin(2 * math.pi * f * t) for f in chord) / 3
+                shimmer = math.sin(2 * math.pi * (chord[1] * 2) * t) * 0.12
+                pulse = 0.78 + 0.22 * math.sin(2 * math.pi * 0.12 * t)
+                value = int(max(-1, min(1, (pad * 0.62 + shimmer) * pulse * fade * 0.18)) * 32767)
+                samples.extend(struct.pack("<h", value))
+            out.writeframesraw(samples)
+
 def main():
     jobs = db(f"youtube_studio_jobs?owner_id=eq.{ADMIN}&status=in.(uploaded,queued)&select=*&order=created_at.asc&limit=1").json()
     if not jobs:
@@ -122,7 +144,11 @@ def main():
                     captions.write(f"{count}\n{stamp(start)} --> {stamp(end)}\n{caption_text}\n\n")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
             voiceover_file = Path(td) / "voiceover.mp3"
+            music_file = Path(td) / "original-ambient-music.wav"
             voiceover_enabled = bool(job.get("voiceover_enabled", True)) and bool(transcript_parts) and edge_tts is not None
+            music_enabled = bool(job.get("background_music_enabled", True))
+            if music_enabled:
+                make_original_music(music_file)
             if voiceover_enabled:
                 # Neural narration reads the detected speech transcript over quieter game audio.
                 narration_text = re.sub(r"\\s+", " ", " ".join(transcript_parts)).strip()[:4500]
@@ -133,15 +159,22 @@ def main():
                 except Exception as tts_error:
                     print("Neural voiceover unavailable; keeping original game audio:", str(tts_error)[:300])
                     voiceover_enabled = False
-            if voiceover_enabled and voiceover_file.exists() and voiceover_file.stat().st_size:
+            has_voice = voiceover_enabled and voiceover_file.exists() and voiceover_file.stat().st_size
+            if music_enabled and has_voice:
+                cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-i",str(music_file),"-t","180","-vf",vf,
+                    "-filter_complex","[0:a]volume=0.18[game];[1:a]volume=0.95[narration];[2:a]volume=0.12[music];[game][narration][music]amix=inputs=3:duration=first:dropout_transition=2[a]",
+                    "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
+            elif music_enabled:
+                cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(music_file),"-t","180","-vf",vf,
+                    "-filter_complex","[0:a]volume=0.48[game];[1:a]volume=0.12[music];[game][music]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                    "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
+            elif has_voice:
                 cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-t","180","-vf",vf,
                     "-filter_complex","[0:a]volume=0.22[game];[1:a]volume=1.0[narration];[game][narration]amix=inputs=2:duration=first:dropout_transition=2[a]",
-                    "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","160k",
-                    "-movflags","+faststart",str(output_file)]
+                    "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
             else:
                 cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",vf,
-                    "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k",
-                    "-movflags","+faststart",str(output_file)]
+                    "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
             subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=td)
             output_path = f"{ADMIN}/processed/{job_id}-{int(datetime.now(timezone.utc).timestamp())}.mp4"
             with output_file.open("rb") as f:
