@@ -129,7 +129,7 @@ def main():
             notes = (job.get("description") or "").strip()
             transcript = " ".join(transcript_parts)
             title = job.get("title") or safe_title(job["original_name"], notes)
-            if transcript and not notes and Path(job["original_name"]).stem.lower() in ("video","recording","screenrecording"):
+            if transcript and not notes:
                 words = re.findall(r"[A-Za-z0-9']+", transcript)
                 if words:
                     title = ("Whiteout Survival | " + " ".join(words[:9])).strip()[:100]
