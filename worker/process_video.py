@@ -133,11 +133,25 @@ def main():
                 words = re.findall(r"[A-Za-z0-9']+", transcript)
                 if words:
                     title = ("Whiteout Survival | " + " ".join(words[:9])).strip()[:100]
-            tags = ["WhiteoutSurvival","Gaming","FrostSurvival","Sultan","Shorts"]
-            if "kingshot" in (job["original_name"]+" "+notes).lower():
-                tags = ["KingShot","Gaming","FrostSurvival","Sultan","Shorts"]
-            hashtags = " ".join("#"+x for x in tags)
-            description = (notes + "\\n\\n" if notes else "") + "Frost Survival gaming • Sultan\\n" + hashtags
+            is_kingshot = "kingshot" in (job["original_name"]+" "+notes).lower()
+            tags = (["KingShot","KingShotV4","KingShotGameplay","Gaming","FrostSurvival","Sultan","Shorts"]
+                    if is_kingshot else
+                    ["WhiteoutSurvival","WOS","WOSPrivateServer","WhiteoutPrivateServer","WOSGaming","WOSCommunity","WOSUpdates","WOSHeroes","WOSTroops","WOSBuildings","WOSFC10","WOSGameplay","WOSGuide","WOSTips","WOSRewards","WOSAlliance","WOSBattle","WOSRally","WhiteoutGameplay","WhiteoutStrategy","WhiteoutSurvivalGuide","WhiteoutSurvivalTips","FrostSurvival","FrostFamily","FrostGaming","FrostCommunity","SurvivalGaming","StrategyGaming","MobileGaming","PrivateServer","PrivateServerGaming","GamingCommunity","MobileStrategy","StrategyGame","SurvivalGame","GamingShorts","YouTubeShorts","DiscordGaming","SultanGaming","GamingPakistan","PakistaniGamer"])
+            hashtags = " ".join("#"+x for x in tags[:60])
+            game_links = (
+                "Whiteout Survival V4: https://landing.jkqwio.com/?invite=92lKnzFdINCXVccIz65\\n"
+                "Whiteout Survival V5 China: https://passport.wjdr2.top/ops-register?promo=sultaan\\n"
+                "Whiteout Survival V5 Europe: http://europeeu1.com/ (Promo code: 16365)\\n"
+                "KingShot V4: https://landing.yunxiaoze.com/?id=YqZv76nI"
+            )
+            description_parts = [
+                notes,
+                "❄ FROST SURVIVAL | Sultan",
+                "Join our Discord community: https://discord.gg/NVf6zsb35",
+                "Download our games:\\n" + game_links,
+                hashtags
+            ]
+            description = "\\n\\n".join(part for part in description_parts if part).strip()
             thumbnail_file = Path(td) / "thumbnail.jpg"
             thumb_title = title.replace("'", "").replace(":", " ").replace("%", "")
             thumb_filter = "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,drawbox=x=0:y=500:w=iw:h=220:color=black@0.68:t=fill,drawtext=text='" + thumb_title[:48] + "':fontcolor=white:fontsize=44:x=50:y=555:box=0"
