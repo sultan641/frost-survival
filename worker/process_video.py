@@ -109,10 +109,10 @@ def main():
                 for segment in segments:
                     if segment.start >= 180: break
                     start, end = max(0, segment.start), min(180, segment.end)
-                    caption_text = re.sub(r"\\s+", " ", segment.text).strip()
+                    caption_text = re.sub(r"\s+", " ", segment.text).strip()
                     if not caption_text or end <= start: continue
                     count += 1
-                    captions.write(f"{count}\\n{stamp(start)} --> {stamp(end)}\\n{caption_text}\\n\\n")
+                    captions.write(f"{count}\n{stamp(start)} --> {stamp(end)}\n{caption_text}\n\n")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
             cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",vf,
                 "-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-b:a","128k",
