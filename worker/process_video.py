@@ -325,16 +325,15 @@ def main():
                         "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","25","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
                 elif has_voice:
                     fallback_cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-t","180","-vf",fallback_vf,
-                        "-filter_complex","[0:a]volume=0.22[game];[1:a]volume=1.0[narration]","-map","0:v:0","-map","[a]",
-                        "-c:v","libx264","-preset","veryfast","-crf","25","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
-                    fallback_cmd[fallback_cmd.index("[0:a]volume=0.22[game];[1:a]volume=1.0[narration]")] = "[0:a]volume=0.22[game];[1:a]volume=1.0[narration];[game][narration]amix=inputs=2:duration=first:dropout_transition=2[a]"
+                        "-filter_complex","[0:a]volume=0.22[game];[1:a]volume=1.0[narration];[game][narration]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                        "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","25","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
                 else:
                     fallback_cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",fallback_vf,
                         "-map","0:v:0","-map","0:a:0?","-c:v","libx264","-preset","veryfast","-crf","25",
                         "-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
                 try:
                     subprocess.run(fallback_cmd, check=True, capture_output=True, text=True, cwd=td)
-                    print("Simplified render succeeded; optional voice/music mix was skipped.", flush=True)
+                    print("Simplified render succeeded; configured voice/music mix was retained where available.", flush=True)
                 except subprocess.CalledProcessError as fallback_error:
                     fallback_detail = (fallback_error.stderr or fallback_error.stdout or str(fallback_error))[-1800:]
                     print("Caption fallback failed; trying clean vertical render:", fallback_detail, flush=True)
