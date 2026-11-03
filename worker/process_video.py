@@ -67,20 +67,17 @@ def get_youtube_credentials():
     return creds
 
 def brand_for_frost(text):
-    """Replace competing creator/server identities in spoken text with our brand."""
-    value = re.sub(r"\\s+", " ", str(text or "")).strip()
-    # Replace names explicitly introduced as another server/community/channel.
+    """Rebrand explicit server/channel promotions in captions and AI narration."""
+    value = re.sub(r"\s+", " ", str(text or "")).strip()
     patterns = [
-        (r"(?i)(\\b(?:join|visit|welcome to|come to)\\s+(?:the\\s+)?)([A-Za-z0-9_ .'-]{2,40}?)(\\s+(?:discord\\s+)?server\\b)", r"\\1FS Team\\3"),
-        (r"(?i)(\\b(?:subscribe to|follow|check out)\\s+(?:the\\s+)?)([A-Za-z0-9_ .'-]{2,40}?)(\\s+(?:youtube\\s+)?channel\\b)", r"\\1FS Team\\3"),
-        (r"(?i)(\\b(?:our|this)\\s+)([A-Za-z0-9_-]{2,30})(\\s+(?:discord\\s+)?server\\b)", r"\\1FS Team\\3"),
+        (r"(?i)(\b(?:join|visit|welcome to|come to)\s+(?:the\s+)?)([A-Za-z0-9_ .'-]{2,40}?)(\s+(?:discord\s+)?server\b)", r"\1FS Team\3"),
+        (r"(?i)(\b(?:subscribe to|follow|check out)\s+(?:the\s+)?)([A-Za-z0-9_ .'-]{2,40}?)(\s+(?:youtube\s+)?channel\b)", r"\1FS Team\3"),
+        (r"(?i)(\b(?:our|this)\s+)([A-Za-z0-9_-]{2,30})(\s+(?:discord\s+)?server\b)", r"\1FS Team\3"),
+        (r"(?i)(\b(?:join|follow|subscribe to)\s+)@[A-Za-z0-9_.-]+", r"\1FS Team"),
     ]
     for pattern, replacement in patterns:
         value = re.sub(pattern, replacement, value)
-    # Normalize direct mentions of another server/channel handle after a call to action.
-    value = re.sub(r"(?i)(\\b(?:subscribe to|follow)\\s+)@[A-Za-z0-9_.-]+", r"\\1FS Team", value)
     return value
-
 
 def safe_title(name, notes):
     stem = Path(name).stem.replace("_", " ").replace("-", " ")
@@ -168,7 +165,7 @@ def main():
             highlight_start = max(starts, key=score_window)
             highlight_end = highlight_start + clip_length
             selected_segments = [seg for seg in all_segments if seg.end > highlight_start and seg.start < highlight_end]
-            transcript_parts = [re.sub(r"\s+", " ", seg.text).strip() for seg in selected_segments if seg.text.strip()]
+            transcript_parts = [brand_for_frost(seg.text) for seg in selected_segments if seg.text.strip()]
             clip_file = Path(td) / "selected-highlight.mp4"
             subprocess.run(["ffmpeg", "-y", "-ss", str(highlight_start), "-i", str(input_file), "-t", str(clip_length), "-c", "copy", str(clip_file)], check=True, capture_output=True, text=True)
             # Ensure every clip has an audio stream so the narration/music filters
@@ -192,7 +189,7 @@ def main():
                 for segment in selected_segments:
                     start_time = max(0.0, segment.start - highlight_start)
                     end_time = min(clip_length, segment.end - highlight_start)
-                    caption_text = re.sub(r"\s+", " ", segment.text).strip()
+                    caption_text = brand_for_frost(segment.text)
                     if not caption_text or end_time <= start_time:
                         continue
                     count += 1
@@ -265,7 +262,7 @@ def main():
                     headers={**HEADERS,"Content-Type":"video/mp4","x-upsert":"false"},
                     data=f, timeout=600)
                 up.raise_for_status()
-            notes = (job.get("description") or "").strip()
+            notes = brand_for_frost(job.get("description") or "")
             transcript = " ".join(transcript_parts)
             is_kingshot = "kingshot" in (job["original_name"]+" "+notes).lower()
             game_name = "KingShot" if is_kingshot else "Whiteout Survival"
