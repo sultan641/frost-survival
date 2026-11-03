@@ -66,6 +66,22 @@ def get_youtube_credentials():
            headers={"Prefer": "return=minimal"})
     return creds
 
+def brand_for_frost(text):
+    """Replace competing creator/server identities in spoken text with our brand."""
+    value = re.sub(r"\\s+", " ", str(text or "")).strip()
+    # Replace names explicitly introduced as another server/community/channel.
+    patterns = [
+        (r"(?i)(\\b(?:join|visit|welcome to|come to)\\s+(?:the\\s+)?)([A-Za-z0-9_ .'-]{2,40}?)(\\s+(?:discord\\s+)?server\\b)", r"\\1FS Team\\3"),
+        (r"(?i)(\\b(?:subscribe to|follow|check out)\\s+(?:the\\s+)?)([A-Za-z0-9_ .'-]{2,40}?)(\\s+(?:youtube\\s+)?channel\\b)", r"\\1FS Team\\3"),
+        (r"(?i)(\\b(?:our|this)\\s+)([A-Za-z0-9_-]{2,30})(\\s+(?:discord\\s+)?server\\b)", r"\\1FS Team\\3"),
+    ]
+    for pattern, replacement in patterns:
+        value = re.sub(pattern, replacement, value)
+    # Normalize direct mentions of another server/channel handle after a call to action.
+    value = re.sub(r"(?i)(\\b(?:subscribe to|follow)\\s+)@[A-Za-z0-9_.-]+", r"\\1FS Team", value)
+    return value
+
+
 def safe_title(name, notes):
     stem = Path(name).stem.replace("_", " ").replace("-", " ")
     stem = re.sub(r"\s+", " ", stem).strip()
