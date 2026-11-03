@@ -386,9 +386,18 @@ def main():
             ]
             description = "\n\n".join(part for part in description_parts if part).strip()
             thumbnail_file = Path(td) / "thumbnail.jpg"
-            thumb_title = title.replace("'", "").replace(":", " ").replace("%", "")
-            thumb_filter = "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,drawbox=x=0:y=500:w=iw:h=220:color=black@0.68:t=fill,drawtext=text='" + thumb_title[:48] + "':fontcolor=white:fontsize=44:x=50:y=555:box=0"
-            subprocess.run(["ffmpeg","-y","-ss","2","-i",str(input_file),"-frames:v","1","-vf",thumb_filter,"-q:v","2",str(thumbnail_file)],check=True,capture_output=True,text=True)
+            # Use a text file rather than embedding title text in FFmpeg's filter
+            # expression; this safely handles emojis, apostrophes and punctuation.
+            thumb_text_file = Path(td) / "thumbnail-title.txt"
+            thumb_text_file.write_text(title[:70], encoding="utf-8")
+            thumb_filter = "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,drawbox=x=0:y=500:w=iw:h=220:color=black@0.72:t=fill,drawtext=textfile=thumbnail-title.txt:fontcolor=white:fontsize=42:x=50:y=545:box=0:expansion=none"
+            try:
+                subprocess.run(["ffmpeg","-y","-ss","0.5","-i",str(input_file),"-frames:v","1","-vf",thumb_filter,"-q:v","2",str(thumbnail_file)],check=True,capture_output=True,text=True,cwd=td)
+            except subprocess.CalledProcessError as thumb_render_error:
+                print("Styled thumbnail failed; generating a clean frame thumbnail:", (thumb_render_error.stderr or "")[-800:], flush=True)
+                subprocess.run(["ffmpeg","-y","-ss","0.5","-i",str(input_file),"-frames:v","1","-vf","scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720","-q:v","2",str(thumbnail_file)],check=True,capture_output=True,text=True,cwd=td)
+            if not thumbnail_file.exists() or thumbnail_file.stat().st_size < 1000:
+                raise RuntimeError("Thumbnail generation failed: no valid image was created.")
 
             if job.get("approval_required", False):
                 patch({"status":"ready","title":title,"output_path":output_path,"progress_stage":"ready","progress_percent":100,"progress_message":"Edited video is ready for review","error_message":None,"updated_at":datetime.now(timezone.utc).isoformat()})
