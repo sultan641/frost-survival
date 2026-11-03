@@ -127,7 +127,7 @@ function filterCodes() {
   );
 }
 
-async function loadGiftCodes(client, gameName) {
+let giftCodeExpiryTimer = null;\n\nasync function loadGiftCodes(client, gameName) {
   const status = document.getElementById("codeLoadStatus");
 
   try {
@@ -140,12 +140,13 @@ async function loadGiftCodes(client, gameName) {
     if (error) throw error;
 
     const now = Date.now();
-    window.CODES = (data || [])
-      .filter(row => !row.expires_at || new Date(row.expires_at).getTime() > now)
-      .flatMap(row =>
-        String(row.code || "").trim().split(/\s+/)
-      )
-      .filter(Boolean);
+    const validRows = (data || []).filter(row => !row.expires_at || new Date(row.expires_at).getTime() > now);
+    window.CODES = validRows.flatMap(row => String(row.code || "").trim().split(/\s+/)).filter(Boolean);
+    // Hide expired codes automatically even if this page stays open.
+    const nextExpiry = validRows.map(row => row.expires_at ? new Date(row.expires_at).getTime() : Infinity)
+      .filter(expiry => Number.isFinite(expiry) && expiry > now).sort((a, b) => a - b)[0];
+    if (giftCodeExpiryTimer) clearTimeout(giftCodeExpiryTimer);
+    if (nextExpiry) giftCodeExpiryTimer = setTimeout(() => loadGiftCodes(client, gameName), Math.max(1000, Math.min(nextExpiry - now + 1000, 2147480000)));
 
     if (status) {
       status.textContent = window.CODES.length
