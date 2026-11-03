@@ -316,8 +316,9 @@ def main():
             patch({"status":"published","title":title,"output_path":output_path,
                    "youtube_video_id":response["id"],"progress_stage":"published","progress_percent":100,"progress_message":"Published successfully to YouTube","error_message":None,
                    "updated_at":datetime.now(timezone.utc).isoformat()})
-            print("Processed and uploaded privately:", response["id"])
-            print("Private YouTube URL: https://www.youtube.com/watch?v=" + response["id"])
+            actual_privacy = job.get("publish_privacy") if job.get("publish_privacy") in ("private", "unlisted", "public") else "private"
+            print(f"Processed and uploaded with visibility={actual_privacy}: {response['id']}")
+            print("YouTube URL: https://www.youtube.com/watch?v=" + response["id"])
     except Exception as e:
         attempts = int(job.get("retry_count") or 0) + 1
         retry = attempts < 3
