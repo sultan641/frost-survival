@@ -127,13 +127,17 @@ def main():
             notes = (job.get("description") or "").strip()
             title = job.get("title") or safe_title(job["original_name"], notes)
             description = (notes + "\n\n" if notes else "") + "Frost Survival gaming • Sultan\n#WhiteoutSurvival #Gaming #Shorts"
+            if job.get("approval_required", False):
+                patch({"status":"ready","title":title,"output_path":output_path,"error_message":None,"updated_at":datetime.now(timezone.utc).isoformat()})
+                print("Edited video is ready for your approval; not uploaded yet.")
+                return
             creds = get_youtube_credentials()
             youtube = build("youtube","v3",credentials=creds,cache_discovery=False)
             media = MediaFileUpload(str(output_file), mimetype="video/mp4", resumable=True, chunksize=8*1024*1024)
             request = youtube.videos().insert(part="snippet,status", body={
                 "snippet":{"title":title,"description":description[:5000],"categoryId":"20",
                            "tags":["Whiteout Survival","Gaming","Frost Survival","Sultan"]},
-                "status":{"privacyStatus":"private","selfDeclaredMadeForKids":False}
+                "status":{"privacyStatus":job.get("publish_privacy") if job.get("publish_privacy") in ("private","unlisted","public") else "private","selfDeclaredMadeForKids":False}
             }, media_body=media)
             response = None
             while response is None:
