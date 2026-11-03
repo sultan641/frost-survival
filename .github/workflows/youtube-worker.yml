@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'worker/process_video.py'
+      - 'worker/requirements.txt'
       - '.github/workflows/youtube-worker.yml'
   schedule:
     - cron: "*/15 * * * *"
