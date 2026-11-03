@@ -136,12 +136,12 @@ def main():
                 for seg in all_segments:
                     overlap = max(0.0, min(window_end, seg.end) - max(window_start, seg.start))
                     if overlap:
-                        score += len(re.findall(r"\\w+", seg.text)) * overlap / max(0.25, seg.end - seg.start)
+                        score += len(re.findall(r"\w+", seg.text)) * overlap / max(0.25, seg.end - seg.start)
                 return score
             highlight_start = max(starts, key=score_window)
             highlight_end = highlight_start + clip_length
             selected_segments = [seg for seg in all_segments if seg.end > highlight_start and seg.start < highlight_end]
-            transcript_parts = [re.sub(r"\\s+", " ", seg.text).strip() for seg in selected_segments if seg.text.strip()]
+            transcript_parts = [re.sub(r"\s+", " ", seg.text).strip() for seg in selected_segments if seg.text.strip()]
             clip_file = Path(td) / "selected-highlight.mp4"
             subprocess.run(["ffmpeg", "-y", "-ss", str(highlight_start), "-i", str(input_file), "-t", str(clip_length), "-c", "copy", str(clip_file)], check=True, capture_output=True, text=True)
             input_file = clip_file
@@ -157,11 +157,11 @@ def main():
                 for segment in selected_segments:
                     start_time = max(0.0, segment.start - highlight_start)
                     end_time = min(clip_length, segment.end - highlight_start)
-                    caption_text = re.sub(r"\\s+", " ", segment.text).strip()
+                    caption_text = re.sub(r"\s+", " ", segment.text).strip()
                     if not caption_text or end_time <= start_time:
                         continue
                     count += 1
-                    captions.write(f"{count}\\n{stamp(start_time)} --> {stamp(end_time)}\\n{caption_text}\\n\\n")
+                    captions.write(f"{count}\n{stamp(start_time)} --> {stamp(end_time)}\n{caption_text}\n\n")
             print(f"Auto-selected highlight: {highlight_start:.1f}s to {highlight_end:.1f}s")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
             voiceover_file = Path(td) / "voiceover.mp3"
