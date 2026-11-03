@@ -97,22 +97,46 @@ function copyAll(button) {
 
 // GIFT CODES
 
+function countdownLabel(expiresAt) {
+  if (!expiresAt) return "No expiry";
+  const remaining = new Date(expiresAt).getTime() - Date.now();
+  if (remaining <= 0) return "Expired";
+  const days = Math.ceil(remaining / 86400000);
+  return days === 1 ? "1 day left" : days + " days left";
+}
+
+function refreshGiftCodeCountdowns() {
+  document.querySelectorAll("[data-code-expiry]").forEach(node => {
+    const label = countdownLabel(node.dataset.codeExpiry);
+    node.textContent = label;
+    if (label === "Expired") {
+      const card = node.closest(".reward-card, .code-row");
+      if (card) card.remove();
+    }
+  });
+}
+
 function drawCodes(codes) {
   const area = document.getElementById("codeList");
   if (!area) return;
 
   area.innerHTML = codes.length
-    ? codes.map(code => `
+    ? codes.map(row => {
+        const code = typeof row === "string" ? row : row.code;
+        const expiry = typeof row === "string" ? "" : row.expires_at || "";
+        return `
         <div class="code-row">
           <span class="code">${esc(code)}</span>
+          ${expiry ? `<small data-code-expiry="${esc(expiry)}">${esc(countdownLabel(expiry))}</small>` : ""}
           <button type="button" data-copy-code="${esc(code)}">Copy</button>
-        </div>
-      `).join("")
+        </div>`;
+      }).join("")
     : '<p class="muted">No active gift codes found.</p>';
 
   area.querySelectorAll("[data-copy-code]").forEach(button => {
     button.addEventListener("click", () => copyText(button.dataset.copyCode || "", button));
   });
+  refreshGiftCodeCountdowns();
 }
 
 function filterCodes() {
@@ -552,9 +576,9 @@ async function loadHomepageHub(client) {
       const rows = (data || []).filter(row => !row.expires_at || new Date(row.expires_at).getTime() > now);
       rewards.innerHTML = rows.length ? rows.map(row => {
         const game = HOME_GAMES.find(item => item.name === row.game_name);
-        return `<article class="hub-card reward-card"><span class="hub-tag">${esc(game?.label || row.game_name || "Game")}</span><h3>${esc(row.code)}</h3><p>Active gift code. Availability may change; redeem in the matching game.</p><div class="hub-card-actions"><button class="btn" type="button" data-home-copy="${esc(row.code || "")}">Copy Code</button><a class="outline-link" href="${esc(game?.href || "#games")}">Game page →</a></div></article>`;
+        return `<article class="hub-card reward-card"><span class="hub-tag">${esc(game?.label || row.game_name || "Game")}</span><h3>${esc(row.code)}</h3><p>Active gift code. Availability may change; redeem in the matching game.</p>${row.expires_at ? `<p class="code-countdown" data-code-expiry="${esc(row.expires_at)}">${esc(countdownLabel(row.expires_at))}</p>` : ""}<div class="hub-card-actions"><button class="btn" type="button" data-home-copy="${esc(row.code || "")}">Copy Code</button><a class="outline-link" href="${esc(game?.href || "#games")}">Game page →</a></div></article>`;
       }).join("") : '<div class="hub-card"><h3>No active codes yet</h3><p>New codes will appear here when the team publishes them.</p></div>';
-      rewards.querySelectorAll("[data-home-copy]").forEach(button => {
+      refreshGiftCodeCountdowns();\n      rewards.querySelectorAll("[data-home-copy]").forEach(button => {
         button.addEventListener("click", () => copyText(button.dataset.homeCopy || "", button));
       });
       const status = document.getElementById("homeRewardsStatus");
@@ -609,3 +633,4 @@ document.addEventListener("DOMContentLoaded", () => {
     document.head.appendChild(script);
   }
 });
+\nsetInterval(refreshGiftCodeCountdowns, 60000);\n
