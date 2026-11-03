@@ -1,6 +1,10 @@
 name: Frost Survival YouTube Worker
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'worker/process_video.py'
+      - '.github/workflows/youtube-worker.yml'
   schedule:
     - cron: "*/15 * * * *"
 permissions:
