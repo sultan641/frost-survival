@@ -573,7 +573,8 @@ async function loadHomepageHub(client) {
         const game = HOME_GAMES.find(item => item.name === row.game_name);
         return `<article class="hub-card reward-card"><span class="hub-tag">${esc(game?.label || row.game_name || "Game")}</span><h3>${esc(row.code)}</h3><p>Active gift code. Availability may change; redeem in the matching game.</p>${row.expires_at ? `<p class="code-countdown" data-code-expiry="${esc(row.expires_at)}">${esc(countdownLabel(row.expires_at))}</p>` : ""}<div class="hub-card-actions"><button class="btn" type="button" data-home-copy="${esc(row.code || "")}">Copy Code</button><a class="outline-link" href="${esc(game?.href || "#games")}">Game page →</a></div></article>`;
       }).join("") : '<div class="hub-card"><h3>No active codes yet</h3><p>New codes will appear here when the team publishes them.</p></div>';
-      refreshGiftCodeCountdowns();\n      rewards.querySelectorAll("[data-home-copy]").forEach(button => {
+      refreshGiftCodeCountdowns();
+      rewards.querySelectorAll("[data-home-copy]").forEach(button => {
         button.addEventListener("click", () => copyText(button.dataset.homeCopy || "", button));
       });
       const status = document.getElementById("homeRewardsStatus");
