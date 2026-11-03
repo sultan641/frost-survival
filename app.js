@@ -140,18 +140,13 @@ function drawCodes(codes) {
 }
 
 function filterCodes() {
-  const query = (
-    document.getElementById("codeSearch")?.value || ""
-  ).trim().toLowerCase();
-
-  drawCodes(
-    window.CODES.filter(code =>
-      code.toLowerCase().includes(query)
-    )
-  );
+  const query = (document.getElementById("codeSearch")?.value || "").trim().toLowerCase();
+  drawCodes(window.CODES.filter(row => row.code.toLowerCase().includes(query)));
 }
 
-let giftCodeExpiryTimer = null;\n\nasync function loadGiftCodes(client, gameName) {
+let giftCodeExpiryTimer = null;
+
+async function loadGiftCodes(client, gameName) {
   const status = document.getElementById("codeLoadStatus");
 
   try {
@@ -165,7 +160,7 @@ let giftCodeExpiryTimer = null;\n\nasync function loadGiftCodes(client, gameName
 
     const now = Date.now();
     const validRows = (data || []).filter(row => !row.expires_at || new Date(row.expires_at).getTime() > now);
-    window.CODES = validRows.flatMap(row => String(row.code || "").trim().split(/\s+/)).filter(Boolean);
+    window.CODES = validRows.flatMap(row => String(row.code || "").trim().split(/\\s+/).filter(Boolean).map(code => ({code, expires_at:row.expires_at})));
     // Hide expired codes automatically even if this page stays open.
     const nextExpiry = validRows.map(row => row.expires_at ? new Date(row.expires_at).getTime() : Infinity)
       .filter(expiry => Number.isFinite(expiry) && expiry > now).sort((a, b) => a - b)[0];
