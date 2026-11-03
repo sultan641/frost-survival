@@ -174,7 +174,7 @@ async function loadJobs(){
 async function retryVideoJob(id){
   const {data:{session}}=await db.auth.getSession();
   if(!session||session.user.id!==ADMIN_UID){say("uploadStatus","Admin session expired. Sign in again.");return;}
-  const {error}=await db.from("youtube_studio_jobs").update({status:"uploaded",error_message:null,updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",ADMIN_UID);
+  const {error}=await db.from("youtube_studio_jobs").update({status:"uploaded",retry_count:0,error_message:null,progress_stage:"queued",progress_percent:0,progress_message:"Manual retry queued",updated_at:new Date().toISOString()}).eq("id",id).eq("owner_id",ADMIN_UID);
   if(error){say("uploadStatus","Could not retry this video: "+error.message);return;}
   say("uploadStatus","Video queued again. The automatic worker will check it within 15 minutes.");
   await loadJobs();
