@@ -97,7 +97,12 @@ def make_original_music(path, duration=180, sample_rate=22050):
             out.writeframesraw(samples)
 
 def main():
-    jobs = db(f"youtube_studio_jobs?owner_id=eq.{ADMIN}&status=in.(uploaded,queued)&select=*&order=created_at.asc&limit=1").json()
+    # Recover jobs abandoned by a timed-out worker. GitHub Actions concurrency
+    # prevents overlapping scheduled/manual runs; the 60-minute age protects
+    # a normal run (workflow timeout is 45 minutes) from being reclaimed.
+    stale_before = (datetime.now(timezone.utc) - timedelta(minutes=60)).isoformat().replace("+00:00", "Z")
+    job_filter = f"or=(status.in.(uploaded,queued),and(status.eq.processing,updated_at.lt.{stale_before}))"
+    jobs = db(f"youtube_studio_jobs?owner_id=eq.{ADMIN}&{job_filter}&select=*&order=created_at.asc&limit=1").json()
     if not jobs:
         print("No uploaded jobs waiting.")
         return
