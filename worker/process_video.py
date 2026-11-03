@@ -9,7 +9,10 @@ from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 from faster_whisper import WhisperModel
 import asyncio
-import edge_tts
+try:
+    import edge_tts
+except ImportError:
+    edge_tts = None
 
 URL = os.environ["SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
@@ -119,7 +122,7 @@ def main():
                     captions.write(f"{count}\n{stamp(start)} --> {stamp(end)}\n{caption_text}\n\n")
             vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
             voiceover_file = Path(td) / "voiceover.mp3"
-            voiceover_enabled = bool(job.get("voiceover_enabled", True)) and bool(transcript_parts)
+            voiceover_enabled = bool(job.get("voiceover_enabled", True)) and bool(transcript_parts) and edge_tts is not None
             if voiceover_enabled:
                 # Neural narration reads the detected speech transcript over quieter game audio.
                 narration_text = re.sub(r"\\s+", " ", " ".join(transcript_parts)).strip()[:4500]
