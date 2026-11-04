@@ -51,7 +51,7 @@ await refreshSites();if(!sites.length)restoreLocalDraft();}
 async function authAction(buttonId,action){
  const button=$(buttonId),status=$("authStatus"),email=$("email").value.trim(),password=$("password").value;
  status.textContent="";
- if(!email||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){status.textContent="Enter a valid email address.";return}
+ if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){status.textContent="Enter a valid email address.";return}
  if(!password||password.length<8){status.textContent="Password must be at least 8 characters.";return}
  button.disabled=true;button.textContent=action==="signup"?"Creating account…":"Signing in…";
  try{
