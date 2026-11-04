@@ -16,7 +16,7 @@
   const box = document.createElement("aside");
   box.id = "frost-network-promo";
   box.setAttribute("aria-label", "Powered by Frost Survival community promotion");
-  box.innerHTML = '<div class="fnp-row"><div><strong>❄ Powered by Frost Survival</strong><small>Join the community, discover game downloads, guides and updates.</small></div><div class="fnp-actions"><a href="https://discord.gg/NVf6zsb35" target="_blank" rel="noopener" data-promo="discord">Join Discord</a><a class="fnp-secondary" href="https://youtube.com/@gm_sultaan?sub_confirmation=1" target="_blank" rel="noopener" data-promo="youtube">Subscribe on YouTube</a><a class="fnp-secondary" href="index.html#games" data-promo="games">Explore Games</a></div></div>';
+  box.innerHTML = '<div class="fnp-row"><div><strong>❄ Powered by Frost Survival</strong><small>Join the community, discover game downloads, guides and updates.</small></div><div class="fnp-actions"><a href="https://discord.gg/NVf6zsb35" target="_blank" rel="noopener" data-promo="discord">Join Discord</a><a class="fnp-secondary" href="https://youtube.com/@gm_sultaan?sub_confirmation=1" target="_blank" rel="noopener" data-promo="youtube">Subscribe on YouTube</a><a class="fnp-secondary" href="index.html#games" data-promo="games">Explore Games</a><a class="fnp-secondary" href="promotion.html" data-promo="share">Promote / Share</a></div></div>';
   const footer = document.querySelector("footer");
   if (footer && footer.parentNode) footer.parentNode.insertBefore(box, footer);
   else document.body.appendChild(box);
