@@ -1,6 +1,6 @@
 # Frost Survival YouTube processing worker
 
-This worker is intentionally manual until its GitHub Actions secrets are configured and tested. It processes one `uploaded` job per run.
+The GitHub Actions worker checks the queue automatically every 15 minutes and can also be started manually from Actions → Frost Survival YouTube Worker → Run workflow. It processes one queued video per run to limit resource use. Scheduled runs are enabled.
 
 ## Required GitHub repository secrets
 
@@ -15,18 +15,24 @@ Open Settings → Secrets and variables → Actions → New repository secret. A
 
 Do not paste secrets into chat, issues, commits, or website files.
 
-## Run it
+## What the worker does
 
-1. Add all six secrets.
-2. Open the repository Actions tab.
-3. Select **Frost Survival YouTube Worker**.
-4. Tap **Run workflow**.
+1. Claims the oldest uploaded/queued job (or a stale processing job).
+2. Downloads the original privately from Supabase Storage.
+3. Transcribes speech locally with Faster-Whisper and scores short windows using speech activity and visual scene changes.
+4. Creates a vertical 9:16 MP4, captions when FFmpeg subtitle support is available, optional neural narration and original procedurally generated ambient music.
+5. Generates a thumbnail and topic-aware title/tags/description, including the Frost Survival game and Discord links.
+6. If Auto Mode is ON, uploads using the selected YouTube visibility. If Auto Mode is OFF, marks the edited result ready for review; Sultan must approve it in Studio.
+7. Saves the edited video privately and updates queue progress.
 
-The worker takes the oldest `uploaded` job, downloads it from the private bucket, converts it to a centered 9:16 MP4, stores the processed file privately, and uploads it to YouTube as **Private**. It never makes a video public.
+A custom YouTube title can be entered before upload. Leave it blank to use the generated title.
 
-## Current limits
+## Important limits
 
-- One job per manual run; scheduling stays disabled until the first successful test.
-- This is the first processing baseline, not full AI editing: smart scene selection, speech-to-text captions, AI titles, and approval controls are not implemented yet.
-- Center cropping may cut off important UI at the edges. Review the private YouTube result before changing its visibility.
-- Failed jobs are marked `failed` with an error in the studio queue. Fix the cause before retrying.
+- One video is processed per run; a backlog drains at roughly one job per 15 minutes.
+- This is an automated highlight editor, not human-level understanding of every in-game event. Scene changes and speech are proxies; always review output quality.
+- Vertical center cropping may cut off important UI at the edges.
+- AI narration and generated music are optional. TTS/network failures can fall back to captions/game audio.
+- Auto Mode can publish as Private, Unlisted or Public according to the selected setting. Start with Private until output quality is verified.
+- GitHub Actions has runtime and free-usage limits. If a run fails, inspect the Actions log and Studio queue.
+- A public upload can still receive copyright claims for protected game audio or footage. No tool can guarantee a claim-free result.
