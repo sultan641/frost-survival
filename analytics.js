@@ -12,11 +12,21 @@
     try { return document.referrer ? new URL(document.referrer).hostname.slice(0,120) : null; }
     catch (_) { return null; }
   })();
-  const campaign = {
-    campaign_source: (currentUrl.searchParams.get("utm_source") || "").slice(0,80) || null,
-    campaign_medium: (currentUrl.searchParams.get("utm_medium") || "").slice(0,80) || null,
-    campaign_name: (currentUrl.searchParams.get("utm_campaign") || "").slice(0,100) || null
-  };
+  const campaign = (() => {
+    const current = {
+      campaign_source: (currentUrl.searchParams.get("utm_source") || "").slice(0,80) || null,
+      campaign_medium: (currentUrl.searchParams.get("utm_medium") || "").slice(0,80) || null,
+      campaign_name: (currentUrl.searchParams.get("utm_campaign") || "").slice(0,100) || null
+    };
+    try {
+      if (current.campaign_source || current.campaign_medium || current.campaign_name) {
+        sessionStorage.setItem("frost-campaign-attribution", JSON.stringify(current));
+        return current;
+      }
+      const saved = JSON.parse(sessionStorage.getItem("frost-campaign-attribution") || "null");
+      return saved ? {...saved, ...current} : current;
+    } catch (_) { return current; }
+  })();
   const ua = navigator.userAgent || "";
   const device = /ipad|tablet/i.test(ua) ? "tablet" : /mobi|android|iphone/i.test(ua) ? "mobile" : "desktop";
   let sentView = false;
