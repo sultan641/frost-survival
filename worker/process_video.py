@@ -418,16 +418,19 @@ def main():
             tags = safe_tags
             hashtags = " ".join("#"+x for x in (["WhiteoutSurvival","WOSGiftCode","GamingShorts"] if not is_kingshot else ["KingShot","KingShotGiftCode","GamingShorts"]))
             game_links = (
-                "Whiteout Survival V4: https://landing.jkqwio.com/?invite=92lKnzFdINCXVccIz65\n"
-                "Whiteout Survival V5 China: https://passport.wjdr2.top/ops-register?promo=sultaan\n"
-                "Whiteout Survival V5 Europe: http://europeeu1.com/ (Promo code: 16365)\n"
-                "KingShot V4: https://landing.yunxiaoze.com/?id=YqZv76nI"
+                "Whiteout Survival V4: https://sultan641.github.io/frost-survival/wos-v4.html\n"
+                "Whiteout Survival V5 China: https://sultan641.github.io/frost-survival/v5-china.html\n"
+                "Whiteout Survival V5 Europe: https://sultan641.github.io/frost-survival/v5-europe.html (Promo code: 16365)\n"
+                "KingShot V4: https://sultan641.github.io/frost-survival/kingshot-v4.html"
             )
             description_parts = [
                 notes,
                 "❄ FROST SURVIVAL | Sultan",
+                "All downloads, guides and updates: https://sultan641.github.io/frost-survival/",
                 "Join our Discord community: https://discord.gg/NVf6zsb35",
-                "Download our games:\n" + game_links,
+                "Subscribe to Sultan Gaming: https://youtube.com/@gm_sultaan?sub_confirmation=1",
+                "Follow TikTok: https://www.tiktok.com/@wolfwos",
+                "Download our games from Frost Survival:\n" + game_links,
                 hashtags
             ]
             description = "\n\n".join(part for part in description_parts if part).strip()
