@@ -53,7 +53,7 @@
       const internalPath = destination.pathname.toLowerCase();
       if (destination.origin === window.location.origin) {
         if (/wos-v4|v5-europe|v5-china|kingshot-v4/.test(internalPath)) record("game_click", host);
-        else if (/tools\\.html/.test(internalPath)) record("tool_use", host);
+        else if (/tools\.html/.test(internalPath)) record("tool_use", host);
         return;
       }
       if (host.includes("discord.gg") || host.includes("discord.com")) record("discord_click", host);
@@ -67,7 +67,8 @@
     const button = event.target.closest?.("button");
     if (!button) return;
     const label = (button.textContent || "").trim().toLowerCase();
-    if (button.id === "nativeShare") return;\n    if (button.hasAttribute("data-share") || /share|invite friends/i.test(label)) {
+    if (button.id === "nativeShare") return;
+    if (button.hasAttribute("data-share") || /share|invite friends/i.test(label)) {
       record("share_click");
       return;
     }
