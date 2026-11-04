@@ -38,8 +38,30 @@ plan=sub?.plan||"free";premiumActive=plan==="premium"&&sub?.status==="active"&&(
 $("planStatus").textContent=premiumActive?"PREMIUM ACTIVE · Up to 2 websites"+(sub.current_period_end?" · Renews/expires "+new Date(sub.current_period_end).toLocaleDateString():""):"FREE PLAN · 1 website · Upgrade to Premium for 2 websites and custom pages.";
 $("addCustomPage").disabled=!premiumActive;$("addCustomPage").title=premiumActive?"":"Premium feature — upgrade to add pages";
 await refreshSites();}
-$("signIn").onclick=async()=>{const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});$("authStatus").textContent=error?.message||"Signed in.";if(!error)load()};
-$("signUp").onclick=async()=>{const {data,error}=await db.auth.signUp({email:$("email").value.trim(),password:$("password").value});$("authStatus").textContent=error?.message||(data.session?"Account created.":"Check your email to confirm, then sign in.");if(data.session)load()};
+async function authAction(buttonId,action){
+ const button=$(buttonId),status=$("authStatus"),email=$("email").value.trim(),password=$("password").value;
+ status.textContent="";
+ if(!email||!email.includes("@")){status.textContent="Enter a valid email address.";return}
+ if(!password||password.length<8){status.textContent="Password must be at least 8 characters.";return}
+ button.disabled=true;button.textContent=action==="signup"?"Creating account…":"Signing in…";
+ try{
+  if(action==="signup"){
+   const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
+   if(error)throw error;
+   if(data.session){status.textContent="Account created successfully. Opening your website dashboard…";await load()}
+   else if(data.user?.identities?.length===0){status.textContent="This email already has an account. Please use Sign In instead."}
+   else{status.textContent="Account created. Check your email inbox (and spam folder) and confirm your email, then return here and sign in."}
+  }else{
+   const {error}=await db.auth.signInWithPassword({email,password});
+   if(error)throw error;
+   status.textContent="Signed in. Loading your dashboard…";await load();
+  }
+ }catch(error){status.textContent=error?.message||"Authentication failed. Please try again."}
+ finally{button.disabled=false;button.textContent=action==="signup"?"Create Account":"Sign In"}
+}
+$("signIn").type="button";$("signUp").type="button";
+$("signIn").onclick=()=>authAction("signIn","signin");
+$("signUp").onclick=()=>authAction("signUp","signup");
 $("siteSelect").onchange=()=>{const s=sites.find(x=>x.id===$("siteSelect").value);fillEditor(s||null)};
 $("newSite").onclick=()=>{if(sites.length>=(premiumActive?2:1)){$("saveStatus").textContent=premiumActive?"You already have the 2 websites included in Premium.":"Free plan allows one website. Upgrade to Premium to create a second.";return}$("siteSelect").value="";fillEditor(null);$("saveStatus").textContent="New website: enter its name and a unique address, then save."};
 $("addGame").onclick=()=>add("game");$("addSocial").onclick=()=>add("social");$("addGiftCode").onclick=()=>add("gift");$("addAnnouncement").onclick=()=>add("announcement");$("addCustomPage").onclick=()=>{if(!premiumActive){$("saveStatus").textContent="Custom pages require active Premium.";return}add("page")};
