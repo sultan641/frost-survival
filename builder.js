@@ -30,7 +30,7 @@ async function uploadSiteImage(kind,file){
 
 
 const DRAFT_KEY_PREFIX="frost_builder_draft_v1:";let draftTimer=null;
-function draftKey(){return DRAFT_KEY_PREFIX+(user?.id||"guest")+":"+(site?.id||("new:"+$("slug").value));}
+function draftKey(){return DRAFT_KEY_PREFIX+(user?.id||"guest");}
 function collectDraft(){const val=id=>$(id)?.value??"";return {siteName:val("siteName"),slug:val("slug"),description:val("description"),websiteTier:val("websiteTier"),heroTitle:val("heroTitle"),heroText:val("heroText"),logoUrl:val("logoUrl"),bannerUrl:val("bannerUrl"),aboutText:val("aboutText"),published:!!$("published")?.checked,games:getRows("games"),socials:getRows("socials"),giftCodes:getRows("giftCodes"),announcements:getRows("announcements"),customPages:getRows("customPages"),savedAt:new Date().toISOString()};}
 function saveLocalDraft(){if(!user||$("editor").hidden)return;try{localStorage.setItem(draftKey(),JSON.stringify(collectDraft()));$("draftStatus").textContent="Draft saved automatically on this device."}catch(e){$("draftStatus").textContent="Automatic draft storage unavailable."}}
 function scheduleDraftSave(){clearTimeout(draftTimer);draftTimer=setTimeout(saveLocalDraft,200)}
