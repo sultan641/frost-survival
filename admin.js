@@ -652,7 +652,7 @@ async function loadTrafficAnalytics(days = 7) {
     <div class="admin-game-grid">
       ${cards.map(([label,total]) => `<div class="admin-record"><h3>${total}</h3><p>${label}</p></div>`).join("")}
     </div>
-    <h3>Traffic sources · page views</h3>
+    <h3>Traffic sources & campaigns · page views</h3>
     ${list(top(sources),"views")}
     <h3>Top pages</h3>
     ${list(top(pages),"views")}
