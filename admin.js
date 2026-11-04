@@ -151,6 +151,7 @@ function showDashboard() {
     <div class="actions">
       <button onclick="showTab('apps')">Applications</button>
       <button onclick="showTab('bugs')">Bug Reports</button>
+      <button onclick="showTab('developer')">🔒 Developer Dashboard</button>
     </div>
   `;
 
@@ -665,6 +666,7 @@ async function loadTrafficAnalytics(days = 7) {
 }
 
 async function showTab(tab) {
+  if (tab === "developer") { await showDeveloperDashboard(); return; }
   if (tab === "analytics") {
     $("adminContent").innerHTML = `
       <button class="secondary" onclick="showDashboard()">← Dashboard</button>
@@ -764,3 +766,56 @@ refreshAuth().catch(error => {
   console.error("Initial authentication check failed:", error);
   status("Could not check login status: " + (error.message || error));
 });
+
+
+async function callDeveloper(action, payload = {}) {
+  const { data: s } = await db.auth.getSession();
+  if (!s?.session?.access_token) throw new Error("Please sign in again.");
+  const { data, error } = await db.functions.invoke("admin-developer", {
+    body: { action, ...payload },
+    headers: { Authorization: "Bearer " + s.session.access_token }
+  });
+  if (error || data?.error) throw new Error(data?.error || error.message);
+  return data;
+}
+async function showDeveloperDashboard() {
+  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🔒 Private Developer Dashboard</h2><p>Owner-only controls. Customers cannot access these tools.</p><div class="actions"><button onclick="loadDeveloperDashboard()">Refresh</button></div><div id="developerStats">Loading…</div><div class="admin-section"><h3>Activate Free Premium</h3><form id="freePremiumForm"><label>Customer registered email</label><input class="input" type="email" name="email" required placeholder="customer@example.com"><label>Premium period</label><select class="input" name="cycle"><option value="monthly">1 month — $5 value</option><option value="yearly">1 year — $49.99 value</option></select><button type="submit">Activate Free Premium</button></form><p class="hint">No payment is collected. Owner-granted subscription.</p></div><div id="developerCustomers">Loading customers…</div>';
+  $("freePremiumForm").onsubmit = activateFreePremium;
+  await loadDeveloperDashboard();
+}
+async function loadDeveloperDashboard() {
+  const stats = $("developerStats"), list = $("developerCustomers");
+  if (!stats || !list) return;
+  stats.textContent = "Loading…"; list.textContent = "Loading customers and websites…";
+  try {
+    const d = await callDeveloper("list_customers");
+    const users = d.customers || [], sites = d.sites || [], subs = d.subscriptions || [];
+    stats.innerHTML = '<div class="admin-game-grid"><div class="admin-record"><h3>'+users.length+'</h3><p>Accounts</p></div><div class="admin-record"><h3>'+sites.length+'</h3><p>Websites</p></div><div class="admin-record"><h3>'+subs.filter(x=>x.plan==="premium"&&x.status==="active").length+'</h3><p>Active Premium</p></div></div>';
+    list.innerHTML = users.length ? users.map(u => {
+      const us = sites.filter(x=>x.owner_id===u.id), sub = subs.find(x=>x.owner_id===u.id);
+      let html = '<div class="admin-record"><h3>'+safe(u.email||"No email")+'</h3><p>Account: '+safe(u.id)+'</p><p>Joined: '+safe(u.created_at||"—")+'</p><p>Plan: '+safe(sub?.plan||"free")+' · '+safe(sub?.status||"free")+' · '+safe(sub?.billing_cycle||"—")+'</p><p>Websites: '+us.length+'</p>';
+      us.forEach(site => { html += '<div class="admin-section"><strong>'+safe(site.site_name||site.slug)+'</strong><p>Slug: '+safe(site.slug)+' · '+(site.published?"Published":"Draft")+'</p><button onclick="setCustomerSitePublished(\''+site.id+'\','+(!site.published)+')">'+(site.published?"Unpublish":"Publish")+'</button></div>'; });
+      html += '<div class="actions"><button onclick="grantCustomerPremium(\''+u.id+'\',\'monthly\')">Grant 1 Month</button><button onclick="grantCustomerPremium(\''+u.id+'\',\'yearly\')">Grant 1 Year</button>';
+      if (sub?.status==="active") html += '<button class="secondary" onclick="changeCustomerSubscription(\''+u.id+'\',\'cancelled\')">Cancel Premium</button>';
+      return html+'</div></div>';
+    }).join("") : "<p>No customer accounts found.</p>";
+  } catch(e) { stats.textContent = "Dashboard error: "+e.message; list.textContent = "Could not load customer data."; }
+}
+async function activateFreePremium(e) {
+  e.preventDefault(); const f=new FormData(e.target), b=e.target.querySelector("button[type=submit]");
+  b.disabled=true; status("Activating free Premium…");
+  try { const d=await callDeveloper("activate_free_premium",{email:String(f.get("email")).trim().toLowerCase(),cycle:f.get("cycle")}); status("Free Premium activated for "+d.email+"."); e.target.reset(); await loadDeveloperDashboard(); }
+  catch(x){status("Activation failed: "+x.message);} finally{b.disabled=false;}
+}
+async function grantCustomerPremium(userId,cycle) {
+  if(!confirm("Grant "+cycle+" Premium for free?"))return;
+  try{await callDeveloper("grant_free_premium",{userId,cycle});status("Premium granted.");await loadDeveloperDashboard();}catch(e){status(e.message);}
+}
+async function changeCustomerSubscription(userId,nextStatus) {
+  if(!confirm("Cancel this customer's Premium?"))return;
+  try{await callDeveloper("set_subscription_status",{userId,nextStatus});status("Subscription updated.");await loadDeveloperDashboard();}catch(e){status(e.message);}
+}
+async function setCustomerSitePublished(siteId,published) {
+  if(!confirm((published?"Publish":"Unpublish")+" this customer website?"))return;
+  try{await callDeveloper("set_site_published",{siteId,published});status("Website updated.");await loadDeveloperDashboard();}catch(e){status(e.message);}
+}
