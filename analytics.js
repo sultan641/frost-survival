@@ -53,8 +53,8 @@
       const href = destination.href.toLowerCase();
       if (host.includes("discord.gg") || host.includes("discord.com")) record("discord_click", host);
       else if (host.includes("youtube.com") || host.includes("youtu.be")) record("youtube_click", host);
-      else if (/wos-v4|v5-europe|v5-china|kingshot-v4|landing\\.|passport\\.|europeeu1/.test(href)) record("game_click", host);
-      else if (path.includes("promotion") || /top\\.gg|reddit\\.com|bing\\.com|google\\.com|advertis|promotion/i.test(href)) record("promotion_click", host);
+      else if (/wos-v4|v5-europe|v5-china|kingshot-v4|landing\.|passport\.|europeeu1/.test(href)) record("game_click", host);
+      else if (path.includes("promotion") || /top\.gg|reddit\.com|bing\.com|google\.com|advertis|promotion/i.test(href)) record("promotion_click", host);
       else record("external_click", host);
       return;
     }
@@ -66,7 +66,7 @@
       record("share_click");
       return;
     }
-    if (/copy/i.test(label) && /gift\\s*code|redeem|code:/i.test((button.parentElement?.textContent || "").slice(0,500))) {
+    if (/copy/i.test(label) && /gift\s*code|redeem|code:/i.test((button.parentElement?.textContent || "").slice(0,500))) {
       record("gift_code_copy");
     }
   }, {passive:true});
