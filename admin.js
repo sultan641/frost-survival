@@ -618,7 +618,7 @@ async function loadTrafficAnalytics(days = 7) {
     const page = row.page_path || "/";
     pages[page] = (pages[page] || 0) + 1;
     const source = row.campaign_source
-      ? "Campaign: " + row.campaign_source
+      ? "Campaign: " + [row.campaign_source, row.campaign_medium, row.campaign_name].filter(Boolean).join(" / ")
       : (row.referrer_host && row.referrer_host !== "sultan641.github.io" ? row.referrer_host : "Direct / internal");
     sources[source] = (sources[source] || 0) + 1;
     const device = row.device_type || "unknown";
