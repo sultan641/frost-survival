@@ -47,31 +47,32 @@ const {data:sub}=await db.from("builder_subscriptions").select("plan,status,curr
 plan=sub?.plan||"free";premiumActive=plan==="premium"&&sub?.status==="active"&&(!sub.current_period_end||new Date(sub.current_period_end)>new Date());$("websiteTier").querySelector('option[value="premium"]').disabled=!premiumActive;
 $("planStatus").textContent=premiumActive?"PREMIUM ACTIVE · Up to 2 websites"+(sub.current_period_end?" · Renews/expires "+new Date(sub.current_period_end).toLocaleDateString():""):"FREE PLAN · 1 website · Upgrade to Premium for 2 websites and custom pages.";
 $("addCustomPage").disabled=!premiumActive;$("addCustomPage").title=premiumActive?"":"Premium feature — upgrade to add pages";
-await refreshSites();restoreLocalDraft();}
+await refreshSites();if(!sites.length)restoreLocalDraft();}
 async function authAction(buttonId,action){
  const button=$(buttonId),status=$("authStatus"),email=$("email").value.trim(),password=$("password").value;
  status.textContent="";
- if(!email||!email.includes("@")){status.textContent="Enter a valid email address.";return}
+ if(!email||!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){status.textContent="Enter a valid email address.";return}
  if(!password||password.length<8){status.textContent="Password must be at least 8 characters.";return}
  button.disabled=true;button.textContent=action==="signup"?"Creating account…":"Signing in…";
  try{
+  let result;
   if(action==="signup"){
-   const {data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
-   if(error)throw error;
-   if(data.session){status.textContent="Account created successfully. Opening your website dashboard…";await load()}
-   else if(data.user?.identities?.length===0){status.textContent="This email already has an account. Please use Sign In instead."}
-   else{status.textContent="Account created. Check your email inbox (and spam folder) and confirm your email, then return here and sign in."}
+   result=await db.auth.signUp({email,password,options:{emailRedirectTo:"https://sultan641.github.io/frost-survival/builder.html"}});
+   if(result.error)throw result.error;
+   if(result.data?.session){status.textContent="Account created. Loading dashboard…";await load();}
+   else if(result.data?.user?.identities?.length===0){status.textContent="This email is already registered. Use Sign In or reset your password.";}
+   else{status.textContent="Account created. Check your email (including spam) to confirm it, then return and Sign In. If no email arrives, check Supabase Auth email settings.";}
   }else{
-   const {error}=await db.auth.signInWithPassword({email,password});
-   if(error)throw error;
+   result=await db.auth.signInWithPassword({email,password});
+   if(result.error)throw result.error;
    status.textContent="Signed in. Loading your dashboard…";await load();
   }
- }catch(error){status.textContent=error?.message||"Authentication failed. Please try again."}
- finally{button.disabled=false;button.textContent=action==="signup"?"Create Account":"Sign In"}
+ }catch(error){console.error("Frost builder authentication error:",error);status.textContent=(error?.message||"Authentication failed.")+" (Check connection and try again.)";}
+ finally{button.disabled=false;button.textContent=action==="signup"?"Create Account":"Sign In";}
 }
 $("signIn").type="button";$("signUp").type="button";
-$("signIn").onclick=()=>authAction("signIn","signin");
-$("signUp").onclick=()=>authAction("signUp","signup");
+$("signIn").addEventListener("click",()=>authAction("signIn","signin"));
+$("signUp").addEventListener("click",()=>authAction("signUp","signup"));
 $("siteSelect").onchange=()=>{const s=sites.find(x=>x.id===$("siteSelect").value);fillEditor(s||null)};
 $("newSite").onclick=()=>{if(sites.length>=(premiumActive?2:1)){$("saveStatus").textContent=premiumActive?"You already have the 2 websites included in Premium.":"Free plan allows one website. Upgrade to Premium to create a second.";return}$("siteSelect").value="";fillEditor(null);$("saveStatus").textContent="New website: enter its name and a unique address, then save."};
 $("addGame").onclick=()=>add("game");$("addSocial").onclick=()=>add("social");$("addGiftCode").onclick=()=>add("gift");$("addAnnouncement").onclick=()=>add("announcement");$("addCustomPage").onclick=()=>{if(!premiumActive){$("saveStatus").textContent="Custom pages require active Premium.";return}add("page")};
@@ -80,7 +81,7 @@ const games=getRows("games"),socials=getRows("socials"),gift_codes=getRows("gift
 if(custom_pages.length&&!premiumActive){$("saveStatus").textContent="Custom pages require active Premium.";return}
 if(custom_pages.some(p=>!p.title||!/^[a-z0-9][a-z0-9-]{1,39}$/i.test(p.slug)||!p.body)||games.some(x=>!x.name||!validUrl(x.url))||socials.some(x=>!x.label||!validUrl(x.url))||[$("logoUrl").value.trim(),$("bannerUrl").value.trim()].some(v=>v&&!validUrl(v))){$("saveStatus").textContent="Check page title/ID/content and ensure every game/social link has a valid http/https URL.";return}
 const payload={owner_id:user.id,website_tier:site?.website_tier||$("websiteTier").value,slug,site_name:name,description:$("description").value.trim(),content:{games,socials,gift_codes,announcements,custom_pages,theme:"frost",hero_title:$("heroTitle").value.trim(),hero_text:$("heroText").value.trim(),logo_url:$("logoUrl").value.trim(),banner_url:$("bannerUrl").value.trim(),about_text:$("aboutText").value.trim()},published:$("published").checked,updated_at:new Date().toISOString()};
-const q=site?db.from("builder_sites").update(payload).eq("id",site.id).eq("owner_id",user.id).select().single():db.from("builder_sites").insert(payload).select().single();const {data,error}=await q;if(error){$("saveStatus").textContent="Save failed: "+error.message;return}site=data;$("slug").disabled=true;$("saveStatus").textContent="Saved. "+(site.published?"Website is public.":"Website is private until published.");await refreshSites(site.id);try{localStorage.removeItem(draftKey())}catch{}$("draftStatus").textContent="Website saved to your account.";}catch(e){$("saveStatus").textContent="Save failed: "+(e?.message||"Unknown error")+". Your local draft is kept.";}finally{$("save").disabled=false;$("save").textContent="Save Website";}};
+const q=site?db.from("builder_sites").update(payload).eq("id",site.id).eq("owner_id",user.id).select().single():db.from("builder_sites").insert(payload).select().single();const {data,error}=await q;if(error)throw error;if(!data)throw new Error("Database returned no saved website.");site=data;$("slug").disabled=true;$("saveStatus").textContent="Saved. "+(site.published?"Website is public.":"Website is private until published.");await refreshSites(site.id);try{localStorage.removeItem(draftKey())}catch{}$("draftStatus").textContent="Website saved to your account.";}catch(e){$("saveStatus").textContent="Save failed: "+(e?.message||"Unknown error")+". Your local draft is kept.";}finally{$("save").disabled=false;$("save").textContent="Save Website";}};
 $("preview").onclick=()=>{const slug=site?.slug||$("slug").value.trim();if(!slug){$("saveStatus").textContent="Save your website first.";return}window.open("site.html?site="+encodeURIComponent(slug),"_blank","noopener")};
 $("share").onclick=async()=>{if(!site?.slug){$("saveStatus").textContent="Save your website first.";return}if(!site.published){$("saveStatus").textContent="Publish your website first, then share its public link.";return}const url=new URL("site.html?site="+encodeURIComponent(site.slug),location.href).href;try{if(navigator.share)await navigator.share({title:site.site_name||"My Gaming Website",text:site.description||"Visit my gaming website",url});else{await navigator.clipboard.writeText(url);$("saveStatus").textContent="Website link copied: "+url}}catch(e){if(e.name!=="AbortError")$("saveStatus").textContent="Copy this link: "+url}};
 $("logout").onclick=async()=>{await db.auth.signOut();user=null;site=null;location.reload()};load();
@@ -92,3 +93,6 @@ async function askPremiumAI(){
 }
 $("premiumAiSend").onclick=askPremiumAI;
 $("premiumAiInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();askPremiumAI()}});
+
+window.addEventListener("error",e=>{const s=$("authStatus");if(s&&!user)s.textContent="Page script error: "+(e.message||"unknown error");console.error("Builder script error",e.error||e.message)});
+window.addEventListener("unhandledrejection",e=>{console.error("Builder async error",e.reason);const s=$("saveStatus");if(s)s.textContent="Unexpected error: "+(e.reason?.message||String(e.reason))});
