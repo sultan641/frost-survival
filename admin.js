@@ -152,6 +152,7 @@ function showDashboard() {
       <button onclick="showTab('apps')">Applications</button>
       <button onclick="showTab('bugs')">Bug Reports</button>
       <button onclick="showTab('developer')">🔒 Developer Dashboard</button>
+      <button onclick="showTab('ai')">🤖 Developer AI</button>
     </div>
   `;
 
@@ -666,6 +667,7 @@ async function loadTrafficAnalytics(days = 7) {
 }
 
 async function showTab(tab) {
+  if (tab === "ai") { showDeveloperAI(); return; }
   if (tab === "developer") { await showDeveloperDashboard(); return; }
   if (tab === "analytics") {
     $("adminContent").innerHTML = `
@@ -818,4 +820,70 @@ async function changeCustomerSubscription(userId,nextStatus) {
 async function setCustomerSitePublished(siteId,published) {
   if(!confirm((published?"Publish":"Unpublish")+" this customer website?"))return;
   try{await callDeveloper("set_site_published",{siteId,published});status("Website updated.");await loadDeveloperDashboard();}catch(e){status(e.message);}
+}
+
+let developerAIMessages = [];
+let developerAIDrafts = [];
+async function callDeveloperAI(action, payload = {}) {
+  const { data: sessionData } = await db.auth.getSession();
+  const token = sessionData?.session?.access_token;
+  if (!token) throw new Error("Please sign in again.");
+  const { data, error } = await db.functions.invoke("admin-ai", {
+    body: { action, ...payload },
+    headers: { Authorization: "Bearer " + token }
+  });
+  if (error || data?.error) throw new Error(data?.error || error.message);
+  return data;
+}
+function showDeveloperAI() {
+  developerAIMessages = [];
+  developerAIDrafts = [];
+  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🤖 Developer AI</h2><p>Private owner assistant. It can inspect Frost Survival pages, read game information, and prepare announcements. Publishing always needs your approval.</p><div id="developerAIChat" class="admin-section" style="min-height:260px;max-height:52vh;overflow:auto"><div class="admin-record"><strong>Developer AI</strong><p>Hello Sultan! Ask me to inspect a Frost Survival page, check game information, or prepare an announcement.</p></div></div><div id="developerAIDrafts"></div><form id="developerAIForm" class="admin-section"><label for="developerAIInput">Message</label><textarea id="developerAIInput" rows="3" maxlength="4000" placeholder="Example: Inspect the V5 China page and report problems." required></textarea><button id="developerAISend" type="submit">Send to Developer AI</button></form><p class="hint">AI can make mistakes. Review every suggested change. Page checks are static and cannot fully test interactive browser features.</p>';
+  $("developerAIForm").onsubmit = sendDeveloperAI;
+}
+function renderDeveloperAI() {
+  const chat = $("developerAIChat");
+  if (!chat) return;
+  chat.innerHTML = '<div class="admin-record"><strong>Developer AI</strong><p>Private owner assistant</p></div>' +
+    developerAIMessages.map(m => '<div class="admin-record"><strong>'+(m.role==="user"?"You":"Developer AI")+'</strong><p style="white-space:pre-wrap">'+safe(m.content)+'</p></div>').join("");
+  chat.scrollTop = chat.scrollHeight;
+  const drafts = $("developerAIDrafts");
+  if (drafts) drafts.innerHTML = developerAIDrafts.map((d,i) =>
+    '<div class="admin-section"><h3>Announcement draft — '+safe(d.game_name)+'</h3><strong>'+safe(d.title)+'</strong><p style="white-space:pre-wrap">'+safe(d.message)+'</p><p class="hint">Not published yet.</p><button onclick="approveDeveloperAnnouncement('+i+')">Approve & Publish</button><button class="secondary" onclick="discardDeveloperAnnouncement('+i+')">Discard</button></div>'
+  ).join("");
+}
+async function sendDeveloperAI(event) {
+  event.preventDefault();
+  const input=$("developerAIInput"), button=$("developerAISend");
+  const message=input.value.trim();
+  if(!message) return;
+  developerAIMessages.push({role:"user",content:message});
+  input.value="";
+  button.disabled=true; button.textContent="Thinking…";
+  renderDeveloperAI();
+  try {
+    const result=await callDeveloperAI("chat",{messages:developerAIMessages});
+    developerAIMessages.push({role:"assistant",content:result.reply||"No response received."});
+    developerAIDrafts.push(...(result.pending_actions||[]));
+    renderDeveloperAI();
+  } catch(error) {
+    developerAIMessages.push({role:"assistant",content:"I couldn't connect: "+error.message});
+    renderDeveloperAI();
+  } finally { button.disabled=false; button.textContent="Send to Developer AI"; }
+}
+async function approveDeveloperAnnouncement(index) {
+  const draft=developerAIDrafts[index];
+  if(!draft) return;
+  if(!confirm("Publish this announcement to "+draft.game_name+"?")) return;
+  try {
+    await callDeveloperAI("publish_announcement",draft);
+    developerAIDrafts.splice(index,1);
+    developerAIMessages.push({role:"assistant",content:"Announcement published successfully to "+draft.game_name+"."});
+    renderDeveloperAI();
+    status("Announcement published.");
+  } catch(error) { status("Publish failed: "+error.message); }
+}
+function discardDeveloperAnnouncement(index) {
+  developerAIDrafts.splice(index,1);
+  renderDeveloperAI();
 }
