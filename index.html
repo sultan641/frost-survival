@@ -61,4 +61,61 @@ function googleTranslateElementInit() {
 })();
 </script>
 <script src="app.js?v=20261104-countdown4"></script>
-<script src="analytics.js?v=6"></script><section class="section wrap" id="website-builder-entry"><h2>Build Your Own Gaming Website</h2><p>Create your own gaming hub with a private admin dashboard. Manage your games, download links, promo codes, social links and announcements.</p><a class="btn" href="builder.html">Open Website Builder ↗</a> <a class="btn secondary" href="premium.html">View Free &amp; Premium Plans</a></section></body></html>
+<script src="analytics.js?v=6"></script><section class="section wrap" id="website-builder-entry"><h2>Build Your Own Gaming Website</h2><p>Create your own gaming hub with a private admin dashboard. Manage your games, download links, promo codes, social links and announcements.</p><a class="btn" href="builder.html">Open Website Builder ↗</a> <a class="btn secondary" href="premium.html">View Free &amp; Premium Plans</a></section>
+<style>
+#frostAiLauncher{position:fixed;right:18px;bottom:18px;z-index:9998;border:1px solid #42d9ff;border-radius:999px;padding:13px 20px;background:linear-gradient(120deg,#075b9d,#542b9d);color:white;font-weight:800;box-shadow:0 8px 30px #00baff55;cursor:pointer}
+#frostAiPanel{position:fixed;right:16px;bottom:78px;width:min(370px,calc(100vw - 28px));height:min(540px,72vh);z-index:9999;background:#07172b;border:1px solid #20bdf0;border-radius:16px;box-shadow:0 15px 55px #000b;color:#eaf8ff;display:none;overflow:hidden}
+#frostAiPanel.open{display:flex;flex-direction:column}
+#frostAiPanel header{padding:13px;background:#0b2a49;display:flex;justify-content:space-between;align-items:center}
+#frostAiLog{padding:12px;overflow:auto;flex:1;font-size:14px}
+#frostAiLog .bubble{padding:10px;margin:8px 0;border-radius:10px;background:#102e4c;white-space:pre-wrap;overflow-wrap:anywhere}
+#frostAiLog .you{background:#26345b}
+#frostAiForm{display:flex;gap:7px;padding:10px;border-top:1px solid #23435e}
+#frostAiForm textarea{min-width:0;flex:1;resize:none;background:#0b2037;color:white;border:1px solid #45627b;border-radius:9px;padding:9px}
+#frostAiForm button,#frostAiPanel header button{background:#087eb6;color:white;border:0;border-radius:8px;padding:9px 12px}
+#developerAiHome{display:none;position:fixed;right:16px;bottom:82px;z-index:10000;background:#4b267d;color:white;border:1px solid #d1a4ff;border-radius:10px;padding:10px 14px;font-weight:800}
+#developerAiHome.show{display:block}
+#developerAiHomePanel{display:none;position:fixed;inset:7vh 3vw;z-index:10001;background:#09182b;color:white;border:1px solid #b58aff;border-radius:15px;padding:14px;overflow:auto}
+#developerAiHomePanel.open{display:block}
+#developerHomeLog{height:55%;overflow:auto;background:#10243b;padding:10px;border-radius:10px}
+#developerAiHomePanel textarea{width:100%;box-sizing:border-box;background:#10243b;color:white;padding:10px;margin-top:8px}
+#developerAiHomePanel button{padding:9px 13px;margin:5px;background:#6339a3;color:white;border:0;border-radius:8px}
+</style>
+<button id="frostAiLauncher" type="button" aria-expanded="false">❄ Ask Frost AI</button>
+<section id="frostAiPanel" aria-label="Frost AI chat">
+<header><strong>❄ Frost AI — Player Assistant</strong><button id="frostAiClose" type="button">✕</button></header>
+<div id="frostAiLog"><div class="bubble">Hello! Ask me about WOS V4, WOS V5 Europe, WOS V5 China, KingShot V4, downloads, installation, and game guides.</div></div>
+<form id="frostAiForm"><textarea id="frostAiInput" rows="2" maxlength="1500" placeholder="Ask a question…" required></textarea><button id="frostAiSend">Send</button></form>
+</section>
+<button id="developerAiHome" type="button">🔒 Developer AI</button>
+<section id="developerAiHomePanel" aria-label="Private Developer AI">
+<button id="developerAiHomeClose" type="button">Close</button><h2>🔒 Private Developer AI</h2><p>Owner-only assistant. Publishing still requires your approval.</p>
+<div id="developerHomeLog"></div>
+<form id="developerHomeForm"><textarea id="developerHomeInput" rows="3" maxlength="4000" placeholder="Ask Developer AI…" required></textarea><button id="developerHomeSend">Send</button></form>
+<div id="developerHomeDrafts"></div>
+</section>
+<script>
+(function(){
+ const URL="https://xnixsavppmmvbzfnybus.supabase.co";
+ const KEY="sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
+ const ADMIN="9cd04a06-6937-474a-9b13-ea39b2c3bd35";
+ const client=window.supabase.createClient(URL,KEY);
+ const $=id=>document.getElementById(id);
+ const playerLog=$("frostAiLog");
+ function bubble(log,who,msg){const d=document.createElement("div");d.className="bubble "+(who==="You"?"you":"");const b=document.createElement("b");b.textContent=who;const p=document.createElement("p");p.textContent=msg;d.append(b,p);log.append(d);log.scrollTop=log.scrollHeight;}
+ $("frostAiLauncher").onclick=()=>{$("frostAiPanel").classList.add("open");$("frostAiLauncher").setAttribute("aria-expanded","true");};
+ $("frostAiClose").onclick=()=>{$("frostAiPanel").classList.remove("open");$("frostAiLauncher").setAttribute("aria-expanded","false");};
+ let playerMessages=[];
+ $("frostAiForm").onsubmit=async e=>{e.preventDefault();const input=$("frostAiInput"),btn=$("frostAiSend"),message=input.value.trim();if(!message)return;playerMessages.push({role:"user",content:message});bubble(playerLog,"You",message);input.value="";btn.disabled=true;btn.textContent="…";try{const {data,error}=await client.functions.invoke("player-ai",{body:{messages:playerMessages.slice(-8)}});if(error||data?.error)throw new Error(data?.error||error.message);const answer=data.reply||"I don't have that information. Please ask Frost Survival staff on Discord.";playerMessages.push({role:"assistant",content:answer});bubble(playerLog,"Frost AI",answer);}catch(err){bubble(playerLog,"Frost AI","Sorry, AI is temporarily unavailable. Please try again or contact staff on Discord.");}finally{btn.disabled=false;btn.textContent="Send";}};
+ let devMessages=[],devDrafts=[];
+ async function devCall(action,payload={}){const {data:s}=await client.auth.getSession();if(!s.session)throw new Error("Please sign in.");const {data,error}=await client.functions.invoke("admin-ai",{body:{action,...payload},headers:{Authorization:"Bearer "+s.session.access_token}});if(error||data?.error)throw new Error(data?.error||error.message);return data;}
+ function renderDev(){const log=$("developerHomeLog");log.replaceChildren();devMessages.forEach(m=>bubble(log,m.role==="user"?"You":"Developer AI",m.content));const drafts=$("developerHomeDrafts");drafts.replaceChildren();devDrafts.forEach((d,i)=>{const box=document.createElement("div");box.className="bubble";const h=document.createElement("h3");h.textContent="Draft: "+d.game_name;const t=document.createElement("strong");t.textContent=d.title;const p=document.createElement("p");p.textContent=d.message;const ok=document.createElement("button");ok.textContent="Approve & Publish";ok.onclick=async()=>{if(!confirm("Publish this announcement?"))return;try{await devCall("publish_announcement",d);devDrafts.splice(i,1);devMessages.push({role:"assistant",content:"Announcement published."});renderDev();}catch(e){alert(e.message);}};const no=document.createElement("button");no.textContent="Discard";no.onclick=()=>{devDrafts.splice(i,1);renderDev();};box.append(h,t,p,ok,no);drafts.append(box);});}
+ $("developerAiHome").onclick=()=>{$("developerAiHomePanel").classList.add("open");};
+ $("developerAiHomeClose").onclick=()=>{$("developerAiHomePanel").classList.remove("open");};
+ $("developerHomeForm").onsubmit=async e=>{e.preventDefault();const input=$("developerHomeInput"),btn=$("developerHomeSend"),msg=input.value.trim();if(!msg)return;devMessages.push({role:"user",content:msg});input.value="";btn.disabled=true;renderDev();try{const result=await devCall("chat",{messages:devMessages});devMessages.push({role:"assistant",content:result.reply||"No response."});devDrafts.push(...(result.pending_actions||[]));}catch(err){devMessages.push({role:"assistant",content:"Connection error: "+err.message});}finally{btn.disabled=false;renderDev();}};
+ async function checkOwner(){try{const {data}=await client.auth.getSession();$("developerAiHome").classList.toggle("show",data.session?.user?.id===ADMIN); }catch(e){}}
+ checkOwner();client.auth.onAuthStateChange((_event,session)=>{$("developerAiHome").classList.toggle("show",session?.user?.id===ADMIN);if(session?.user?.id!==ADMIN)$("developerAiHomePanel").classList.remove("open");});
+})();
+</script>
+
+</body></html>
