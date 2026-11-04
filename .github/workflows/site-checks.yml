@@ -1,0 +1,75 @@
+name: Frost Survival Site Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check JavaScript syntax
+        run: |
+          for file in app.js analytics.js admin.js builder.js forms.js tools.js youtube-studio.js network-promo.js; do
+            if [ -f "$file" ]; then node --check "$file"; fi
+          done
+      - name: Check video worker syntax
+        run: python -m py_compile worker/process_video.py
+      - name: Check HTML internal links and duplicate IDs
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          import sys
+
+          class Audit(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.refs = []
+                  self.ids = []
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if attrs.get("id"):
+                      self.ids.append(attrs["id"])
+                  for key in ("href", "src"):
+                      value = attrs.get(key, "")
+                      if value:
+                          self.refs.append(value)
+
+          failures = []
+          pages = sorted(Path(".").glob("*.html"))
+          for page in pages:
+              parser = Audit()
+              parser.feed(page.read_text(encoding="utf-8"))
+              seen = set()
+              duplicates = sorted({x for x in parser.ids if x in seen or seen.add(x)})
+              for item in duplicates:
+                  failures.append(f"{page}: duplicate id '{item}'")
+              for ref in parser.refs:
+                  if ref.startswith(("#", "https://", "http://", "mailto:", "tel:", "javascript:", "data:")):
+                      continue
+                  parsed = urlsplit(ref)
+                  target = (page.parent / parsed.path).resolve()
+                  if parsed.path and not target.exists():
+                      failures.append(f"{page}: missing local target '{ref}'")
+                  if parsed.fragment and not parsed.path and parsed.fragment not in parser.ids:
+                      failures.append(f"{page}: missing fragment '#{parsed.fragment}'")
+          if failures:
+              print("\\n".join(failures))
+              sys.exit(1)
+          print(f"Checked {len(pages)} HTML pages: local links and IDs look valid.")
+          PY
