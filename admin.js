@@ -594,44 +594,85 @@ async function deleteAnnouncement(id) {
 
 // GLOBAL APPLICATIONS AND BUG REPORTS
 
+async function loadTrafficAnalytics(days = 7) {
+  const area = $("globalRecords");
+  if (!area) return;
+  area.textContent = "Loading traffic data…";
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const { data, error } = await db.from("site_analytics")
+    .select("event_type,page_path,device_type,created_at,referrer_host,campaign_source,campaign_medium,campaign_name,target_host")
+    .eq("site_key", "frost-survival")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(5000);
+  if (error) { area.textContent = "Analytics error: " + error.message; return; }
+
+  const rows = data || [];
+  const count = type => rows.filter(row => row.event_type === type).length;
+  const pageViews = rows.filter(row => row.event_type === "page_view");
+  const pages = {};
+  const sources = {};
+  const targets = {};
+  const devices = {};
+  pageViews.forEach(row => {
+    const page = row.page_path || "/";
+    pages[page] = (pages[page] || 0) + 1;
+    const source = row.campaign_source
+      ? "Campaign: " + row.campaign_source
+      : (row.referrer_host && row.referrer_host !== "sultan641.github.io" ? row.referrer_host : "Direct / internal");
+    sources[source] = (sources[source] || 0) + 1;
+    const device = row.device_type || "unknown";
+    devices[device] = (devices[device] || 0) + 1;
+  });
+  rows.filter(row => row.target_host && ["promotion_click","external_click","discord_click","youtube_click","game_click"].includes(row.event_type))
+    .forEach(row => { targets[row.target_host] = (targets[row.target_host] || 0) + 1; });
+  const top = object => Object.entries(object).sort((a,b) => b[1] - a[1]).slice(0,8);
+  const cards = [
+    ["Page views", count("page_view")],
+    ["Game / download clicks", count("game_click")],
+    ["Promotion directory clicks", count("promotion_click")],
+    ["Discord clicks", count("discord_click")],
+    ["YouTube clicks", count("youtube_click")],
+    ["Share clicks", count("share_click")],
+    ["External clicks", count("external_click")],
+    ["Gift-code copies", count("gift_code_copy")]
+  ];
+  const list = (items, suffix) => items.length
+    ? items.map(([name,total]) => `<div class="admin-record"><strong>${safe(name)}</strong><p>${total} ${suffix}</p></div>`).join("")
+    : "<p>No data recorded yet.</p>";
+  area.innerHTML = `
+    <div class="field" style="max-width:260px">
+      <label for="analyticsRange">Date range</label>
+      <select class="input" id="analyticsRange" onchange="loadTrafficAnalytics(Number(this.value))">
+        <option value="7" ${days===7?"selected":""}>Last 7 days</option>
+        <option value="30" ${days===30?"selected":""}>Last 30 days</option>
+        <option value="90" ${days===90?"selected":""}>Last 90 days</option>
+      </select>
+    </div>
+    <div class="admin-game-grid">
+      ${cards.map(([label,total]) => `<div class="admin-record"><h3>${total}</h3><p>${label}</p></div>`).join("")}
+    </div>
+    <h3>Traffic sources · page views</h3>
+    ${list(top(sources),"views")}
+    <h3>Top pages</h3>
+    ${list(top(pages),"views")}
+    <h3>External destinations</h3>
+    ${list(top(targets),"clicks")}
+    <h3>Devices</h3>
+    ${list(top(devices),"page views")}
+    <p class="muted">Privacy-friendly totals only. No unique visitor profiles or personal IDs are collected. Showing up to 5,000 events for this period.</p>
+  `;
+}
+
 async function showTab(tab) {
   if (tab === "analytics") {
     $("adminContent").innerHTML = `
       <button class="secondary" onclick="showDashboard()">← Dashboard</button>
-      <h2>Traffic Analytics</h2>
-      <p>Privacy-friendly totals; no visitor IDs or cookies are collected.</p>
+      <h2>Promotion & Traffic Analytics</h2>
+      <p>Track website views, traffic sources, campaign links, game clicks and social engagement.</p>
       <div id="globalRecords">Loading analytics…</div>
     `;
-    const area = $("globalRecords");
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await db.from("site_analytics")
-      .select("event_type,page_path,device_type,created_at")
-      .gte("created_at", since).order("created_at", { ascending: false }).limit(5000);
-    if (error) { area.textContent = "Analytics error: " + error.message; return; }
-    const rows = data || [];
-    const count = type => rows.filter(row => row.event_type === type).length;
-    const pages = {};
-    const events = {};
-    rows.forEach(row => {
-      pages[row.page_path || "/"] = (pages[row.page_path || "/"] || 0) + (row.event_type === "page_view" ? 1 : 0);
-      events[row.event_type] = (events[row.event_type] || 0) + 1;
-    });
-    const topPages = Object.entries(pages).filter(x => x[1] > 0).sort((a,b) => b[1]-a[1]).slice(0,8);
-    area.innerHTML = `
-      <div class="admin-game-grid">
-        <div class="admin-record"><h3>${count("page_view")}</h3><p>Page views · 7 days</p></div>
-        <div class="admin-record"><h3>${count("discord_click")}</h3><p>Discord clicks</p></div>
-        <div class="admin-record"><h3>${count("youtube_click")}</h3><p>YouTube clicks</p></div>
-        <div class="admin-record"><h3>${count("game_click")}</h3><p>Game/download clicks</p></div>
-        <div class="admin-record"><h3>${count("gift_code_copy")}</h3><p>Gift-code copy clicks</p></div>
-        <div class="admin-record"><h3>${count("tool_use")}</h3><p>Tool navigation clicks</p></div>
-      </div>
-      <h3>Top pages · 7 days</h3>
-      ${topPages.length ? topPages.map(([path,total]) => `<div class="admin-record"><strong>${safe(path)}</strong><p>${total} page views</p></div>`).join("") : "<p>No page views recorded yet.</p>"}
-      <h3>Events summary</h3>
-      ${Object.entries(events).sort((a,b)=>b[1]-a[1]).map(([name,total])=>`<div class="admin-record"><strong>${safe(name)}</strong><p>${total}</p></div>`).join("")}
-      <p class="muted">Showing up to 5,000 events from the last 7 days.</p>
-    `;
+    await loadTrafficAnalytics(7);
     return;
   }
   const table = tab === "apps" ? "team_applications" : "bug_reports";
