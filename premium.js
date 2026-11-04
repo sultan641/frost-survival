@@ -7,8 +7,8 @@ function updatePaymentDetails(){
  const crypto=method.value==="binance_usdt";
  binanceDetails.hidden=!crypto;localDetails.hidden=crypto;
  const monthly=cycle.value==="monthly";
- const usd=monthly?"3.99":"39.99";
- const pkr=monthly?"999":"9999";
+ const usd=monthly?"5.00":"49.99";
+ const pkr=monthly?"1399":"13999";
  cryptoAmount.innerHTML="<strong>Amount: "+usd+" USDT "+(monthly?"monthly":"yearly")+"</strong>";
  amount.value=crypto?usd+" USDT": "Rs. "+pkr;
  amount.placeholder=crypto?usd+" USDT":"Rs. "+pkr;
