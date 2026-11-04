@@ -339,12 +339,26 @@ def main():
                     print("Caption fallback failed; trying clean vertical render:", fallback_detail, flush=True)
                     if output_file.exists():
                         output_file.unlink()
-                    clean_cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180",
-                        "-vf","scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
-                        "-map","0:v:0","-map","0:a:0?","-c:v","libx264","-preset","veryfast","-crf","25",
-                        "-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
+                    clean_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1"
+                    # Even if caption filters fail, keep requested AI narration and original music.
+                    if music_enabled and has_voice:
+                        clean_cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-i",str(music_file),"-t","180",
+                            "-vf",clean_vf,"-filter_complex","[0:a]volume=0.18[game];[1:a]volume=0.95[narration];[2:a]volume=0.12[music];[game][narration][music]amix=inputs=3:duration=first:dropout_transition=2[a]",
+                            "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","25","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
+                    elif music_enabled:
+                        clean_cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(music_file),"-t","180",
+                            "-vf",clean_vf,"-filter_complex","[0:a]volume=0.48[game];[1:a]volume=0.12[music];[game][music]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                            "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","25","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
+                    elif has_voice:
+                        clean_cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-t","180",
+                            "-vf",clean_vf,"-filter_complex","[0:a]volume=0.22[game];[1:a]volume=1.0[narration];[game][narration]amix=inputs=2:duration=first:dropout_transition=2[a]",
+                            "-map","0:v:0","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","25","-c:a","aac","-b:a","160k","-movflags","+faststart",str(output_file)]
+                    else:
+                        clean_cmd = ["ffmpeg","-y","-i",str(input_file),"-t","180","-vf",clean_vf,
+                            "-map","0:v:0","-map","0:a:0?","-c:v","libx264","-preset","veryfast","-crf","25",
+                            "-c:a","aac","-b:a","128k","-movflags","+faststart",str(output_file)]
                     subprocess.run(clean_cmd, check=True, capture_output=True, text=True, cwd=td)
-                    print("Clean vertical render succeeded; captions and optional audio mix were skipped.", flush=True)
+                    print("Clean vertical render succeeded; captions skipped, requested audio mix preserved where possible.", flush=True)
             progress("saving_output", 86, "Saving the edited video privately")
             output_path = f"{ADMIN}/processed/{job_id}-{int(datetime.now(timezone.utc).timestamp())}.mp4"
             with output_file.open("rb") as f:
