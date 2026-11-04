@@ -378,7 +378,7 @@ def main():
             version_label = (" " + version_match.group(1).upper()) if version_match else ""
             code_match = re.search(r"\b[A-Z0-9]{6,16}\b", content_text.upper())
             code_value = code_match.group(0) if code_match else ""
-            if re.search(r"gift\s*code|redeem\s*code|\bcode\b", content_lower) or code_value:
+            if job.get("title") and str(job["title"]).strip():\n                title = brand_for_frost(str(job["title"]).strip())\n            elif re.search(r"gift\s*code|redeem\s*code|\bcode\b", content_lower) or code_value:
                 # Use a creator-style hook, but only name rewards explicitly confirmed in notes/transcript.
                 version_detail = ""
                 if re.search(r"v\s*5\s*europe|v5e|europe", content_lower):
