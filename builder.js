@@ -1,5 +1,23 @@
 const SB_URL="https://xnixsavppmmvbzfnybus.supabase.co",SB_KEY="sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
 const db=window.supabase.createClient(SB_URL,SB_KEY);let user=null,site=null;
+const builderInviteUrl="https://sultan641.github.io/frost-survival/builder.html";
+async function shareBuilderLink(copyOnly=false){
+ const status=$("inviteStatus");
+ try{
+  if(!copyOnly&&navigator.share){
+   await navigator.share({title:"Frost Survival Website Builder",text:"Create your own gaming community website. Register for an account and manage your own site.",url:builderInviteUrl});
+   status.textContent="Share menu opened.";
+  }else{
+   await navigator.clipboard.writeText(builderInviteUrl);
+   status.textContent="Registration link copied. Send it to anyone.";
+  }
+ }catch(error){
+  if(error.name!=="AbortError")status.textContent="Copy this registration link: "+builderInviteUrl;
+ }
+}
+$("shareBuilder").onclick=()=>shareBuilderLink(false);
+$("copyBuilder").onclick=()=>shareBuilderLink(true);
+
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function entry(type,item={}){const box=document.createElement("div");box.className="entry";box.dataset.entry=type;const fields=type==="game"?[["name","Game name"],["url","Main download URL"],["registration","Registration URL (optional)"],["apk","Android APK URL (optional)"],["ios","iOS URL (optional)"],["promo","Promo code"],["description","Short description"]]:type==="social"?[["label","Platform"],["url","Profile / invite URL"]]:type==="gift"?[["game","Game"],["code","Gift code"],["expires","Expiry (optional)"]]:[["title","Announcement title"],["message","Announcement text"]];box.innerHTML=fields.map(([k,l])=>'<label>'+l+'<input data-field="'+k+'" maxlength="500" value="'+esc(item[k]||"")+'" placeholder="'+l+'"></label>').join("")+'<button type="button" class="builder-btn danger remove">Remove</button>';box.querySelector(".remove").onclick=()=>box.remove();return box}
 function add(type,item){const target=$ (type==="game"?"games":type==="social"?"socials":type==="gift"?"giftCodes":"announcements");target.append(entry(type,item))}
