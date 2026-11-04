@@ -48,9 +48,14 @@
     if (anchor) {
       let destination;
       try { destination = new URL(anchor.href, window.location.href); } catch (_) { return; }
-      if (destination.origin === window.location.origin) return;
       const host = destination.hostname.toLowerCase();
       const href = destination.href.toLowerCase();
+      const internalPath = destination.pathname.toLowerCase();
+      if (destination.origin === window.location.origin) {
+        if (/wos-v4|v5-europe|v5-china|kingshot-v4/.test(internalPath)) record("game_click", host);
+        else if (/tools\\.html/.test(internalPath)) record("tool_use", host);
+        return;
+      }
       if (host.includes("discord.gg") || host.includes("discord.com")) record("discord_click", host);
       else if (host.includes("youtube.com") || host.includes("youtu.be")) record("youtube_click", host);
       else if (/wos-v4|v5-europe|v5-china|kingshot-v4|landing\.|passport\.|europeeu1/.test(href)) record("game_click", host);
@@ -62,7 +67,7 @@
     const button = event.target.closest?.("button");
     if (!button) return;
     const label = (button.textContent || "").trim().toLowerCase();
-    if (button.hasAttribute("data-share") || /share|invite friends/i.test(label)) {
+    if (button.id === "nativeShare") return;\n    if (button.hasAttribute("data-share") || /share|invite friends/i.test(label)) {
       record("share_click");
       return;
     }
