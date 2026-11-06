@@ -153,6 +153,7 @@ function showDashboard() {
       <button onclick="showTab('bugs')">Bug Reports</button>
       <button onclick="showTab('developer')">🔒 Developer Dashboard</button>
       <button onclick="showTab('ai')">🤖 Developer AI</button>
+      <button onclick="showTab('agents')">🔐 Agent Livestreaming</button>
     </div>
   `;
 
@@ -667,6 +668,7 @@ async function loadTrafficAnalytics(days = 7) {
 }
 
 async function showTab(tab) {
+  if (tab === "agents") { await showAgentStreaming(); return; }
   if (tab === "ai") { showDeveloperAI(); return; }
   if (tab === "developer") { await showDeveloperDashboard(); return; }
   if (tab === "analytics") {
@@ -761,6 +763,32 @@ async function showTab(tab) {
   }
 }
 
+async function callAgentVault(action, payload = {}) {
+  const { data: s } = await db.auth.getSession();
+  if (!s?.session?.access_token) throw new Error("Please sign in again.");
+  const { data, error } = await db.functions.invoke("agent-streaming-vault", { body: { action, ...payload }, headers: { Authorization: "Bearer " + s.session.access_token } });
+  if (error || data?.error) throw new Error(data?.error || error.message);
+  return data;
+}
+async function showAgentStreaming() {
+  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🔐 Agent Livestreaming Accounts</h2><p>Confidential agent-only access. Never shown on public pages or customer dashboards.</p><div id="agentVaultStatus">Loading secure records…</div><div id="agentVaultCards"></div>';
+  try {
+    const result = await callAgentVault("list");
+    const records = result.accounts || [];
+    $("agentVaultCards").innerHTML = ["Whiteout Survival","KingShot"].map(game => {
+      const item = records.find(x => x.game === game) || {url:"",username:"",password:""};
+      const id = game === "Whiteout Survival" ? "wos" : "ks";
+      return '<section class="admin-section"><h3>'+safe(game)+'</h3><label>Private livestreaming link</label><div><input class="input" id="'+id+'Url" readonly value="'+safe(item.url)+'"><button type="button" data-copy="'+id+'Url">Copy Link</button></div><label>Agent username</label><input class="input" id="'+id+'User" value="'+safe(item.username)+'" maxlength="300" autocomplete="off" placeholder="Add agent username"><label>Agent password</label><div><input class="input" id="'+id+'Pass" type="password" value="'+safe(item.password)+'" maxlength="1000" autocomplete="new-password" placeholder="Add agent password"><button type="button" data-toggle="'+id+'Pass">Show</button></div><button type="button" data-save="'+id+'" data-game="'+safe(game)+'">🔒 Save Credentials</button></section>';
+    }).join("");
+    $("agentVaultStatus").textContent = "Secure vault connected. 2 private records loaded.";
+    $("agentVaultCards").querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copyAgentField(b.dataset.copy));
+    $("agentVaultCards").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleAgentPassword(b.dataset.toggle,b));
+    $("agentVaultCards").querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>saveAgentAccount(b.dataset.save,b.dataset.game,b));
+  } catch(e) { $("agentVaultStatus").textContent = "Secure vault unavailable: " + e.message; }
+}
+async function copyAgentField(id) { const f=$(id); if(!f || !f.value) return status("No link available."); try { await navigator.clipboard.writeText(f.value); status("Private link copied."); } catch { f.focus(); f.select(); status("Select the link and copy it manually."); } }
+function toggleAgentPassword(id,b) { const f=$(id); if(!f) return; f.type=f.type==="password"?"text":"password"; b.textContent=f.type==="password"?"Show":"Hide"; }
+async function saveAgentAccount(id,game,b) { if(b) b.disabled=true; try { await callAgentVault("save",{game,username:$(id+"User").value.trim(),password:$(id+"Pass").value}); status(game+" credentials saved securely."); } catch(e) { status("Save failed: "+e.message); } finally { if(b) b.disabled=false; } }
 // AUTH SESSION
 // Avoid calling Supabase auth methods from inside onAuthStateChange.
 // Login submits directly to Supabase, then refreshes the dashboard.
