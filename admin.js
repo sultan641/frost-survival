@@ -201,7 +201,7 @@ function addAdminStyles() {
       margin:7px 0 14px;
       box-sizing:border-box;
     }
-    .admin-record {
+    .agent-link-row { display:flex; gap:8px; align-items:center; }\n    .agent-link-row input { min-width:0; flex:1; }\n    .admin-record {
       padding:14px;
       margin:12px 0;
       border:1px solid #526477;
