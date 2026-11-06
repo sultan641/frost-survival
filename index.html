@@ -65,23 +65,37 @@ function googleTranslateElementInit() {
 <script src="app.js?v=20261104-countdown4"></script>
 <script src="analytics.js?v=6"></script><section class="section wrap" id="website-builder-entry"><h2>Build Your Own Gaming Website</h2><p>Create your own gaming hub with a private admin dashboard. Manage your games, download links, promo codes, social links and announcements.</p><a class="btn" href="builder.html">Open Website Builder ↗</a> <a class="btn secondary" href="premium.html">View Free &amp; Premium Plans</a></section>
 <style>
-#frostAiLauncher{position:fixed;right:18px;bottom:18px;z-index:9998;border:1px solid #42d9ff;border-radius:999px;padding:13px 20px;background:linear-gradient(120deg,#075b9d,#542b9d);color:white;font-weight:800;box-shadow:0 8px 30px #00baff55;cursor:pointer}
-#frostAiPanel{position:fixed;right:16px;bottom:78px;width:min(370px,calc(100vw - 28px));height:min(540px,72vh);z-index:9999;background:#07172b;border:1px solid #20bdf0;border-radius:16px;box-shadow:0 15px 55px #000b;color:#eaf8ff;display:none;overflow:hidden}
-#frostAiPanel.open{display:flex;flex-direction:column}
-#frostAiPanel header{padding:13px;background:#0b2a49;display:flex;justify-content:space-between;align-items:center}
-#frostAiLog{padding:12px;overflow:auto;flex:1;font-size:14px}
-#frostAiLog .bubble{padding:10px;margin:8px 0;border-radius:10px;background:#102e4c;white-space:pre-wrap;overflow-wrap:anywhere}
-#frostAiLog .you{background:#26345b}
-#frostAiForm{display:flex;gap:7px;padding:10px;border-top:1px solid #23435e}
-#frostAiForm textarea{min-width:0;flex:1;resize:none;background:#0b2037;color:white;border:1px solid #45627b;border-radius:9px;padding:9px}
-#frostAiForm button,#frostAiPanel header button{background:#087eb6;color:white;border:0;border-radius:8px;padding:9px 12px}
-#developerAiHome{display:none;position:fixed;right:16px;bottom:82px;z-index:10000;background:#4b267d;color:white;border:1px solid #d1a4ff;border-radius:10px;padding:10px 14px;font-weight:800}
-#developerAiHome.show{display:block}
-#developerAiHomePanel{display:none;position:fixed;inset:7vh 3vw;z-index:10001;background:#09182b;color:white;border:1px solid #b58aff;border-radius:15px;padding:14px;overflow:auto}
-#developerAiHomePanel.open{display:block}
-#developerHomeLog{height:55%;overflow:auto;background:#10243b;padding:10px;border-radius:10px}
-#developerAiHomePanel textarea{width:100%;box-sizing:border-box;background:#10243b;color:white;padding:10px;margin-top:8px}
-#developerAiHomePanel button{padding:9px 13px;margin:5px;background:#6339a3;color:white;border:0;border-radius:8px}
+#frostAiLauncher,#developerAiHome{position:fixed;right:18px;bottom:18px;z-index:9998;border:1px solid #70bfff;border-radius:999px;padding:13px 20px;background:#202123;color:#f7f7f8;font-weight:650;box-shadow:0 5px 22px #0008;cursor:pointer}
+#developerAiHome{bottom:78px;background:#303044;border-color:#8876c7;display:none}#developerAiHome.show{display:block}
+body.ai-chat-open #frostAiLauncher,body.ai-chat-open #developerAiHome{display:none!important}
+#frostAiPanel,#developerAiHomePanel{display:none;position:fixed;inset:0;z-index:10001;background:#212121;color:#ececec;overflow:hidden;flex-direction:column;font-family:Inter,system-ui,sans-serif}
+#frostAiPanel.open,#developerAiHomePanel.open{display:flex}
+#frostAiPanel header,#developerAiHomePanel .dev-head{height:58px;min-height:58px;padding:0 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #3c3c3c;background:#212121;gap:10px}
+#frostAiPanel header strong,#developerAiHomePanel .dev-head strong{font-size:16px;font-weight:650}
+#frostAiPanel header button,#developerAiHomePanel button{background:#303030;color:#eee;border:1px solid #505050;border-radius:10px;padding:9px 12px;cursor:pointer}
+#frostAiLog,#developerHomeLog{flex:1;min-height:0;overflow-y:auto;padding:18px max(16px,calc((100vw - 760px)/2));background:#212121}
+#frostAiLog .bubble,#developerHomeLog .bubble{max-width:760px;margin:0 auto 18px;padding:14px 16px;border-radius:16px;background:#2b2b2b;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+#frostAiLog .bubble b,#developerHomeLog .bubble b{display:block;font-size:12px;color:#b8b8b8;margin-bottom:7px}
+#frostAiLog .bubble p,#developerHomeLog .bubble p{margin:0}
+#frostAiLog .you,#developerHomeLog .you{background:#343541}
+#frostAiForm,#developerHomeForm{width:min(760px,calc(100% - 24px));margin:0 auto 18px;padding:10px;background:#303030;border:1px solid #555;border-radius:18px;display:flex;gap:8px;align-items:flex-end;box-sizing:border-box}
+#frostAiForm textarea,#developerAiHomePanel textarea{flex:1;min-width:0;max-height:180px;resize:vertical;background:transparent;color:#fff;border:0;outline:0;padding:10px;font:inherit;box-sizing:border-box}
+#frostAiForm button,#developerHomeSend{background:#f4f4f4!important;color:#171717!important;border:0!important;border-radius:12px;padding:11px 15px;font-weight:700}
+#developerAiHomePanel{padding:0}
+#developerAiHomePanel .dev-head{flex-wrap:wrap}
+#developerAiHomePanel .dev-sub{color:#aaa;font-size:12px;padding:6px 18px 0}
+.dev-toolbar{width:min(760px,calc(100% - 24px));margin:8px auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dev-toolbar span{margin-right:auto;color:#8eddb3;font-size:12px}
+#developerHomeForm{display:block}
+#developerHomeForm textarea{width:100%;min-height:54px}
+.dev-compose{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 8px 5px}
+.dev-compose>div{display:flex;gap:6px;flex-wrap:wrap}
+#developerHomeForm button{margin:0}
+#devImagePreview{display:flex;gap:8px;flex-wrap:wrap;width:min(760px,calc(100% - 24px));margin:0 auto 8px}
+#devImagePreview img{width:64px;height:64px;object-fit:cover;border-radius:9px}
+#developerHomeDrafts{max-height:25vh;overflow:auto;width:min(760px,calc(100% - 24px));margin:0 auto}
+#devSettings{width:min(760px,calc(100% - 24px));margin:0 auto 10px;padding:12px;background:#303030;border-radius:12px;color:#ddd;box-sizing:border-box}
+@media(min-width:800px){#frostAiPanel,#developerAiHomePanel{inset:3vh 12vw;border:1px solid #444;border-radius:18px;box-shadow:0 20px 80px #0009}}
 </style>
 <button id="frostAiLauncher" type="button" aria-expanded="false">❄ Ask Frost AI</button>
 <section id="frostAiPanel" aria-label="Frost AI chat">
@@ -91,7 +105,7 @@ function googleTranslateElementInit() {
 </section>
 <button id="developerAiHome" type="button">🔒 Developer AI</button>
 <section id="developerAiHomePanel" aria-label="Private Developer AI">
-<button id="developerAiHomeClose" type="button">Close</button><h2>🔒 Private Developer AI</h2><p>Owner-only assistant. Publishing still requires your approval.</p>
+<div class="dev-head"><strong>🔒 Developer AI</strong><button id="developerAiHomeClose" type="button" aria-label="Close chat">✕</button></div><div class="dev-sub">Private owner assistant · Changes require your approval</div>
 <div class="dev-toolbar"><span id="devStatus">● Private session</span><button type="button" id="devNewChat">＋ New chat</button><button type="button" id="devSettingsBtn">⚙ Settings</button></div>
 <div id="developerHomeLog"></div><div id="devImagePreview"></div>
 <form id="developerHomeForm"><textarea id="developerHomeInput" rows="2" maxlength="6000" placeholder="Message Developer AI…" required></textarea>
@@ -108,8 +122,8 @@ function googleTranslateElementInit() {
  const $=id=>document.getElementById(id);
  const playerLog=$("frostAiLog");
  function bubble(log,who,msg){const d=document.createElement("div");d.className="bubble "+(who==="You"?"you":"");const b=document.createElement("b");b.textContent=who;const p=document.createElement("p");p.textContent=msg;d.append(b,p);log.append(d);log.scrollTop=log.scrollHeight;}
- $("frostAiLauncher").onclick=()=>{$("frostAiPanel").classList.add("open");$("frostAiLauncher").setAttribute("aria-expanded","true");};
- $("frostAiClose").onclick=()=>{$("frostAiPanel").classList.remove("open");$("frostAiLauncher").setAttribute("aria-expanded","false");};
+ $("frostAiLauncher").onclick=()=>{document.body.classList.add("ai-chat-open");$("frostAiPanel").classList.add("open");$("frostAiLauncher").setAttribute("aria-expanded","true");};
+ $("frostAiClose").onclick=()=>{$("frostAiPanel").classList.remove("open");document.body.classList.remove("ai-chat-open");$("frostAiLauncher").setAttribute("aria-expanded","false");};
  let playerMessages=[];
  $("frostAiForm").onsubmit=async e=>{e.preventDefault();const input=$("frostAiInput"),btn=$("frostAiSend"),message=input.value.trim();if(!message)return;playerMessages.push({role:"user",content:message});bubble(playerLog,"You",message);input.value="";btn.disabled=true;btn.textContent="…";try{const {data,error}=await client.functions.invoke("player-ai",{body:{messages:playerMessages.slice(-8)}});if(error||data?.error)throw new Error(data?.error||error.message);const answer=data.reply||"I don't have that information. Please ask Frost Survival staff on Discord.";playerMessages.push({role:"assistant",content:answer});bubble(playerLog,"Frost AI",answer);}catch(err){bubble(playerLog,"Frost AI","Sorry, AI is temporarily unavailable. Please try again or contact staff on Discord.");}finally{btn.disabled=false;btn.textContent="Send";}};
  let devMessages=[],devDrafts=[],devImages=[];
@@ -122,11 +136,11 @@ function googleTranslateElementInit() {
   $("devNewChat").onclick=()=>{if(!confirm("Start a new chat? Current messages will be cleared from this screen."))return;devMessages=[];devDrafts=[];devImages=[];renderDevImages();renderDev();};
  async function devCall(action,payload={}){const {data:s}=await client.auth.getSession();if(!s.session)throw new Error("Please sign in.");const {data,error}=await client.functions.invoke("admin-ai",{body:{action,...payload},headers:{Authorization:"Bearer "+s.session.access_token}});if(error||data?.error)throw new Error(data?.error||error.message);return data;}
  function renderDev(){const log=$("developerHomeLog");log.replaceChildren();devMessages.forEach(m=>bubble(log,m.role==="user"?"You":"Developer AI",m.content+(m.images?.length?"\\n📷 "+m.images.length+" image(s) attached":"")));const drafts=$("developerHomeDrafts");drafts.replaceChildren();devDrafts.forEach((d,i)=>{const box=document.createElement("div");box.className="bubble";const h=document.createElement("h3");h.textContent="Draft: "+d.game_name;const t=document.createElement("strong");t.textContent=d.title;const p=document.createElement("p");p.textContent=d.message;const ok=document.createElement("button");ok.textContent="Approve & Publish";ok.onclick=async()=>{if(!confirm("Publish this announcement?"))return;try{await devCall("publish_announcement",d);devDrafts.splice(i,1);devMessages.push({role:"assistant",content:"Announcement published."});renderDev();}catch(e){alert(e.message);}};const no=document.createElement("button");no.textContent="Discard";no.onclick=()=>{devDrafts.splice(i,1);renderDev();};box.append(h,t,p,ok,no);drafts.append(box);});}
- $("developerAiHome").onclick=()=>{$("developerAiHomePanel").classList.add("open");};
- $("developerAiHomeClose").onclick=()=>{$("developerAiHomePanel").classList.remove("open");};
+ $("developerAiHome").onclick=()=>{document.body.classList.add("ai-chat-open");$("developerAiHomePanel").classList.add("open");};
+ $("developerAiHomeClose").onclick=()=>{$("developerAiHomePanel").classList.remove("open");document.body.classList.remove("ai-chat-open");};
  $("developerHomeForm").onsubmit=async e=>{e.preventDefault();const input=$("developerHomeInput"),btn=$("developerHomeSend"),msg=input.value.trim();if(!msg)return;devMessages.push({role:"user",content:msg,images:devImages.slice()});devImages=[];renderDevImages();input.value="";btn.disabled=true;renderDev();try{const result=await devCall("chat",{messages:devMessages});devMessages.push({role:"assistant",content:result.reply||"No response."});devDrafts.push(...(result.pending_actions||[]));}catch(err){devMessages.push({role:"assistant",content:"Connection error: "+err.message});}finally{btn.disabled=false;renderDev();}};
  async function checkOwner(){try{const {data}=await client.auth.getSession();$("developerAiHome").classList.toggle("show",data.session?.user?.id===ADMIN); }catch(e){}}
- checkOwner();client.auth.onAuthStateChange((_event,session)=>{$("developerAiHome").classList.toggle("show",session?.user?.id===ADMIN);if(session?.user?.id!==ADMIN)$("developerAiHomePanel").classList.remove("open");});
+ checkOwner();client.auth.onAuthStateChange((_event,session)=>{$("developerAiHome").classList.toggle("show",session?.user?.id===ADMIN);if(session?.user?.id!==ADMIN){$("developerAiHomePanel").classList.remove("open");document.body.classList.remove("ai-chat-open");}});
 })();
 </script>
 
