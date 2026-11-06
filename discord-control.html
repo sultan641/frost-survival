@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#06182c">
+<title>Frost Survival | Discord Control Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#061426;--panel:#0b2038;--line:#1c5278;--cyan:#29c8f5;--muted:#a9bfd3;--red:#a9324c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#12345a 0,transparent 38%),var(--bg);color:#eef8ff;font:15px Inter,system-ui,Arial}
+a{color:#75dfff}.wrap{max-width:1100px;margin:auto;padding:18px}.top{border-bottom:1px solid var(--line);background:#061426dd;position:sticky;top:0;z-index:4;backdrop-filter:blur(10px)}.topin{display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-weight:900;letter-spacing:1px;color:#fff;text-decoration:none}.brand small{display:block;color:var(--cyan);font-size:10px;letter-spacing:3px}
+h1{font-size:clamp(27px,5vw,42px);margin:20px 0 6px}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px;margin:0 0 8px}.muted{color:var(--muted);line-height:1.5}.card{background:linear-gradient(145deg,#0b2038,#08192c);border:1px solid var(--line);border-radius:15px;padding:17px;margin:14px 0;box-shadow:0 10px 30px #0003}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+label{display:block;font-weight:700;margin:10px 0 5px}input,textarea,select{width:100%;background:#031020;color:#f4fbff;border:1px solid #315a78;border-radius:9px;padding:11px;font:inherit}textarea{min-height:100px;resize:vertical}.btn{border:0;border-radius:9px;padding:11px 15px;background:linear-gradient(110deg,#087db6,#4d3aa5);color:white;font-weight:800;cursor:pointer}.btn.secondary{background:#183b58;border:1px solid #3b7397}.btn.danger{background:#842b43}.btn:disabled{opacity:.55;cursor:wait}.status{min-height:22px;color:#8fe4ff;margin:10px 0}.hidden{display:none!important}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.tab{background:#102b47;border:1px solid #315a78;color:white;padding:10px 13px;border-radius:9px;cursor:pointer}.tab.active{background:#0877a9;border-color:var(--cyan)}
+.item{padding:12px;border:1px solid #254966;border-radius:10px;margin:9px 0;background:#091b30;overflow-wrap:anywhere}.item small{color:var(--muted)}.item p{white-space:pre-wrap;overflow-wrap:anywhere}.tag{display:inline-block;padding:4px 8px;border:1px solid #35617d;border-radius:99px;color:#aeeaff;font-size:12px}.checks{display:flex;gap:12px;flex-wrap:wrap}.checks label{font-weight:500;margin:6px 0}.checks input{width:auto}.dangerText{color:#ff9cac}
+@media(max-width:560px){.wrap{padding:12px}.card{padding:13px}.topin{align-items:flex-start}.topin .row{justify-content:flex-end}.btn{padding:10px 12px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap topin"><a class="brand" href="index.html">❄ FROST SURVIVAL<small>DISCORD CONTROL</small></a><div class="row"><a href="index.html">Website</a><button id="logoutTop" class="btn secondary hidden">Sign Out</button></div></div></header>
+<main class="wrap">
+<section id="loginCard" class="card" style="max-width:480px;margin:8vh auto">
+<h1>Owner Sign In</h1><p class="muted">Use your existing Frost Survival admin account. Only the configured owner account can access Discord controls.</p>
+<form id="loginForm"><label>Email</label><input id="email" type="email" autocomplete="username" required><label>Password</label><input id="password" type="password" autocomplete="current-password" required><button class="btn" style="width:100%;margin-top:14px">Sign In</button></form><p id="loginStatus" class="status"></p>
+</section>
+<section id="app" class="hidden">
+<h1>❄ Discord Control Panel</h1><p class="muted">Manage the Frost Survival Discord server. Changes are sent through your secured Supabase backend.</p>
+<div class="grid">
+<div class="card"><small class="muted">CONNECTED BOT</small><h2 id="botName">Checking…</h2><span id="botState" class="tag">Loading</span></div>
+<div class="card"><small class="muted">SERVER</small><h2>Frost Survival</h2><span class="tag">Owner-only access</span></div>
+<div class="card"><small class="muted">CHANNELS</small><h2 id="channelCount">—</h2><button class="btn secondary" id="refreshAll">Refresh Server Data</button></div>
+</div>
+<div class="tabs">
+<button class="tab active" data-tab="messages">💬 Messages</button>
+<button class="tab" data-tab="channels">⚙️ Channels</button>
+<button class="tab" data-tab="roles">🎭 Roles</button>
+<button class="tab" data-tab="members">👤 Inspect Member</button>
+<button class="tab" data-tab="botperms">🤖 Bot Access</button>
+</div>
+<section id="tab-messages" class="tabpage">
+<div class="card"><h2>Post Announcement</h2><label>Destination channel</label><select id="postChannel"></select><label>Message</label><textarea id="postContent" maxlength="2000" placeholder="Write your announcement…"></textarea><div class="row"><button class="btn" id="sendMessage">Review &amp; Post</button><span class="muted">No test or bulk messages.</span></div><p id="postStatus" class="status"></p></div>
+<div class="card"><h2>Read / Edit / Delete Messages</h2><label>Channel</label><select id="readChannel"></select><div class="row"><button class="btn secondary" id="loadMessages">Load Latest Messages</button></div><div id="messagesList"></div><p id="messagesStatus" class="status"></p></div>
+</section>
+<section id="tab-channels" class="tabpage hidden">
+<div class="card"><h2>Channel Settings</h2><label>Choose channel</label><select id="settingsChannel"></select><button class="btn secondary" id="loadSettings">Load Current Settings</button>
+<div class="grid"><div><label>Channel name</label><input id="channelName" maxlength="100"></div><div><label>Slowmode (seconds)</label><input id="slowmode" type="number" min="0" max="21600" value="0"></div></div>
+<label>Channel topic</label><textarea id="channelTopic" maxlength="1024"></textarea><div class="checks"><label><input id="channelNsfw" type="checkbox"> NSFW channel</label></div>
+<button class="btn" id="saveSettings">Review &amp; Save Settings</button><p id="settingsStatus" class="status"></p></div>
+<div class="card"><h2>Channel List</h2><div id="channelList" class="muted">Loading…</div></div>
+</section>
+<section id="tab-roles" class="tabpage hidden"><div class="card"><h2>Server Roles</h2><button class="btn secondary" id="loadRoles">Refresh Roles</button><div id="rolesList"></div><p class="muted">This panel currently displays roles and permissions. Creating, deleting, assigning, or reordering roles is not enabled yet.</p><p id="rolesStatus" class="status"></p></div></section>
+<section id="tab-members" class="tabpage hidden"><div class="card"><h2>Inspect Server Member</h2><label>Discord User ID</label><input id="memberId" inputmode="numeric" placeholder="Enter Discord user ID"><label>Channel to check permissions in</label><select id="memberChannel"></select><button class="btn" id="inspectMember">Inspect Member</button><pre id="memberResult" class="item" style="white-space:pre-wrap;overflow-wrap:anywhere">No member inspected yet.</pre><p id="memberStatus" class="status"></p></div></section>
+<section id="tab-botperms" class="tabpage hidden"><div class="card"><h2>Manage Another Bot's Channel Access</h2><p class="muted">Grant or deny limited permissions for a bot in one channel. This does not change its server-wide role.</p><label>Bot Discord ID</label><input id="targetBotId" inputmode="numeric" value="1372735460761276427"><label>Channel</label><select id="permChannel"></select><label>Permission action</label><select id="permMode"><option value="grant">Grant selected permissions</option><option value="deny">Deny selected permissions</option></select><div class="checks" id="permissionChecks"><label><input type="checkbox" value="view_channel"> View Channel</label><label><input type="checkbox" value="send_messages"> Send Messages</label><label><input type="checkbox" value="read_message_history"> Read Message History</label><label><input type="checkbox" value="add_reactions"> Add Reactions</label><label><input type="checkbox" value="embed_links"> Embed Links</label><label><input type="checkbox" value="attach_files"> Attach Files</label></div><button class="btn" id="applyBotPerms">Review &amp; Apply</button><p id="permStatus" class="status"></p></div></section>
+<p id="globalStatus" class="status"></p>
+</section>
+</main>
+<script>
+(() => {
+const SUPABASE_URL="https://xnixsavppmmvbzfnybus.supabase.co";
+const SUPABASE_KEY="sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
+const OWNER_UID="9cd04a06-6937-474a-9b13-ea39b2c3bd35";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+let channels=[], roles=[];
+const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function setStatus(id,msg){$(id).textContent=msg;}
+function selected(id){return $(id).value;}
+async function call(payload){
+ const {data,error}=await db.functions.invoke("discord-control",{body:payload});
+ if(error) throw new Error(data?.error||error.message||"Request failed");
+ if(data?.error) throw new Error(data.error);
+ return data;
+}
+function fillSelect(id){
+ const el=$(id),old=el.value;
+ el.replaceChildren();
+ channels.forEach(c=>{const o=document.createElement("option");o.value=c.channel_id;o.textContent=(c.category?c.category+" / ":"")+c.name;el.append(o)});
+ if(channels.some(c=>c.channel_id===old))el.value=old;
+}
+async function loadChannels(){
+ const data=await call({action:"list_channels"});channels=data.channels||[];
+ ["postChannel","readChannel","settingsChannel","memberChannel","permChannel"].forEach(fillSelect);
+ $("channelCount").textContent=String(channels.length);
+ $("channelList").innerHTML=channels.map(c=>'<div class="item"><strong>'+escapeHtml(c.name)+'</strong> <small>'+escapeHtml(c.category||"No category")+' · '+escapeHtml(c.type)+'</small><br><small>ID: '+escapeHtml(c.channel_id)+'</small></div>').join("");
+}
+async function loadBot(){
+ const d=await call({action:"get_bot_status"});
+ $("botName").textContent=d.bot?.username||"Connected";
+ $("botState").textContent=d.ok?"Online · "+(d.permission_names||[]).join(", "):"Connected";
+}
+async function refreshAll(){
+ setStatus("globalStatus","Refreshing server information…");
+ try{await Promise.all([loadChannels(),loadBot()]);setStatus("globalStatus","Server data refreshed.");}
+ catch(e){setStatus("globalStatus",e.message);}
+}
+$("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();const b=e.currentTarget.querySelector("button");b.disabled=true;setStatus("loginStatus","Signing in…");
+ try{const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)throw error;if(data.user?.id!==OWNER_UID){await db.auth.signOut();throw new Error("Access denied. Owner account only.");}
+ $("loginCard").classList.add("hidden");$("app").classList.remove("hidden");$("logoutTop").classList.remove("hidden");await refreshAll();
+ }catch(err){setStatus("loginStatus",err.message||"Sign-in failed.");}finally{b.disabled=false;}
+});
+async function checkSession(){
+ const {data}=await db.auth.getSession();if(data.session){if(data.session.user.id===OWNER_UID){$("loginCard").classList.add("hidden");$("app").classList.remove("hidden");$("logoutTop").classList.remove("hidden");await refreshAll();}else{await db.auth.signOut();}}
+}
+async function logout(){await db.auth.signOut();location.reload();}
+$("logoutTop").onclick=logout;
+document.querySelectorAll(".tab").forEach(btn=>btn.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x===btn));document.querySelectorAll(".tabpage").forEach(x=>x.classList.toggle("hidden",x.id!=="tab-"+btn.dataset.tab));});
+$("refreshAll").onclick=refreshAll;
+$("sendMessage").onclick=async()=>{
+ const channel=channels.find(c=>c.channel_id===selected("postChannel")),content=$("postContent").value.trim();
+ if(!channel||!content)return setStatus("postStatus","Choose a channel and write a message.");
+ if(!confirm("Post this message in #"+channel.name+"?\n\n"+content))return;
+ $("sendMessage").disabled=true;setStatus("postStatus","Posting…");
+ try{const d=await call({channel_id:channel.channel_id,content});setStatus("postStatus",d.message||"Message posted.");$("postContent").value="";}
+ catch(e){setStatus("postStatus",e.message);}finally{$("sendMessage").disabled=false;}
+};
+$("loadMessages").onclick=async()=>{
+ const id=selected("readChannel");if(!id)return;
+ setStatus("messagesStatus","Loading…");$("messagesList").replaceChildren();
+ try{const d=await call({action:"read_messages",channel_id:id,limit:25});const list=d.messages||[];
+ $("messagesList").innerHTML=list.map(m=>'<div class="item"><div class="row"><strong>'+escapeHtml(m.author||"Unknown")+'</strong><small>'+escapeHtml(m.timestamp||"")+'</small></div><p>'+escapeHtml(m.content||"[No text content]")+'</p><small>ID: '+escapeHtml(m.id)+'</small><div class="row" style="margin-top:8px"><button class="btn secondary" data-edit="'+escapeHtml(m.id)+'">Edit</button><button class="btn danger" data-delete="'+escapeHtml(m.id)+'">Delete</button></div></div>').join("")||"No messages found.";
+ $("messagesList").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editMessage(id,b.dataset.edit,list.find(m=>m.id===b.dataset.edit)));
+ $("messagesList").querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deleteMessage(id,b.dataset.delete));
+ setStatus("messagesStatus","Loaded "+list.length+" messages. Only bot-owned messages can be edited.");
+ }catch(e){setStatus("messagesStatus",e.message);}
+};
+async function editMessage(channelId,messageId,msg){
+ const next=prompt("Edit message:",msg?.content||"");if(next===null)return;if(!next.trim())return alert("Message cannot be empty.");
+ if(!confirm("Save this message edit?"))return;
+ try{await call({action:"edit_message",channel_id:channelId,message_id:messageId,content:next.trim(),confirm:true});setStatus("messagesStatus","Message updated.");$("loadMessages").click();}
+ catch(e){setStatus("messagesStatus",e.message);}
+}
+async function deleteMessage(channelId,messageId){
+ if(!confirm("Delete this Discord message permanently?"))return;
+ try{await call({action:"delete_message",channel_id:channelId,message_id:messageId,confirm:true,reason:"Owner action from Frost Survival Control Panel"});setStatus("messagesStatus","Message deleted.");$("loadMessages").click();}
+ catch(e){setStatus("messagesStatus",e.message);}
+}
+$("loadSettings").onclick=async()=>{
+ const id=selected("settingsChannel");if(!id)return;setStatus("settingsStatus","Loading…");
+ try{const d=await call({action:"get_channel_settings",channel_id:id});const c=d.channel;$("channelName").value=c.name||"";$("channelTopic").value=c.topic||"";$("slowmode").value=c.rate_limit_per_user||0;$("channelNsfw").checked=!!c.nsfw;setStatus("settingsStatus","Current settings loaded.");}
+ catch(e){setStatus("settingsStatus",e.message);}
+};
+$("saveSettings").onclick=async()=>{
+ const id=selected("settingsChannel");if(!id)return;
+ const payload={action:"update_channel_settings",channel_id:id,confirm:true,name:$("channelName").value.trim(),topic:$("channelTopic").value,rate_limit_per_user:Number($("slowmode").value),nsfw:$("channelNsfw").checked};
+ if(!confirm("Apply these channel settings?"))return;setStatus("settingsStatus","Saving…");
+ try{const d=await call(payload);setStatus("settingsStatus",d.message||"Settings saved.");await loadChannels();}
+ catch(e){setStatus("settingsStatus",e.message);}
+};
+async function loadRoles(){
+ setStatus("rolesStatus","Loading roles…");
+ try{const d=await call({action:"list_roles"});roles=d.roles||[];$("rolesList").innerHTML=roles.sort((a,b)=>b.position-a.position).map(r=>'<div class="item"><strong>'+escapeHtml(r.name)+'</strong> <small>Position '+escapeHtml(r.position)+'</small><br><small>'+escapeHtml((r.permission_names||[]).join(", ")||"No listed permissions")+'</small></div>').join("");setStatus("rolesStatus","Loaded "+roles.length+" roles.");}
+ catch(e){setStatus("rolesStatus",e.message);}
+}
+$("loadRoles").onclick=loadRoles;
+$("inspectMember").onclick=async()=>{
+ const memberId=$("memberId").value.trim(),channelId=selected("memberChannel");if(!/^\d{17,20}$/.test(memberId))return setStatus("memberStatus","Enter a valid Discord ID.");
+ setStatus("memberStatus","Inspecting…");
+ try{const d=await call({action:"inspect_member",member_id:memberId,channel_id:channelId});$("memberResult").textContent=JSON.stringify(d,null,2);setStatus("memberStatus","Member details loaded.");}
+ catch(e){setStatus("memberStatus",e.message);}
+};
+$("applyBotPerms").onclick=async()=>{
+ const memberId=$("targetBotId").value.trim(),channelId=selected("permChannel"),mode=selected("permMode");
+ const permissions=[...$("permissionChecks").querySelectorAll("input:checked")].map(x=>x.value);
+ if(!/^\d{17,20}$/.test(memberId))return setStatus("permStatus","Enter a valid bot ID.");
+ if(!permissions.length)return setStatus("permStatus","Select at least one permission.");
+ if(!confirm((mode==="grant"?"Grant ":"Deny ")+permissions.join(", ")+" for bot "+memberId+" in this channel?"))return;
+ setStatus("permStatus","Applying…");
+ try{const d=await call({action:"set_bot_channel_permissions",member_id:memberId,channel_id:channelId,confirm:true,grant:mode==="grant"?permissions:[],deny:mode==="deny"?permissions:[]});setStatus("permStatus",d.message+" · "+JSON.stringify(d.verification||{}));}
+ catch(e){setStatus("permStatus",e.message);}
+};
+checkSession().catch(e=>setStatus("loginStatus",e.message));
+})();
+</script>
+</body></html>
