@@ -103,12 +103,12 @@ body.ai-chat-open #frostAiLauncher,body.ai-chat-open #developerAiHome{display:no
  .language-picker{flex:0 0 auto;min-width:0;max-width:100px;overflow:hidden}
  .language-picker #google_translate_element{width:72px;overflow:hidden}
  .language-picker #google_translate_element select{width:72px!important;max-width:72px!important;font-size:11px!important}
- .language-picker .goog-te-gadget{font-size:0!important;line-height:1!important}
- .language-picker .goog-te-gadget select{font-size:11px!important}
- .language-picker .goog-te-gadget .goog-te-combo{margin:0!important;max-width:72px!important}
- .language-picker .goog-te-gadget-simple{font-size:0!important}
+ .language-picker .goog-te-gadget{font-size:0!important;line-height:1!important;white-space:nowrap;height:28px;display:flex;align-items:center;overflow:hidden;color:transparent!important}
+ .language-picker .goog-te-gadget select{font-size:11px!important;display:block!important;width:76px!important;height:28px!important;margin:0!important;white-space:nowrap}
+ .language-picker .goog-te-gadget .goog-te-combo{margin:0!important;width:76px!important;max-width:76px!important}
+ .language-picker .goog-te-gadget-simple{font-size:0!important;white-space:nowrap;max-height:28px;overflow:hidden}
  .language-picker .goog-te-gadget-simple .goog-te-menu-value{font-size:11px!important}
- .language-picker .goog-te-gadget-simple .goog-te-menu-value span{display:none!important}
+ .language-picker .goog-te-gadget-simple .goog-te-menu-value span{display:none!important}.language-picker .goog-te-gadget>span{display:none!important}.language-picker .goog-te-gadget{min-width:0!important}
  @media(max-width:650px){.nav-actions{gap:5px;max-width:calc(100% - 95px)}.nav-actions .btn{padding:7px 8px;font-size:10px}.language-picker{max-width:84px}.language-picker #google_translate_element,.language-picker #google_translate_element select{width:60px!important;max-width:60px!important}}
 @media(min-width:800px){#frostAiPanel,#developerAiHomePanel{inset:3vh 12vw;border:1px solid #444;border-radius:18px;box-shadow:0 20px 80px #0009}}
 </style>
@@ -164,7 +164,7 @@ body.ai-chat-open #frostAiLauncher,body.ai-chat-open #developerAiHome{display:no
   $("devNewChat").onclick=()=>startDevChat();
  async function devCall(action,payload={}){const {data:s}=await client.auth.getSession();if(!s.session)throw new Error("Please sign in.");const {data,error}=await client.functions.invoke("admin-ai",{body:{action,...payload},headers:{Authorization:"Bearer "+s.session.access_token}});if(error||data?.error)throw new Error(data?.error||error.message);return data;}
  function renderDev(){const log=$("developerHomeLog");log.replaceChildren();devMessages.forEach(m=>bubble(log,m.role==="user"?"You":"Developer AI",m.content+(m.images?.length?"\\n📷 "+m.images.length+" image(s) attached":"")));const drafts=$("developerHomeDrafts");drafts.replaceChildren();devDrafts.forEach((d,i)=>{const box=document.createElement("div");box.className="bubble";const h=document.createElement("h3");h.textContent="Draft: "+d.game_name;const t=document.createElement("strong");t.textContent=d.title;const p=document.createElement("p");p.textContent=d.message;const ok=document.createElement("button");ok.textContent="Approve & Publish";ok.onclick=async()=>{if(!confirm("Publish this announcement?"))return;try{await devCall("publish_announcement",d);devDrafts.splice(i,1);devMessages.push({role:"assistant",content:"Announcement published."});saveCurrentDevChat();renderDev();}catch(e){alert(e.message);}};const no=document.createElement("button");no.textContent="Discard";no.onclick=()=>{devDrafts.splice(i,1);renderDev();};box.append(h,t,p,ok,no);drafts.append(box);});}
- $("developerAiHome").onclick=()=>{document.body.classList.add("ai-chat-open");$("developerAiHomePanel").classList.add("open");};
+ $("developerAiHome").onclick=()=>{document.body.classList.add("ai-chat-open");$("developerAiHomePanel").classList.add("open");renderDev();};
  $("developerAiHomeClose").onclick=()=>{$("developerAiHomePanel").classList.remove("open");document.body.classList.remove("ai-chat-open");};
  $("developerHomeForm").onsubmit=async e=>{e.preventDefault();const input=$("developerHomeInput"),btn=$("developerHomeSend"),msg=input.value.trim();if(!msg)return;devMessages.push({role:"user",content:msg,images:devImages.slice()});devImages=[];renderDevImages();input.value="";btn.disabled=true;saveCurrentDevChat();renderDev();try{const result=await devCall("chat",{messages:devMessages});devMessages.push({role:"assistant",content:result.reply||"No response."});devDrafts.push(...(result.pending_actions||[]));}catch(err){devMessages.push({role:"assistant",content:"Connection error: "+err.message});}finally{btn.disabled=false;saveCurrentDevChat();renderDev();}};
  async function checkOwner(){try{const {data}=await client.auth.getSession();$("developerAiHome").classList.toggle("show",data.session?.user?.id===ADMIN); }catch(e){}}
