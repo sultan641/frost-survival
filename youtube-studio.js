@@ -168,6 +168,7 @@ async function uploadBatchRecords(records,session,fromRecovery=false){
     renderBatchStatus(records);
     const concurrency=Math.min(2,records.length);
     await Promise.all(Array.from({length:concurrency},()=>worker()));
+    renderBatchStatus(records);
     const ok=outcomes.filter(x=>x.ok).length,failed=outcomes.length-ok;
     say("uploadStatus",ok+" of "+outcomes.length+" video(s) uploaded to the private AI queue."+(failed?" "+failed+" upload(s) remain saved and will retry when possible.":" AI processing will start automatically."));
     await loadJobs();
