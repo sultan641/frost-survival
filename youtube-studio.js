@@ -155,7 +155,8 @@ async function uploadBatchRecords(records,session,fromRecovery=false){
           if(ins.error)throw ins.error;
         }
         await clearPendingUpload(record.id||record.path);
-        restoredUploads=restoredUploads.filter(x=>x.path!==record.path);
+        const pendingIndex=restoredUploads.findIndex(x=>x.path===record.path);
+        if(pendingIndex>=0)restoredUploads.splice(pendingIndex,1);
         record.state="Uploaded · AI editing queued";
         setBatchFileStatus(record.path,"Uploaded · AI editing queued",100);
         outcomes.push({ok:true,name:record.name});
