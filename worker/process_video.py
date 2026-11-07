@@ -516,6 +516,27 @@ def main():
                    "progress_message":"Published successfully to YouTube" + (" (thumbnail needs attention)" if thumbnail_warning else ""),
                    "error_message":thumbnail_warning,
                    "updated_at":datetime.now(timezone.utc).isoformat()})
+            # Remove both private source and rendered copy only after YouTube has
+            # returned a video ID and the job has been marked published.
+            # Storage API deletion is used (never DELETE storage.objects via SQL).
+            cleanup_paths = [p for p in (job.get("original_path"), output_path) if p]
+            try:
+                cleanup = requests.delete(
+                    URL + f"/storage/v1/object/{BUCKET}",
+                    headers=HEADERS,
+                    json={"prefixes": cleanup_paths},
+                    timeout=120
+                )
+                cleanup.raise_for_status()
+                print("Cloud cleanup complete: removed source and processed video from private storage.", flush=True)
+                patch({"progress_message":"Published successfully to YouTube; cloud copies deleted" + (" (thumbnail needs attention)" if thumbnail_warning else ""),
+                       "updated_at":datetime.now(timezone.utc).isoformat()})
+            except Exception as cleanup_error:
+                # Keep the published state intact; cleanup can be retried manually.
+                print("YouTube publish succeeded, but automatic cloud cleanup failed: " + str(cleanup_error)[:500], flush=True)
+                patch({"progress_message":"Published successfully to YouTube; cloud cleanup needs retry",
+                       "error_message":((thumbnail_warning + " | ") if thumbnail_warning else "") + "Cloud cleanup failed: " + str(cleanup_error)[:900],
+                       "updated_at":datetime.now(timezone.utc).isoformat()})
             actual_privacy = job.get("publish_privacy") if job.get("publish_privacy") in ("private", "unlisted", "public") else "private"
             print(f"Processed and uploaded with visibility={actual_privacy}: {response['id']}")
             print("YouTube URL: https://www.youtube.com/watch?v=" + response["id"])
