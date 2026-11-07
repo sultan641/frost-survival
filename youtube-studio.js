@@ -96,20 +96,20 @@ function setBatchFileStatus(path,message,percent){
   if(typeof percent==="number"){const bar=row.querySelector(".yt-progress span");if(bar)bar.style.width=Math.max(0,Math.min(100,percent))+"%";}
 }
 function scheduleAutoResume(){
-  if(!restoredUploads.length||uploadInProgress||autoResumeStarted||$("studio").hidden||!navigator.onLine)return;
+  if(!restoredUploads.some(x=>x.file.size<=52428800)||uploadInProgress||autoResumeStarted||$("studio").hidden||!navigator.onLine)return;
   autoResumeStarted=true;clearTimeout(autoResumeTimer);
   autoResumeTimer=setTimeout(async()=>{
     autoResumeStarted=false;
-    if(!restoredUploads.length||uploadInProgress||$("studio").hidden||!navigator.onLine)return;
+    if(!restoredUploads.some(x=>x.file.size<=52428800)||uploadInProgress||$("studio").hidden||!navigator.onLine)return;
     const {data:{session}}=await db.auth.getSession();
-    if(session?.user?.id===ADMIN_UID)await uploadBatchRecords(restoredUploads.slice(),session,true);
+    if(session?.user?.id===ADMIN_UID)await uploadBatchRecords(restoredUploads.filter(x=>x.file.size<=52428800),session,true);
   },1500);
 }
 async function restorePendingUpload(){
   try{
     restoredUploads=await readPendingUploads();
     if(restoredUploads.length){
-      restoredUploads.forEach(x=>x.state="Saved · waiting to resume");
+      restoredUploads.forEach(x=>x.state=x.file.size>52428800?"Error: exceeds current 50 MB limit":"Saved · waiting to resume");
       renderBatchStatus(restoredUploads);
       say("uploadStatus",restoredUploads.length+" saved upload(s) found. Resuming automatically when the connection is ready.");
       scheduleAutoResume();
@@ -135,7 +135,9 @@ window.addEventListener("beforeunload",event=>{if(uploadInProgress){event.preven
 async function uploadBatchRecords(records,session,fromRecovery=false){
   if(uploadInProgress){renderBatchStatus(restoredUploads);return;}
   if(!restoredUploads.length)return;
-  records=restoredUploads;
+  records=records.filter(x=>x.file.size<=52428800);
+  if(!records.length)return;
+  records=restoredUploads.filter(x=>x.file.size<=52428800);
   uploadInProgress=true;autoResumeStarted=false;
   await keepScreenAwake();
   const outcomes=[];
