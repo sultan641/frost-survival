@@ -1,3 +1,4 @@
+# Trigger worker to process videos already waiting in the Studio queue.
 import os, re, json, base64, hashlib, tempfile, subprocess
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
