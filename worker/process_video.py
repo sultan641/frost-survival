@@ -160,12 +160,17 @@ def main():
             raise RuntimeError("Could not create a private download link.")
         if signed_url.startswith("/"):
             signed_url = URL + "/storage/v1" + signed_url
-        source = requests.get(signed_url, timeout=180)
+        source = requests.get(signed_url, timeout=(20, 180), stream=True)
         source.raise_for_status()
         with tempfile.TemporaryDirectory() as td:
             input_file = Path(td) / "source.mp4"
             output_file = Path(td) / "frost-survival-short.mp4"
-            input_file.write_bytes(source.content)
+            # Stream the private source to disk instead of loading large videos into RAM.
+            with input_file.open("wb") as video_out:
+                for chunk in source.iter_content(chunk_size=4 * 1024 * 1024):
+                    if chunk:
+                        video_out.write(chunk)
+            source.close()
             progress("transcribing", 18, "Listening to gameplay and creating captions")
             # Local speech transcription and vertical Shorts output (maximum 3 minutes).
             model = WhisperModel("base", device="cpu", compute_type="int8")
@@ -252,7 +257,10 @@ def main():
                     captions.write(f"{count}\n{stamp(0)} --> {stamp(min(6.0, clip_length))}\n{opening}\n\n")
             print(f"Auto-selected highlight: {highlight_start:.1f}s to {highlight_end:.1f}s")
             progress("rendering", 52, "Building vertical video, captions, narration and music")
-            vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'"
+            cta_file = Path(td) / "cta.txt"
+            cta_file.write_text("FREE FROST STARS IN DISCORD", encoding="utf-8")
+            cta_overlay = "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=cta.txt:fontcolor=white:fontsize=38:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h-245:box=1:boxcolor=0x07345c@0.82:boxborderw=18"
+            vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginV=100'," + cta_overlay
             voiceover_file = Path(td) / "voiceover.mp3"
             music_file = Path(td) / "original-ambient-music.wav"
             voiceover_enabled = bool(job.get("voiceover_enabled", True)) and bool(narration_source) and edge_tts is not None
@@ -314,7 +322,7 @@ def main():
                 if output_file.exists():
                     output_file.unlink()
                 # Retry with a simpler filter while preserving narration/music whenever possible.
-                fallback_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt"
+                fallback_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,subtitles=captions.srt," + cta_overlay
                 if music_enabled and has_voice:
                     fallback_cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-i",str(music_file),"-t","180","-vf",fallback_vf,
                         "-filter_complex","[0:a]volume=0.18[game];[1:a]volume=0.95[narration];[2:a]volume=0.12[music];[game][narration][music]amix=inputs=3:duration=first:dropout_transition=2[a]",
@@ -339,7 +347,7 @@ def main():
                     print("Caption fallback failed; trying clean vertical render:", fallback_detail, flush=True)
                     if output_file.exists():
                         output_file.unlink()
-                    clean_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1"
+                    clean_vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1," + cta_overlay
                     # Even if caption filters fail, keep requested AI narration and original music.
                     if music_enabled and has_voice:
                         clean_cmd = ["ffmpeg","-y","-i",str(input_file),"-i",str(voiceover_file),"-i",str(music_file),"-t","180",
@@ -374,13 +382,24 @@ def main():
             # the camera filename. Only claim a specific reward when the notes say it.
             content_text = (notes + " " + transcript).strip()
             content_lower = content_text.lower()
+            content_type = str(job.get("content_type") or "other")
             version_match = re.search(r"\b(v[45])\b", content_lower)
             version_label = (" " + version_match.group(1).upper()) if version_match else ""
             code_match = re.search(r"\b[A-Z0-9]{6,16}\b", content_text.upper())
             code_value = code_match.group(0) if code_match else ""
             if job.get("title") and str(job["title"]).strip():
                 title = brand_for_frost(str(job["title"]).strip())
-            elif re.search(r"gift\s*code|redeem\s*code|\bcode\b", content_lower) or code_value:
+            elif content_type == "pack_purchase":
+                title = f"{game_name} Pack Purchase Guide | What to Buy"
+            elif content_type == "frost_stars":
+                title = f"FREE Frost Stars in Discord! {game_name} Community Rewards"
+            elif content_type == "game_update":
+                title = f"{game_name} Latest Update | Frost Survival"
+            elif content_type == "guide":
+                title = f"{game_name} Guide & Tips | Frost Survival"
+            elif content_type == "gameplay":
+                title = f"{game_name} Gameplay Highlights | Frost Survival"
+            elif content_type == "gift_code" or re.search(r"gift\s*code|redeem\s*code|\bcode\b", content_lower) or code_value:
                 # Use a creator-style hook, but only name rewards explicitly confirmed in notes/transcript.
                 version_detail = ""
                 if re.search(r"v\s*5\s*europe|v5e|europe", content_lower):
@@ -416,18 +435,38 @@ def main():
                 safe_tags.append(tag)
                 tag_chars += extra
             tags = safe_tags
-            hashtags = " ".join("#"+x for x in (["WhiteoutSurvival","WOSGiftCode","GamingShorts"] if not is_kingshot else ["KingShot","KingShotGiftCode","GamingShorts"]))
+            topic_hashtags = {
+                "gift_code": ["WOSGiftCode","FreeRewards","GiftCode"],
+                "pack_purchase": ["WOSPacks","GameTopUp","GamingTips"],
+                "frost_stars": ["FrostStars","DiscordRewards","FrostCommunity"],
+                "game_update": ["WOSUpdate","GameNews","FrostSurvival"],
+                "guide": ["WOSGuide","GamingGuide","GameTips"],
+                "gameplay": ["WOSGameplay","GamingShorts","MobileGaming"],
+                "other": ["GamingShorts","FrostCommunity","MobileGaming"]
+            }
+            brand_hashtag = ["KingShot"] if is_kingshot else ["WhiteoutSurvival","WOS"]
+            hashtags = " ".join("#"+x for x in (brand_hashtag + topic_hashtags.get(content_type, topic_hashtags["other"]) + ["FrostSurvival","Shorts"]))
             game_links = (
                 "Whiteout Survival V4: https://sultan641.github.io/frost-survival/wos-v4.html\n"
                 "Whiteout Survival V5 China: https://sultan641.github.io/frost-survival/v5-china.html\n"
                 "Whiteout Survival V5 Europe: https://sultan641.github.io/frost-survival/v5-europe.html (Promo code: 16365)\n"
                 "KingShot V4: https://sultan641.github.io/frost-survival/kingshot-v4.html"
             )
+            topic_labels = {
+                "gift_code":"Gift codes and reward updates",
+                "pack_purchase":"Pack buying and top-up content",
+                "frost_stars":"Frost Stars and Discord community rewards",
+                "game_update":"Game updates and version news",
+                "guide":"Tutorials and game guides",
+                "gameplay":"Gameplay and battle highlights",
+                "other":"Frost Survival gaming content"
+            }
             description_parts = [
                 notes,
                 "❄ FROST SURVIVAL | Sultan",
+                "Video topic: " + topic_labels.get(content_type, topic_labels["other"]),
+                "🎁 FREE FROST STARS IN DISCORD — Join our Discord for community events, reward announcements and updates: https://discord.gg/NVf6zsb35",
                 "All downloads, guides and updates: https://sultan641.github.io/frost-survival/",
-                "Join our Discord community: https://discord.gg/NVf6zsb35",
                 "Subscribe to Sultan Gaming: https://youtube.com/@gm_sultaan?sub_confirmation=1",
                 "Follow TikTok: https://www.tiktok.com/@wolfwos",
                 "Download our games from Frost Survival:\n" + game_links,
