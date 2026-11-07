@@ -8,7 +8,7 @@ on:
       - 'worker/requirements.txt'
       - '.github/workflows/youtube-worker.yml'
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
 # Serialize scheduled, manual, and push-triggered runs to avoid duplicate processing.
 concurrency:
   group: frost-survival-youtube-worker
@@ -28,14 +28,14 @@ jobs:
       - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
       - name: Install worker dependencies
         run: pip install -r worker/requirements.txt
       - name: Validate worker Python syntax
         run: python -m py_compile worker/process_video.py
       - name: Validate Studio JavaScript syntax
         run: node --check youtube-studio.js
-      - name: Process one queued video
+      - name: Process up to three queued videos
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -43,4 +43,8 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           ADMIN_UID: ${{ secrets.ADMIN_UID }}
-        run: python worker/process_video.py
+        run: |
+          for video in 1 2 3; do
+            echo "Processing queued video $video of 3"
+            python worker/process_video.py
+          done
