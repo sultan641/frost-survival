@@ -129,7 +129,9 @@ document.addEventListener("visibilitychange",()=>{
 window.addEventListener("online",()=>{if(restoredUploads.length){say("uploadStatus","Internet restored. Resuming saved uploads…");scheduleAutoResume();}});
 window.addEventListener("beforeunload",event=>{if(uploadInProgress){event.preventDefault();event.returnValue="Video uploads are still running. Leave this page?";}});
 async function uploadBatchRecords(records,session,fromRecovery=false){
-  if(uploadInProgress||!records.length)return;
+  if(uploadInProgress){renderBatchStatus(restoredUploads);return;}
+  if(!restoredUploads.length)return;
+  records=restoredUploads;
   uploadInProgress=true;autoResumeStarted=false;
   await keepScreenAwake();
   const outcomes=[];
