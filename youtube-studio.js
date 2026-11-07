@@ -80,7 +80,9 @@ function renderBatchStatus(records){
     const progress=document.createElement("div");progress.className="yt-progress";
     const bar=document.createElement("span");bar.style.width="0%";progress.append(bar);
     const state=document.createElement("p");state.className="yt-status";state.textContent=record.state||"Saved for upload";
-    row.append(name,info,progress,state);area.append(row);
+    row.append(name,info,progress,state);
+    if(String(record.state||"").toLowerCase().includes("error")){const retry=document.createElement("button");retry.type="button";retry.className="yt-btn";retry.textContent="Retry this video";retry.onclick=async()=>{const {data:{session}}=await db.auth.getSession();if(!session||session.user.id!==ADMIN_UID)return say("uploadStatus","Admin session expired. Sign in again.");await uploadBatchRecords([record],session,true);};row.append(retry);}
+    area.append(row);
   });
 }
 function setBatchFileStatus(path,message,percent){
@@ -150,7 +152,7 @@ async function uploadBatchRecords(records,session,fromRecovery=false){
           });
           if(ins.error)throw ins.error;
         }
-        await clearPendingUpload(record.path);
+        await clearPendingUpload(record.id||record.path);
         restoredUploads=restoredUploads.filter(x=>x.path!==record.path);
         record.state="Uploaded · AI editing queued";
         setBatchFileStatus(record.path,"Uploaded · AI editing queued",100);
@@ -171,7 +173,7 @@ async function uploadBatchRecords(records,session,fromRecovery=false){
     await loadJobs();
   }finally{
     uploadInProgress=false;await releaseScreenAwake();
-    if(restoredUploads.length) scheduleAutoResume();
+    if(restoredUploads.length && !outcomes.some(x=>!x.ok)) scheduleAutoResume();
   }
 }
 
