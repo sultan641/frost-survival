@@ -81,7 +81,11 @@ function renderBatchStatus(records){
     const bar=document.createElement("span");bar.style.width="0%";progress.append(bar);
     const state=document.createElement("p");state.className="yt-status";state.textContent=record.state||"Saved for upload";
     row.append(name,info,progress,state);
-    if(String(record.state||"").toLowerCase().includes("error")){const retry=document.createElement("button");retry.type="button";retry.className="yt-btn";retry.textContent="Retry this video";retry.onclick=async()=>{const {data:{session}}=await db.auth.getSession();if(!session||session.user.id!==ADMIN_UID)return say("uploadStatus","Admin session expired. Sign in again.");await uploadBatchRecords([record],session,true);};row.append(retry);}
+    if(String(record.state||"").toLowerCase().includes("error")){
+      const retry=document.createElement("button");retry.type="button";retry.className="yt-btn";retry.textContent="Retry this video";retry.onclick=async()=>{const {data:{session}}=await db.auth.getSession();if(!session||session.user.id!==ADMIN_UID)return say("uploadStatus","Admin session expired. Sign in again.");await uploadBatchRecords([record],session,true);};
+      const remove=document.createElement("button");remove.type="button";remove.className="yt-btn";remove.textContent="Remove failed video";remove.style.marginLeft="8px";remove.onclick=async()=>{await clearPendingUpload(record.id||record.path);restoredUploads=restoredUploads.filter(x=>x.path!==record.path);row.remove();say("uploadStatus",record.name+" removed from the saved upload list.");if(!area.querySelector(".yt-job"))area.hidden=true;};
+      row.append(retry,remove);
+    }
     area.append(row);
   });
 }
@@ -253,7 +257,7 @@ $("uploadForm").addEventListener("submit",async e=>{
   if(!files.length){say("uploadStatus","Choose one or more videos first.");return;}
   if(files.length>10){say("uploadStatus","Select up to 10 videos per batch.");return;}
   for(const file of files){
-    if(file.size>524288000){say("uploadStatus",file.name+" is larger than 500 MB.");return;}
+    if(file.size>52428800){say("uploadStatus",file.name+" is larger than the current Supabase 50 MB limit. It was not added to the upload queue.");return;}
     if(!["video/mp4","video/quicktime","video/webm"].includes(file.type)){say("uploadStatus","Unsupported file type: "+file.name);return;}
   }
   const {data:{session}}=await db.auth.getSession();
