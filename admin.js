@@ -600,70 +600,65 @@ async function deleteAnnouncement(id) {
 async function loadTrafficAnalytics(days = 7) {
   const area = $("globalRecords");
   if (!area) return;
-  area.textContent = "Loading traffic data…";
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  area.innerHTML = '<p class="muted">Loading traffic report…</p>';
+  const since = new Date(Date.now() - days * 86400000).toISOString();
   const { data, error } = await db.from("site_analytics")
     .select("event_type,page_path,device_type,created_at,referrer_host,campaign_source,campaign_medium,campaign_name,target_host")
-    .eq("site_key", "frost-survival")
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(5000);
+    .eq("site_key", "frost-survival").gte("created_at", since)
+    .order("created_at", { ascending: false }).limit(5000);
   if (error) { area.textContent = "Analytics error: " + error.message; return; }
-
-  const rows = data || [];
-  const count = type => rows.filter(row => row.event_type === type).length;
-  const pageViews = rows.filter(row => row.event_type === "page_view");
-  const pages = {};
-  const sources = {};
-  const targets = {};
-  const devices = {};
-  pageViews.forEach(row => {
-    const page = row.page_path || "/";
-    pages[page] = (pages[page] || 0) + 1;
-    const source = row.campaign_source
-      ? "Campaign: " + [row.campaign_source, row.campaign_medium, row.campaign_name].filter(Boolean).join(" / ")
-      : (row.referrer_host && row.referrer_host !== "sultan641.github.io" ? row.referrer_host : "Direct / internal");
-    sources[source] = (sources[source] || 0) + 1;
-    const device = row.device_type || "unknown";
-    devices[device] = (devices[device] || 0) + 1;
-  });
-  rows.filter(row => row.target_host && ["promotion_click","external_click","discord_click","youtube_click","game_click"].includes(row.event_type))
-    .forEach(row => { targets[row.target_host] = (targets[row.target_host] || 0) + 1; });
-  const top = object => Object.entries(object).sort((a,b) => b[1] - a[1]).slice(0,8);
-  const cards = [
-    ["Page views", count("page_view")],
-    ["Game / download clicks", count("game_click")],
-    ["Promotion directory clicks", count("promotion_click")],
-    ["Discord clicks", count("discord_click")],
-    ["YouTube clicks", count("youtube_click")],
-    ["Share clicks", count("share_click")],
-    ["External clicks", count("external_click")],
-    ["Gift-code copies", count("gift_code_copy")]
+  const rows = data || [], count = type => rows.filter(r => r.event_type === type).length;
+  const views = rows.filter(r => r.event_type === "page_view");
+  const group = (items, getKey) => {
+    const map = {};
+    items.forEach(r => { const k = getKey(r) || "Unknown"; map[k] = (map[k] || 0) + 1; });
+    return Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,10);
+  };
+  const sources = group(views, r => r.campaign_source
+    ? [r.campaign_source,r.campaign_medium,r.campaign_name].filter(Boolean).join(" / ")
+    : (r.referrer_host && r.referrer_host !== "sultan641.github.io" ? r.referrer_host : "Direct / untagged"));
+  const pages = group(views, r => r.page_path || "/");
+  const devices = group(views, r => r.device_type || "Unknown");
+  const targets = group(rows.filter(r => r.target_host && ["promotion_click","external_click","discord_click","youtube_click","game_click"].includes(r.event_type)), r => r.target_host);
+  const metrics = [
+    ["Page views",count("page_view")],["Game clicks",count("game_click")],
+    ["Discord clicks",count("discord_click")],["YouTube clicks",count("youtube_click")],
+    ["Promotion clicks",count("promotion_click")],["External clicks",count("external_click")],
+    ["Shares",count("share_click")],["Gift-code copies",count("gift_code_copy")]
   ];
-  const list = (items, suffix) => items.length
-    ? items.map(([name,total]) => `<div class="admin-record"><strong>${safe(name)}</strong><p>${total} ${suffix}</p></div>`).join("")
-    : "<p>No data recorded yet.</p>";
+  const list = (items,label) => items.length
+    ? '<div class="traffic-list">'+items.map(([name,total])=>'<div class="traffic-row"><span>'+safe(name)+'</span><strong>'+total+' '+label+'</strong></div>').join("")+'</div>'
+    : '<p class="muted">No data recorded yet.</p>';
   area.innerHTML = `
-    <div class="field" style="max-width:260px">
-      <label for="analyticsRange">Date range</label>
-      <select class="input" id="analyticsRange" onchange="loadTrafficAnalytics(Number(this.value))">
-        <option value="7" ${days===7?"selected":""}>Last 7 days</option>
-        <option value="30" ${days===30?"selected":""}>Last 30 days</option>
-        <option value="90" ${days===90?"selected":""}>Last 90 days</option>
-      </select>
+    <style>
+      .traffic-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}
+      .traffic-head p{margin:4px 0;color:#9eb5ca}
+      .traffic-head select{min-width:150px}
+      .traffic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0 24px}
+      .traffic-stat{padding:17px;border:1px solid #315b78;border-radius:14px;background:linear-gradient(145deg,#102e4a,#0a1c30);box-shadow:0 8px 22px #0002}
+      .traffic-stat strong{display:block;font-size:28px;color:#55d8ff;line-height:1.2}
+      .traffic-stat span{display:block;color:#b7cce0;font-size:13px;margin-top:6px}
+      .traffic-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+      .traffic-panel{padding:16px;border:1px solid #294e6b;border-radius:13px;background:#0b2036;margin:12px 0}
+      .traffic-panel h3{margin:0 0 12px}
+      .traffic-list{display:grid;gap:8px}
+      .traffic-row{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;background:#102b45;border:1px solid #234b69;border-radius:9px;overflow-wrap:anywhere}
+      .traffic-row strong{white-space:nowrap;color:#65dfff}
+    </style>
+    <div class="traffic-head"><div><h2>Website Performance</h2><p>Real recorded visits and engagement from your website.</p></div>
+    <label>Report period <select class="input" id="analyticsRange" onchange="loadTrafficAnalytics(Number(this.value))">
+      <option value="7" ${days===7?"selected":""}>Last 7 days</option>
+      <option value="30" ${days===30?"selected":""}>Last 30 days</option>
+      <option value="90" ${days===90?"selected":""}>Last 90 days</option>
+    </select></label></div>
+    <div class="traffic-grid">${metrics.map(([label,total])=>'<div class="traffic-stat"><strong>'+total.toLocaleString()+'</strong><span>'+label+'</span></div>').join("")}</div>
+    <div class="traffic-columns">
+      <section class="traffic-panel"><h3>Traffic sources & campaigns</h3>${list(sources,"views")}</section>
+      <section class="traffic-panel"><h3>Most visited pages</h3>${list(pages,"views")}</section>
+      <section class="traffic-panel"><h3>External destinations</h3>${list(targets,"clicks")}</section>
+      <section class="traffic-panel"><h3>Visitor devices</h3>${list(devices,"views")}</section>
     </div>
-    <div class="admin-game-grid">
-      ${cards.map(([label,total]) => `<div class="admin-record"><h3>${total}</h3><p>${label}</p></div>`).join("")}
-    </div>
-    <h3>Traffic sources & campaigns · page views</h3>
-    ${list(top(sources),"views")}
-    <h3>Top pages</h3>
-    ${list(top(pages),"views")}
-    <h3>External destinations</h3>
-    ${list(top(targets),"clicks")}
-    <h3>Devices</h3>
-    ${list(top(devices),"page views")}
-    <p class="muted">Privacy-friendly totals only. No unique visitor profiles or personal IDs are collected. Showing up to 5,000 events for this period.</p>
+    <p class="muted">Privacy-friendly event totals. No personal visitor profiles are collected. Maximum 5,000 events per report.</p>
   `;
 }
 
