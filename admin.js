@@ -864,70 +864,165 @@ async function setCustomerSitePublished(siteId,published) {
 
 let developerAIMessages = [];
 let developerAIDrafts = [];
-async function callDeveloperAI(action, payload = {}) {
-  const { data: sessionData } = await db.auth.getSession();
-  const token = sessionData?.session?.access_token;
-  if (!token) throw new Error("Please sign in again.");
-  const { data, error } = await db.functions.invoke("admin-ai", {
-    body: { action, ...payload },
-    headers: { Authorization: "Bearer " + token }
-  });
-  if (error || data?.error) throw new Error(data?.error || error.message);
+let developerAIThreads = [];
+let developerAIThreadId = null;
+let developerAIImages = [];
+let developerAIBusy = false;
+const developerAIStorageKey = "frost-developer-ai-threads-v2-9cd04a06";
+function saveDeveloperAIThreads() {
+  const existing = developerAIThreads.find(t=>t.id===developerAIThreadId);
+  if (existing) {
+    existing.messages=developerAIMessages;
+    existing.drafts=developerAIDrafts;
+    existing.updated=Date.now();
+    existing.title=developerAIMessages.find(m=>m.role==="user")?.content.slice(0,48)||"New chat";
+  }
+  try {
+    localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads.slice(0,40)));
+  } catch(e) {
+    status("Chat storage is full. Export important chats; images may be too large to save.");
+  }
+}
+function loadDeveloperAIThreads() {
+  try {
+    const data=JSON.parse(localStorage.getItem(developerAIStorageKey)||"[]");
+    developerAIThreads=Array.isArray(data)?data.filter(t=>t&&Array.isArray(t.messages)).slice(0,40):[];
+  } catch(e) { developerAIThreads=[]; }
+}
+function newDeveloperAIChat() {
+  if(developerAIBusy)return;
+  saveDeveloperAIThreads();
+  developerAIThreadId="chat-"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
+  developerAIMessages=[];developerAIDrafts=[];developerAIImages=[];
+  developerAIThreads.unshift({id:developerAIThreadId,title:"New chat",updated:Date.now(),messages:[],drafts:[]});
+  saveDeveloperAIThreads();renderDeveloperAI();
+}
+function openDeveloperAIChat(id) {
+  if(developerAIBusy)return;
+  saveDeveloperAIThreads();
+  const thread=developerAIThreads.find(t=>t.id===id);
+  if(!thread)return;
+  developerAIThreadId=id;developerAIMessages=thread.messages||[];developerAIDrafts=thread.drafts||[];developerAIImages=[];
+  renderDeveloperAI();
+}
+function deleteDeveloperAIChat() {
+  if(developerAIBusy||!confirm("Delete this saved chat from this browser?"))return;
+  developerAIThreads=developerAIThreads.filter(t=>t.id!==developerAIThreadId);
+  developerAIThreadId=null;developerAIMessages=[];developerAIDrafts=[];
+  try{localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads));}catch(e){}
+  if(developerAIThreads.length)openDeveloperAIChat(developerAIThreads[0].id);else newDeveloperAIChat();
+}
+function exportDeveloperAIChat() {
+  const blob=new Blob([JSON.stringify({messages:developerAIMessages,drafts:developerAIDrafts},null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),link=document.createElement("a");
+  link.href=url;link.download="developer-ai-chat.json";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function callDeveloperAI(action,payload={}) {
+  const {data:sessionData}=await db.auth.getSession();
+  const token=sessionData?.session?.access_token;
+  if(!token)throw new Error("Please sign in again.");
+  const {data,error}=await db.functions.invoke("admin-ai",{body:{action,...payload},headers:{Authorization:"Bearer "+token}});
+  if(error||data?.error)throw new Error(data?.error||error.message);
   return data;
 }
 function showDeveloperAI() {
-  developerAIMessages = [];
-  developerAIDrafts = [];
-  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🤖 Developer AI</h2><p>Private owner assistant. It can inspect Frost Survival pages, read game information, and prepare announcements. Publishing always needs your approval.</p><div id="developerAIChat" class="admin-section" style="min-height:260px;max-height:52vh;overflow:auto"><div class="admin-record"><strong>Developer AI</strong><p>Hello Sultan! Ask me to inspect a Frost Survival page, check game information, or prepare an announcement.</p></div></div><div id="developerAIDrafts"></div><form id="developerAIForm" class="admin-section"><label for="developerAIInput">Message</label><textarea id="developerAIInput" rows="3" maxlength="4000" placeholder="Example: Inspect the V5 China page and report problems." required></textarea><button id="developerAISend" type="submit">Send to Developer AI</button></form><p class="hint">AI can make mistakes. Review every suggested change. Page checks are static and cannot fully test interactive browser features.</p>';
-  $("developerAIForm").onsubmit = sendDeveloperAI;
+  loadDeveloperAIThreads();
+  if(developerAIThreads.length){
+    const thread=developerAIThreads[0];developerAIThreadId=thread.id;
+    developerAIMessages=thread.messages||[];developerAIDrafts=thread.drafts||[];
+  }else{
+    developerAIThreadId="chat-"+Date.now();
+    developerAIMessages=[];developerAIDrafts=[];
+    developerAIThreads=[{id:developerAIThreadId,title:"New chat",updated:Date.now(),messages:[],drafts:[]}];
+  }
+  developerAIImages=[];developerAIBusy=false;
+  $("adminContent").innerHTML=`
+    <style>
+    .frost-ai-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:12px;margin-top:12px}
+    .frost-ai-history{background:#101c30;border:1px solid #30445e;border-radius:14px;padding:12px;max-height:70vh;overflow:auto}
+    .frost-ai-history button{display:block;width:100%;margin:5px 0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .frost-ai-main{min-width:0;background:#101c30;border:1px solid #30445e;border-radius:14px;padding:12px}
+    .frost-ai-chat{height:48vh;min-height:290px;overflow:auto;display:flex;flex-direction:column;gap:15px;padding:10px}
+    .frost-ai-message{max-width:92%;line-height:1.55;overflow-wrap:anywhere}
+    .frost-ai-message.user{align-self:flex-end;background:#263d59;border-radius:16px 16px 3px 16px;padding:10px 14px}
+    .frost-ai-message.assistant{align-self:flex-start;padding:10px 4px}
+    .frost-ai-message pre{background:#081424;border:1px solid #33465b;border-radius:9px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+    .frost-ai-message .frost-ai-body{white-space:pre-wrap}
+    .frost-ai-message button{font-size:12px;padding:5px 9px;margin-top:6px}
+    .frost-ai-composer{display:flex;align-items:flex-end;gap:8px}
+    .frost-ai-composer textarea{flex:1;min-width:0;resize:vertical;border-radius:12px}
+    .frost-ai-attachments{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+    .frost-ai-attachments img,.frost-ai-message img{max-width:130px;max-height:110px;object-fit:contain;border-radius:8px;margin:5px}
+    .frost-ai-toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between}
+    @media(max-width:650px){.frost-ai-layout{grid-template-columns:minmax(0,1fr)}.frost-ai-history{max-height:140px}.frost-ai-chat{height:48vh}.frost-ai-message{max-width:98%}}
+    </style>
+    <button class="secondary" onclick="showDashboard()">← Admin Dashboard</button>
+    <h2>🤖 Developer AI</h2>
+    <div class="frost-ai-layout">
+      <aside class="frost-ai-history"><button onclick="newDeveloperAIChat()">＋ New chat</button><strong>Chat history</strong><div id="developerAIHistory"></div></aside>
+      <section class="frost-ai-main">
+        <div class="frost-ai-toolbar"><strong>Frost Developer AI</strong><span><button class="secondary" onclick="exportDeveloperAIChat()">⬇ Save chat</button> <button class="secondary" onclick="deleteDeveloperAIChat()">🗑 Delete</button></span></div>
+        <div id="developerAIChat" class="frost-ai-chat" role="log" aria-live="polite"></div>
+        <div id="developerAIDrafts"></div>
+        <div id="developerAIPreview" class="frost-ai-attachments"></div>
+        <form id="developerAIForm" class="frost-ai-composer">
+          <label for="developerAIFile" style="cursor:pointer" title="Upload pictures">📎</label>
+          <input id="developerAIFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple style="display:none">
+          <textarea id="developerAIInput" rows="2" maxlength="4000" placeholder="Message Developer AI…" aria-label="Message Developer AI"></textarea>
+          <button id="developerAISend" type="submit">➤ Send</button>
+        </form>
+        <p class="hint">Saved chats stay in this browser only. Photos may use significant storage. AI replies are not streamed token-by-token.</p>
+      </section>
+    </div>`;
+  $("developerAIForm").onsubmit=sendDeveloperAI;
+  $("developerAIFile").onchange=addDeveloperAIImages;
+  $("developerAIInput").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("developerAIForm").requestSubmit();}};
+  renderDeveloperAI();
 }
 function renderDeveloperAI() {
-  const chat = $("developerAIChat");
-  if (!chat) return;
-  chat.innerHTML = '<div class="admin-record"><strong>Developer AI</strong><p>Private owner assistant</p></div>' +
-    developerAIMessages.map((m,i) => '<div class="admin-record"><strong>'+(m.role==="user"?"You":"Developer AI")+'</strong><p style="white-space:pre-wrap">'+safe(m.content)+'</p>'+(m.role==="assistant" ? '<button type="button" class="secondary" onclick="copyDeveloperAIMessage('+i+')">📋 Copy message</button>' : '')+'</div>').join("");
-  chat.scrollTop = chat.scrollHeight;
-  const drafts = $("developerAIDrafts");
-  if (drafts) drafts.innerHTML = developerAIDrafts.map((d,i) =>
-    '<div class="admin-section"><h3>Announcement draft — '+safe(d.game_name)+'</h3><strong>'+safe(d.title)+'</strong><p style="white-space:pre-wrap">'+safe(d.message)+'</p><p class="hint">Not published yet.</p><button onclick="approveDeveloperAnnouncement('+i+')">Approve & Publish</button><button class="secondary" onclick="discardDeveloperAnnouncement('+i+')">Discard</button></div>'
-  ).join("");
+  const history=$("developerAIHistory");
+  if(history)history.innerHTML=developerAIThreads.map(t=>'<button type="button" class="secondary" '+(t.id===developerAIThreadId?'style="border-color:#7aa9ff"':'')+' onclick="openDeveloperAIChat(\''+safe(t.id)+'\')">'+safe(t.title||"New chat")+'</button>').join("");
+  const chat=$("developerAIChat");
+  if(!chat)return;
+  chat.innerHTML=(developerAIMessages.length?"":'<p class="hint">Ask me about your website, games, bugs or announcements.</p>')+
+    developerAIMessages.map((m,i)=>'<div class="frost-ai-message '+(m.role==="user"?"user":"assistant")+'"><strong>'+(m.role==="user"?"You":"✦ Developer AI")+'</strong><div class="frost-ai-body">'+safe(m.content)+'</div>'+
+      (Array.isArray(m.images)?m.images.map(src=>'<img src="'+safe(src)+'" alt="Uploaded image">').join(""):"")+
+      (m.role==="assistant"?'<button type="button" class="secondary" onclick="copyDeveloperAIMessage('+i+')">📋 Copy</button>':'')+'</div>').join("")+
+    (developerAIBusy?'<div class="frost-ai-message assistant" role="status">✦ Developer AI is thinking… <span aria-hidden="true">● ● ●</span></div>':"");
+  chat.scrollTop=chat.scrollHeight;
+  const preview=$("developerAIPreview");
+  if(preview)preview.innerHTML=developerAIImages.map((src,i)=>'<div><img src="'+safe(src)+'" alt="Selected image"><button type="button" class="secondary" onclick="removeDeveloperAIImage('+i+')">✕</button></div>').join("");
+  const drafts=$("developerAIDrafts");
+  if(drafts)drafts.innerHTML=developerAIDrafts.map((d,i)=>'<div class="admin-section"><h3>Announcement draft — '+safe(d.game_name)+'</h3><strong>'+safe(d.title)+'</strong><p style="white-space:pre-wrap">'+safe(d.message)+'</p><p class="hint">Not published yet.</p><button onclick="approveDeveloperAnnouncement('+i+')">Approve & Publish</button><button class="secondary" onclick="discardDeveloperAnnouncement('+i+')">Discard</button></div>').join("");
 }
-async function copyDeveloperAIMessage(index) {
-  const message = developerAIMessages[index];
-  if (!message || message.role !== "assistant") return;
-  try {
-    await navigator.clipboard.writeText(message.content || "");
-    status("AI message copied.");
-  } catch (error) {
-    const field = document.createElement("textarea");
-    field.value = message.content || "";
-    field.style.position = "fixed";
-    field.style.opacity = "0";
-    document.body.appendChild(field);
-    field.select();
-    try { document.execCommand("copy"); status("AI message copied."); }
-    catch { status("Copy failed. Please select the message and copy it."); }
-    field.remove();
+async function addDeveloperAIImages(e) {
+  for(const file of Array.from(e.target.files||[]).slice(0,4-developerAIImages.length)){
+    if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)||file.size>4000000){status("Use PNG, JPG, WebP or GIF under 4 MB.");continue;}
+    const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
+    developerAIImages.push(data);
   }
+  e.target.value="";renderDeveloperAI();
+}
+function removeDeveloperAIImage(i){developerAIImages.splice(i,1);renderDeveloperAI();}
+async function copyDeveloperAIMessage(index) {
+  const message=developerAIMessages[index];if(!message)return;
+  try{await navigator.clipboard.writeText(message.content||"");status("Message copied.");}
+  catch(e){const f=document.createElement("textarea");f.value=message.content||"";document.body.appendChild(f);f.select();document.execCommand("copy");f.remove();status("Message copied.");}
 }
 async function sendDeveloperAI(event) {
-  event.preventDefault();
-  const input=$("developerAIInput"), button=$("developerAISend");
-  const message=input.value.trim();
-  if(!message) return;
-  developerAIMessages.push({role:"user",content:message});
-  input.value="";
-  button.disabled=true; button.textContent="Thinking…";
-  renderDeveloperAI();
-  try {
+  event.preventDefault();if(developerAIBusy)return;
+  const input=$("developerAIInput"),button=$("developerAISend");
+  const message=input.value.trim(),images=developerAIImages.slice();
+  if(!message&&!images.length)return;
+  developerAIMessages.push({role:"user",content:message||"Please analyze these pictures.",...(images.length?{images}:{})});
+  input.value="";developerAIImages=[];developerAIBusy=true;button.disabled=true;
+  saveDeveloperAIThreads();renderDeveloperAI();
+  try{
     const result=await callDeveloperAI("chat",{messages:developerAIMessages});
     developerAIMessages.push({role:"assistant",content:result.reply||"No response received."});
     developerAIDrafts.push(...(result.pending_actions||[]));
-    renderDeveloperAI();
-  } catch(error) {
-    developerAIMessages.push({role:"assistant",content:"I couldn't connect: "+error.message});
-    renderDeveloperAI();
-  } finally { button.disabled=false; button.textContent="Send to Developer AI"; }
+  }catch(error){developerAIMessages.push({role:"assistant",content:"I couldn't connect: "+error.message});}
+  finally{developerAIBusy=false;button.disabled=false;saveDeveloperAIThreads();renderDeveloperAI();}
 }
 async function approveDeveloperAnnouncement(index) {
   const draft=developerAIDrafts[index];
