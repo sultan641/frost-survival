@@ -27,3 +27,24 @@
 .reward-card .hub-card-actions .outline-link{margin-top:0}.news-card small{color:#7fa7c7}
 @media(max-width:800px){.hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.hub-grid{grid-template-columns:1fr}.hub-card{padding:16px}.hub-card h3{font-size:21px}.hub-card p{font-size:13px}}
+
+
+/* Compact layout for all game download pages: preserve every instruction, reduce visual size and spacing. */
+body[data-game]{font-size:13px;line-height:1.45}
+body[data-game] main{font-size:13px}
+body[data-game] .section{padding:17px 0 23px}
+body[data-game] .section-heading{margin-bottom:10px;gap:10px}
+body[data-game] .section h2,body[data-game] .game-content .section>h2{font-size:clamp(21px,2.5vw,27px);line-height:1.12}
+body[data-game] .section h3,body[data-game] .step h3{font-size:15px;line-height:1.25}
+body[data-game] p,body[data-game] .sub,body[data-game] .step p{font-size:12.5px;line-height:1.45}
+body[data-game] .steps,body[data-game] .game-content .steps{gap:8px;margin-top:10px}
+body[data-game] .step{padding:11px;border-radius:10px}
+body[data-game] .step h3{margin-bottom:4px}
+body[data-game] button,body[data-game] .btn{font-size:12px;padding:8px 11px;gap:6px}
+body[data-game] .game-hero-inner{min-height:270px;gap:16px;padding-top:20px;padding-bottom:20px}
+body[data-game] .game-hero-copy h1{font-size:clamp(35px,4.6vw,55px);margin:10px 0 6px}
+body[data-game] .game-hero-copy>p{font-size:13px}
+body[data-game] .game-hero-copy .actions{gap:7px;margin:12px 0}
+body[data-game] .game-hero-caption{font-size:10px}
+body[data-game] .code-list{gap:7px}
+@media(max-width:760px){body[data-game] .game-hero-inner{min-height:250px;padding-top:18px;padding-bottom:18px}body[data-game] .game-hero-copy h1{font-size:39px}body[data-game] .game-content .steps{grid-template-columns:1fr}}
