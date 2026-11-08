@@ -791,7 +791,7 @@ async function showAgentStreaming() {
     $("agentVaultCards").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleAgentPassword(b.dataset.toggle,b));
     $("agentVaultCards").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>window.open($(b.dataset.open).value,"_blank","noopener,noreferrer"));
     $("agentVaultCards").querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>saveAgentAccount(b.dataset.save,b.dataset.game,b));
-    $("agentVaultCards").querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareAgentAccount(b.dataset.save||b.dataset.game,b.dataset.game));
+    $("agentVaultCards").querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareAgentAccount(b.dataset.share,b.dataset.game));
   } catch(e) { $("agentVaultStatus").textContent = "Secure vault unavailable: " + e.message; }
 }
 async function copyAgentField(id) { const f=$(id); if(!f || !f.value) return status("No link available."); try { await navigator.clipboard.writeText(f.value); status("Private link copied."); } catch { f.focus(); f.select(); status("Select the link and copy it manually."); } }
