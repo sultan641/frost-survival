@@ -62,7 +62,7 @@ function card(title,body,extra=""){return '<article class="tenant-custom-card"><
  show("giftCodesSection",visible("giftCodes")&&(c.gift_codes||[]).length>0);
  show("announcementsSection",visible("announcements")&&(c.announcements||[]).length>0);
  show("communitySection",visible("join")||visible("socials"));
- show("navGames",visible("games"));show("navGuides",visible("guides"));show("navCommunity",visible("join")||visible("socials"));
+ show("navGames",visible("games"));show("navGuides",visible("guides"));show("navCommunity",visible("join")||visible("socials"));show("navJoin",visible("join"));show("heroJoin",visible("join"));show("communityButton",visible("join"));
  const games=c.games||[];
  el("games").innerHTML=games.map((g,i)=>'<article class="tenant-game"><div class="tenant-game-art"><strong>'+esc(g.name)+'</strong></div><div class="tenant-game-body"><h3>'+esc(g.name)+'</h3><p>'+esc(g.description||"Game downloads, guides and updates.")+'</p>'+(g.promo?'<p>Promo code: <strong>'+esc(g.promo)+'</strong></p>':'')+'<div class="tenant-actions"><a class="tenant-primary" href="game.html?site='+encodeURIComponent(slug)+'&game='+i+'">Open Game →</a><a href="'+esc(safeUrl(g.url))+'" target="_blank" rel="noopener">Download ↗</a></div></div></article>').join("")||"<p>No games have been added yet.</p>";
  el("codes").innerHTML=(c.gift_codes||[]).map(x=>card(x.game||"Gift Code","Code: "+(x.code||"")+(x.expires?" · "+x.expires:""),'<button type="button" class="btn secondary" data-copy="'+esc(x.code||"")+'">Copy Code</button>')).join("")||"<p>No gift codes yet.</p>";
