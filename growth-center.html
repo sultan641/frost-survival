@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#06182c"><title>Frost Growth Center</title><link rel="stylesheet" href="style.css?v=20261108-growth"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+.growth-wrap{max-width:1100px;margin:28px auto;padding:0 16px}.growth-panel{background:#081d34;border:1px solid #20577e;border-radius:14px;padding:18px;margin:14px 0}.growth-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}.growth-stat{padding:16px;border:1px solid #285779;border-radius:10px;background:#0c2947}.growth-stat strong{display:block;font-size:27px;color:#42d4ff}.growth-stat span,.muted{color:#b7cce0;font-size:13px}.growth-panel input,.growth-panel select{width:100%;box-sizing:border-box;margin:7px 0 14px;padding:12px;background:#031326;color:#fff;border:1px solid #365d7d;border-radius:8px}.growth-panel button,.growth-panel a.btn{margin:5px 5px 5px 0}.growth-list{line-height:1.9;overflow-wrap:anywhere}.growth-link{color:#7de4ff}.status{min-height:24px}
+</style></head><body><header class="top"><div class="wrap nav"><a class="brand" href="index.html"><span class="logo">❄</span><span>FROST <i>SURVIVAL</i><small>GROWTH CENTER</small></span></a><nav><a href="index.html">Public Site</a><a href="admin.html">Admin Console</a></nav></div></header>
+<main class="growth-wrap"><h1>📈 Frost Survival Growth Center</h1><p class="muted">Owner-only traffic reports, campaign links, search visibility and promotion tools.</p>
+<section id="login" class="growth-panel"><h2>Admin sign in required</h2><p>Open the Admin Console and sign in with the owner account first.</p><a class="btn" href="admin.html">Open Admin Console</a></section>
+<div id="dashboard" hidden>
+<div id="status" class="status"></div><section class="growth-grid" id="stats"></section>
+<section class="growth-panel"><h2>Traffic sources — last 30 days</h2><div id="sources" class="growth-list muted">Loading…</div></section>
+<section class="growth-panel"><h2>Most visited pages — last 30 days</h2><div id="pages" class="growth-list muted">Loading…</div></section>
+<section class="growth-panel"><h2>Campaign link builder</h2><p class="muted">Create separate tagged links for YouTube, TikTok, Discord, Reddit or partner posts.</p>
+<label>Destination page</label><select id="destination"><option value="/">Main website</option><option value="/wos-v4.html">Whiteout Survival V4</option><option value="/v5-china.html">Whiteout Survival V5 China</option><option value="/v5-europe.html">Whiteout Survival V5 Europe</option><option value="/kingshot-v4.html">KingShot V4</option><option value="/promotion.html">Promotion Hub</option></select>
+<label>Source</label><input id="source" value="youtube" maxlength="60" placeholder="youtube / tiktok / discord">
+<label>Medium</label><input id="medium" value="short" maxlength="60" placeholder="short / bio / post / invite">
+<label>Campaign</label><input id="campaign" value="winter_growth" maxlength="80">
+<label>Tracking link</label><input id="campaignUrl" readonly><button id="copyLink" type="button">Copy tracking link</button></section>
+<section class="growth-panel"><h2>Search visibility & advertising</h2><p><a class="growth-link" target="_blank" rel="noopener" href="https://search.google.com/search-console?resource_id=https%3A%2F%2Fsultan641.github.io%2Ffrost-survival%2F">Google Search Console ↗</a> · <a class="growth-link" target="_blank" rel="noopener" href="https://www.bing.com/webmasters/">Bing Webmaster Tools ↗</a></p><p><a class="growth-link" target="_blank" rel="noopener" href="https://ads.google.com/">Google Ads ↗</a> · <a class="growth-link" target="_blank" rel="noopener" href="https://studio.youtube.com/">YouTube Studio ↗</a> · <a class="growth-link" target="_blank" rel="noopener" href="https://ads.tiktok.com/">TikTok Ads ↗</a></p><p>SEO files: <a class="growth-link" href="robots.txt">robots.txt</a> · <a class="growth-link" href="sitemap.xml">sitemap.xml</a></p><p class="muted">Verify site ownership in Search Console and submit the sitemap. Ads are not activated here and no budget is spent. Search indexing and rankings are never guaranteed.</p></section>
+<section class="growth-panel"><h2>Free growth checklist</h2><ul><li>Publish original, useful guides for each game version.</li><li>Use unique tracking links in video descriptions, bios and Discord posts.</li><li>Submit sitemap and inspect key pages in Search Console.</li><li>List the Discord only in directories where promotion is permitted.</li><li>Never buy fake visits, followers or Discord members.</li></ul></section>
+</div></main>
+<script>
+(async()=>{
+const supabase=window.supabase.createClient("https://xnixsavppmmvbzfnybus.supabase.co","sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT");
+const {data,error}=await supabase.auth.getSession();
+const session=data?.session;
+if(error||!session||session.user.id!=="9cd04a06-6937-474a-9b13-ea39b2c3bd35"){document.getElementById("login").hidden=false;return;}
+document.getElementById("login").hidden=true;document.getElementById("dashboard").hidden=false;
+const status=document.getElementById("status");
+const since=new Date(Date.now()-30*86400000).toISOString();
+const {data:rows,error:queryError}=await supabase.from("site_analytics").select("event_type,page_path,campaign_source,created_at").eq("site_key","frost-survival").gte("created_at",since).order("created_at",{ascending:false}).limit(5000);
+if(queryError){status.textContent="Analytics unavailable: "+queryError.message;return;}
+const events=rows||[];
+const metrics=[["Page views","page_view"],["Game clicks","game_click"],["Discord clicks","discord_click"],["YouTube clicks","youtube_click"],["Promotion clicks","promotion_click"],["Shares","share_click"]];
+document.getElementById("stats").innerHTML=metrics.map(([label,key])=>'<div class="growth-stat"><strong>'+events.filter(x=>x.event_type===key).length+'</strong><span>'+label+'</span></div>').join("");
+const aggregate=key=>{const map={};events.forEach(row=>{const value=row[key]||"Direct / untagged";map[value]=(map[value]||0)+1;});return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,15);};
+document.getElementById("sources").innerHTML=aggregate("campaign_source").map(([k,v])=>'<div>'+String(k).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+' — '+v+'</div>').join("")||"No recorded traffic yet.";
+document.getElementById("pages").innerHTML=aggregate("page_path").map(([k,v])=>'<div>'+String(k).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+' — '+v+'</div>').join("")||"No recorded page views yet.";
+const build=()=>{const u=new URL("https://sultan641.github.io/frost-survival"+document.getElementById("destination").value);u.searchParams.set("utm_source",document.getElementById("source").value.trim()||"unknown");u.searchParams.set("utm_medium",document.getElementById("medium").value.trim()||"share");u.searchParams.set("utm_campaign",document.getElementById("campaign").value.trim()||"general");document.getElementById("campaignUrl").value=u.href;};
+["destination","source","medium","campaign"].forEach(id=>document.getElementById(id).addEventListener("input",build));
+document.getElementById("copyLink").onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById("campaignUrl").value);status.textContent="Campaign link copied.";}catch(e){document.getElementById("campaignUrl").select();status.textContent="Select and copy the link.";}};build();
+})();
+</script><script src="analytics.js?v=6"></script></body></html>
