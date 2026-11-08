@@ -15,4 +15,5 @@ const updates=(c.announcements||[]).filter(x=>!x.game||(x.game||"").trim().toLow
 document.getElementById("socials").innerHTML=(c.socials||[]).map(x=>'<a href="'+esc(safe(x.url))+'" target="_blank" rel="noopener">'+esc(x.label)+' ↗</a>').join("");
 document.querySelectorAll("[data-copy]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.copy);b.textContent="Copied!"}catch{b.textContent="Copy unavailable"}});
 })();
-</script></body></html>
+</script><script src="back-navigation.js?v=1"></script>
+</body></html>
