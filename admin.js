@@ -885,12 +885,30 @@ function renderDeveloperAI() {
   const chat = $("developerAIChat");
   if (!chat) return;
   chat.innerHTML = '<div class="admin-record"><strong>Developer AI</strong><p>Private owner assistant</p></div>' +
-    developerAIMessages.map(m => '<div class="admin-record"><strong>'+(m.role==="user"?"You":"Developer AI")+'</strong><p style="white-space:pre-wrap">'+safe(m.content)+'</p></div>').join("");
+    developerAIMessages.map((m,i) => '<div class="admin-record"><strong>'+(m.role==="user"?"You":"Developer AI")+'</strong><p style="white-space:pre-wrap">'+safe(m.content)+'</p>'+(m.role==="assistant" ? '<button type="button" class="secondary" onclick="copyDeveloperAIMessage('+i+')">📋 Copy message</button>' : '')+'</div>').join("");
   chat.scrollTop = chat.scrollHeight;
   const drafts = $("developerAIDrafts");
   if (drafts) drafts.innerHTML = developerAIDrafts.map((d,i) =>
     '<div class="admin-section"><h3>Announcement draft — '+safe(d.game_name)+'</h3><strong>'+safe(d.title)+'</strong><p style="white-space:pre-wrap">'+safe(d.message)+'</p><p class="hint">Not published yet.</p><button onclick="approveDeveloperAnnouncement('+i+')">Approve & Publish</button><button class="secondary" onclick="discardDeveloperAnnouncement('+i+')">Discard</button></div>'
   ).join("");
+}
+async function copyDeveloperAIMessage(index) {
+  const message = developerAIMessages[index];
+  if (!message || message.role !== "assistant") return;
+  try {
+    await navigator.clipboard.writeText(message.content || "");
+    status("AI message copied.");
+  } catch (error) {
+    const field = document.createElement("textarea");
+    field.value = message.content || "";
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.appendChild(field);
+    field.select();
+    try { document.execCommand("copy"); status("AI message copied."); }
+    catch { status("Copy failed. Please select the message and copy it."); }
+    field.remove();
+  }
 }
 async function sendDeveloperAI(event) {
   event.preventDefault();
