@@ -869,19 +869,42 @@ let developerAIThreadId = null;
 let developerAIImages = [];
 let developerAIBusy = false;
 const developerAIStorageKey = "frost-developer-ai-threads-v2-9cd04a06";
+let developerAISyncTimer=null;
 function saveDeveloperAIThreads() {
   const existing = developerAIThreads.find(t=>t.id===developerAIThreadId);
   if (existing) {
     existing.messages=developerAIMessages;
     existing.drafts=developerAIDrafts;
     existing.updated=Date.now();
-    existing.title=developerAIMessages.find(m=>m.role==="user")?.content.slice(0,48)||"New chat";
+    existing.title=(developerAIMessages.find(m=>m.role==="user")?.content||"New chat").slice(0,48);
   }
-  try {
-    localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads.slice(0,40)));
-  } catch(e) {
-    status("Chat storage is full. Export important chats; images may be too large to save.");
-  }
+  try { localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads.slice(0,12))); }
+  catch(e) { status("Local chat backup is full. Cloud save will still be attempted."); }
+  if(developerAISyncTimer)clearTimeout(developerAISyncTimer);
+  developerAISyncTimer=setTimeout(()=>syncDeveloperAIThread().catch(e=>status("Cloud chat sync failed: "+e.message)),700);
+}
+async function syncDeveloperAIThread() {
+  const t=developerAIThreads.find(x=>x.id===developerAIThreadId);
+  if(!t)return;
+  const {data:s}=await db.auth.getSession();
+  if(!s?.session?.user?.id)throw new Error("Please sign in again.");
+  const {error}=await db.from("developer_ai_chats").upsert({
+    id:t.id,owner_id:s.session.user.id,title:t.title||"New chat",
+    messages:t.messages||[],drafts:t.drafts||[],
+    updated_at:new Date(t.updated||Date.now()).toISOString()
+  },{onConflict:"owner_id,id"});
+  if(error)throw error;
+}
+async function loadDeveloperAICloudThreads() {
+  const {data,error}=await db.from("developer_ai_chats").select("id,title,messages,drafts,updated_at").order("updated_at",{ascending:false}).limit(40);
+  if(error)throw error;
+  const merged=new Map(developerAIThreads.map(t=>[t.id,t]));
+  (data||[]).forEach(row=>{
+    const local=merged.get(row.id), cloud={id:row.id,title:row.title,updated:new Date(row.updated_at).getTime(),messages:row.messages||[],drafts:row.drafts||[]};
+    if(!local||cloud.updated>Number(local.updated||0))merged.set(row.id,cloud);
+  });
+  developerAIThreads=[...merged.values()].sort((a,b)=>(b.updated||0)-(a.updated||0)).slice(0,40);
+  try{localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads.slice(0,12)));}catch(_){}
 }
 function loadDeveloperAIThreads() {
   try {
@@ -909,7 +932,8 @@ function deleteDeveloperAIChat() {
   if(developerAIBusy||!confirm("Delete this saved chat from this browser?"))return;
   developerAIThreads=developerAIThreads.filter(t=>t.id!==developerAIThreadId);
   developerAIThreadId=null;developerAIMessages=[];developerAIDrafts=[];
-  try{localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads));}catch(e){}
+  try{localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads.slice(0,12)));}catch(e){}
+  db.from("developer_ai_chats").delete().eq("id",developerAIThreadId).then(({error})=>{if(error)status("Cloud delete failed: "+error.message);});
   if(developerAIThreads.length)openDeveloperAIChat(developerAIThreads[0].id);else newDeveloperAIChat();
 }
 function exportDeveloperAIChat() {
@@ -925,8 +949,10 @@ async function callDeveloperAI(action,payload={}) {
   if(error||data?.error)throw new Error(data?.error||error.message);
   return data;
 }
-function showDeveloperAI() {
+async function showDeveloperAI() {
   loadDeveloperAIThreads();
+  try { await loadDeveloperAICloudThreads(); }
+  catch(e) { status("Cloud chat history unavailable; showing local backup. "+e.message); }
   if(developerAIThreads.length){
     const thread=developerAIThreads[0];developerAIThreadId=thread.id;
     developerAIMessages=thread.messages||[];developerAIDrafts=thread.drafts||[];
@@ -971,7 +997,7 @@ function showDeveloperAI() {
           <textarea id="developerAIInput" rows="2" maxlength="4000" placeholder="Message Developer AI…" aria-label="Message Developer AI"></textarea>
           <button id="developerAISend" type="submit">➤ Send</button>
         </form>
-        <p class="hint">Saved chats stay in this browser only. Photos may use significant storage. AI replies are not streamed token-by-token.</p>
+        <p class="hint">Chats sync privately to your admin account and keep a local backup. Replies appear after the model finishes; live token streaming is not enabled yet.</p>
       </section>
     </div>`;
   $("developerAIForm").onsubmit=sendDeveloperAI;
@@ -985,9 +1011,12 @@ function renderDeveloperAI() {
   const chat=$("developerAIChat");
   if(!chat)return;
   chat.innerHTML=(developerAIMessages.length?"":'<p class="hint">Ask me about your website, games, bugs or announcements.</p>')+
-    developerAIMessages.map((m,i)=>'<div class="frost-ai-message '+(m.role==="user"?"user":"assistant")+'"><strong>'+(m.role==="user"?"You":"✦ Developer AI")+'</strong><div class="frost-ai-body">'+safe(m.content)+'</div>'+
+    developerAIMessages.map((m,i)=>{
+      const body=safe(m.content||"").replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g,(all,lang,src)=>'<pre><code>'+src+'</code></pre><button type="button" class="secondary" onclick="copyDeveloperAICode('+i+',this)">📋 Copy code</button>');
+      return '<div class="frost-ai-message '+(m.role==="user"?"user":"assistant")+'"><strong>'+(m.role==="user"?"You":"✦ Developer AI")+'</strong><div class="frost-ai-body">'+body+'</div>'+
       (Array.isArray(m.images)?m.images.map(src=>'<img src="'+safe(src)+'" alt="Uploaded image">').join(""):"")+
-      (m.role==="assistant"?'<button type="button" class="secondary" onclick="copyDeveloperAIMessage('+i+')">📋 Copy</button>':'')+'</div>').join("")+
+      (m.role==="assistant"?'<button type="button" class="secondary" onclick="copyDeveloperAIMessage('+i+')">📋 Copy message</button>':'')+'</div>';
+    }).join("")+
     (developerAIBusy?'<div class="frost-ai-message assistant" role="status">✦ Developer AI is thinking… <span aria-hidden="true">● ● ●</span></div>':"");
   chat.scrollTop=chat.scrollHeight;
   const preview=$("developerAIPreview");
@@ -998,12 +1027,29 @@ function renderDeveloperAI() {
 async function addDeveloperAIImages(e) {
   for(const file of Array.from(e.target.files||[]).slice(0,4-developerAIImages.length)){
     if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)||file.size>4000000){status("Use PNG, JPG, WebP or GIF under 4 MB.");continue;}
-    const data=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file);});
+    const data=await new Promise((resolve,reject)=>{
+      const reader=new FileReader();reader.onload=()=>{
+        const img=new Image();img.onload=()=>{
+          const scale=Math.min(1,1400/Math.max(img.width,img.height));
+          const canvas=document.createElement("canvas");canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);
+          canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);
+          resolve(canvas.toDataURL("image/jpeg",0.76));
+        };img.onerror=reject;img.src=reader.result;
+      };reader.onerror=reject;reader.readAsDataURL(file);
+    });
     developerAIImages.push(data);
   }
   e.target.value="";renderDeveloperAI();
 }
 function removeDeveloperAIImage(i){developerAIImages.splice(i,1);renderDeveloperAI();}
+async function copyDeveloperAICode(index,button) {
+  const content=developerAIMessages[index]?.content||"";
+  const blocks=[...content.matchAll(/```[a-zA-Z0-9_-]*\n([\s\S]*?)```/g)];
+  const code=blocks[Number(button?.dataset?.block||0)]?.[1]||blocks[0]?.[1]||"";
+  if(!code)return status("No code block found.");
+  try{await navigator.clipboard.writeText(code);status("Code copied.");}
+  catch(e){const f=document.createElement("textarea");f.value=code;document.body.appendChild(f);f.select();document.execCommand("copy");f.remove();status("Code copied.");}
+}
 async function copyDeveloperAIMessage(index) {
   const message=developerAIMessages[index];if(!message)return;
   try{await navigator.clipboard.writeText(message.content||"");status("Message copied.");}
@@ -1032,6 +1078,7 @@ async function approveDeveloperAnnouncement(index) {
     await callDeveloperAI("publish_announcement",draft);
     developerAIDrafts.splice(index,1);
     developerAIMessages.push({role:"assistant",content:"Announcement published successfully to "+draft.game_name+"."});
+    saveDeveloperAIThreads();
     renderDeveloperAI();
     status("Announcement published.");
   } catch(error) { status("Publish failed: "+error.message); }
