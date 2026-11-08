@@ -929,12 +929,20 @@ function openDeveloperAIChat(id) {
   renderDeveloperAI();
 }
 function deleteDeveloperAIChat() {
-  if(developerAIBusy||!confirm("Delete this saved chat from this browser?"))return;
-  developerAIThreads=developerAIThreads.filter(t=>t.id!==developerAIThreadId);
+  if(developerAIBusy||!confirm("Delete this saved chat from your devices and cloud history?"))return;
+  const deletedId=developerAIThreadId;
+  developerAIThreads=developerAIThreads.filter(t=>t.id!==deletedId);
   developerAIThreadId=null;developerAIMessages=[];developerAIDrafts=[];
   try{localStorage.setItem(developerAIStorageKey,JSON.stringify(developerAIThreads.slice(0,12)));}catch(e){}
-  db.from("developer_ai_chats").delete().eq("id",developerAIThreadId).then(({error})=>{if(error)status("Cloud delete failed: "+error.message);});
+  db.from("developer_ai_chats").delete().eq("id",deletedId).then(({error})=>{if(error)status("Cloud delete failed: "+error.message);});
   if(developerAIThreads.length)openDeveloperAIChat(developerAIThreads[0].id);else newDeveloperAIChat();
+}
+function renameDeveloperAIChat() {
+  const thread=developerAIThreads.find(t=>t.id===developerAIThreadId);if(!thread)return;
+  const title=prompt("Name this conversation:",thread.title||"New chat");
+  if(title===null)return;
+  thread.title=title.trim().slice(0,80)||"New chat";thread.updated=Date.now();
+  saveDeveloperAIThreads();renderDeveloperAI();
 }
 function exportDeveloperAIChat() {
   const blob=new Blob([JSON.stringify({messages:developerAIMessages,drafts:developerAIDrafts},null,2)],{type:"application/json"});
@@ -987,7 +995,7 @@ async function showDeveloperAI() {
     <div class="frost-ai-layout">
       <aside class="frost-ai-history"><button onclick="newDeveloperAIChat()">＋ New chat</button><strong>Chat history</strong><div id="developerAIHistory"></div></aside>
       <section class="frost-ai-main">
-        <div class="frost-ai-toolbar"><strong>Frost Developer AI</strong><span><button class="secondary" onclick="exportDeveloperAIChat()">⬇ Save chat</button> <button class="secondary" onclick="deleteDeveloperAIChat()">🗑 Delete</button></span></div>
+        <div class="frost-ai-toolbar"><strong>Frost Developer AI</strong><span><button class="secondary" onclick="renameDeveloperAIChat()">✎ Rename</button> <button class="secondary" onclick="exportDeveloperAIChat()">⬇ Save chat</button> <button class="secondary" onclick="deleteDeveloperAIChat()">🗑 Delete</button></span></div>
         <div id="developerAIChat" class="frost-ai-chat" role="log" aria-live="polite"></div>
         <div id="developerAIDrafts"></div>
         <div id="developerAIPreview" class="frost-ai-attachments"></div>
