@@ -39,4 +39,5 @@ const build=()=>{const u=new URL("https://sultan641.github.io/frost-survival"+do
 ["destination","source","medium","campaign"].forEach(id=>document.getElementById(id).addEventListener("input",build));
 document.getElementById("copyLink").onclick=async()=>{try{await navigator.clipboard.writeText(document.getElementById("campaignUrl").value);status.textContent="Campaign link copied.";}catch(e){document.getElementById("campaignUrl").select();status.textContent="Select and copy the link.";}};build();
 })();
-</script><script src="analytics.js?v=6"></script></body></html>
+</script><script src="analytics.js?v=6"></script><script src="back-navigation.js?v=1"></script>
+</body></html>
