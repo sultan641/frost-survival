@@ -158,6 +158,12 @@ function showDashboard() {
   `;
 
   addAdminStyles();
+  try {
+    if (sessionStorage.getItem("frost-open-analytics") === "1") {
+      sessionStorage.removeItem("frost-open-analytics");
+      setTimeout(() => showTab("analytics"), 0);
+    }
+  } catch (_) {}
 }
 
 function addAdminStyles() {
