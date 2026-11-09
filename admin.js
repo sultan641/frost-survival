@@ -772,39 +772,57 @@ async function callAgentVault(action, payload = {}) {
   return data;
 }
 async function showAgentStreaming() {
-  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🔐 Agent Livestreaming Accounts</h2><p>Private agent panel links and login credentials. Visible only to the owner in this admin panel; never added to public download pages.</p><div id="agentVaultStatus">Loading secure records…</div><div id="agentVaultCards"></div>';
+  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🔐 Private Agent Access</h2><p>Owner-only vault. These links and credentials are never shown on public game pages.</p><div id="agentVaultStatus">Loading secure records…</div><div id="agentVaultCards"></div>';
   const panels = [
     {game:"Whiteout Survival V4",url:"https://daili.cqwzcj.com/index",id:"wosv4"},
     {game:"Whiteout Survival V5 China",url:"https://admin.wjdr2.top/ops-panel.html",id:"wosv5cn"},
     {game:"KingShot V4",url:"https://dlcms.bbwgtg.xyz/login",id:"ksv4"}
   ];
+  const live = [
+    {game:"Livestreaming Account — Whiteout Survival V4",label:"Whiteout Survival V4",url:"https://live-landing.hzcomg.com/",id:"livewosv4"},
+    {game:"Livestreaming Account — KingShot V4",label:"KingShot V4",url:"",id:"liveksv4"}
+  ];
   try {
     const result = await callAgentVault("list");
     const records = result.accounts || [];
-    $("agentVaultCards").innerHTML = panels.map(panel => {
-      const item = records.find(x => x.game === panel.game) || {username:"",password:""};
-      const id = panel.id;
-      return '<section class="admin-section"><h3>'+safe(panel.game)+'</h3><label>Private agent panel link</label><div><input class="input" id="'+id+'Url" readonly value="'+safe(panel.url)+'"><button type="button" data-copy="'+id+'Url">Copy Link</button><button type="button" data-open="'+id+'Url">Open Panel ↗</button></div><label>Agent username</label><input class="input" id="'+id+'User" value="'+safe(item.username||'')+'" maxlength="300" autocomplete="off" placeholder="Add username later"><label>Agent password</label><div><input class="input" id="'+id+'Pass" type="password" value="'+safe(item.password||'')+'" maxlength="1000" autocomplete="new-password" placeholder="Add password later"><button type="button" data-toggle="'+id+'Pass">Show</button></div><div class="actions"><button type="button" data-save="'+id+'" data-game="'+safe(panel.game)+'">🔒 Save Credentials</button><button type="button" data-share="'+id+'" data-game="'+safe(panel.game)+'">↗ Share Agent Details</button></div></section>';
+    const card = (item, title, url, id, kind) => {
+      const linkField = '<label>'+ (kind==="panel" ? "Agent panel URL" : "Livestreaming account download / invite link") +'</label><input class="input" id="'+id+'Url" value="'+safe(url||item.url||'')+'" '+(kind==="panel"?'readonly':'')+' placeholder="'+(kind==="live"?'Add private download or invite link':'')+'">';
+      return '<section class="admin-section"><h3>'+safe(title)+'</h3>'+linkField+
+        '<label>Username</label><input class="input" id="'+id+'User" value="'+safe(item.username||'')+'" maxlength="300" autocomplete="off">'+
+        '<label>Password</label><div><input class="input" id="'+id+'Pass" type="password" value="'+safe(item.password||'')+'" maxlength="1000" autocomplete="new-password"><button type="button" data-toggle="'+id+'Pass">Show</button></div>'+
+        '<div class="actions"><button type="button" data-save="'+id+'" data-game="'+safe(item.gameKey)+'" data-kind="'+kind+'">🔒 Save</button><button type="button" data-share="'+id+'" data-title="'+safe(title)+'">↗ Share</button></div></section>';
+    };
+    const panelHtml = panels.map(p => {
+      const item = records.find(x=>x.game===p.game)||{};
+      return card({...item,gameKey:p.game},p.game,p.url,p.id,"panel");
     }).join("");
-    $("agentVaultStatus").textContent = "Secure vault connected. 3 private agent panels ready.";
-    $("agentVaultCards").querySelectorAll("[data-copy]").forEach(b=>b.onclick=()=>copyAgentField(b.dataset.copy));
+    const liveHtml = live.map(p => {
+      const item = records.find(x=>x.game===p.game)||{};
+      return card({...item,gameKey:p.game},p.label,p.url,p.id,"live");
+    }).join("");
+    $("agentVaultCards").innerHTML = '<h3>Agent Management Panels</h3>'+panelHtml+'<hr><h3>Agent Livestreaming Accounts</h3>'+liveHtml;
+    $("agentVaultStatus").textContent = "Secure owner-only vault connected.";
     $("agentVaultCards").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleAgentPassword(b.dataset.toggle,b));
-    $("agentVaultCards").querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>window.open($(b.dataset.open).value,"_blank","noopener,noreferrer"));
-    $("agentVaultCards").querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>saveAgentAccount(b.dataset.save,b.dataset.game,b));
-    $("agentVaultCards").querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareAgentAccount(b.dataset.share,b.dataset.game));
+    $("agentVaultCards").querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>saveAgentAccount(b.dataset.save,b.dataset.game,b,b.dataset.kind));
+    $("agentVaultCards").querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareAgentAccount(b.dataset.share,b.dataset.title));
   } catch(e) { $("agentVaultStatus").textContent = "Secure vault unavailable: " + e.message; }
 }
-async function copyAgentField(id) { const f=$(id); if(!f || !f.value) return status("No link available."); try { await navigator.clipboard.writeText(f.value); status("Private link copied."); } catch { f.focus(); f.select(); status("Select the link and copy it manually."); } }
 function toggleAgentPassword(id,b) { const f=$(id); if(!f) return; f.type=f.type==="password"?"text":"password"; b.textContent=f.type==="password"?"Show":"Hide"; }
-async function saveAgentAccount(id,game,b) { if(b) b.disabled=true; try { await callAgentVault("save",{game,url:$(id+"Url").value,username:$(id+"User").value.trim(),password:$(id+"Pass").value}); status(game+" credentials saved securely."); } catch(e) { status("Save failed: "+e.message); } finally { if(b) b.disabled=false; } }
-async function shareAgentAccount(id,game) {
-  const url=$(id+"Url")?.value||"", username=$(id+"User")?.value.trim()||"", password=$(id+"Pass")?.value||"";
-  if(!url) return status("No private link is available.");
-  if(!confirm("This will share the private link and any saved username/password with a recipient you choose. Only share with an authorized agent. Continue?")) return;
-  const text=["FROST SURVIVAL — CONFIDENTIAL AGENT ACCESS", "Game: "+game, "Agent login: "+url, "Username: "+(username||"(not added yet)"), "Password: "+(password||"(not added yet)"), "", "Keep these details private. Do not forward."].join("\\n");
+async function saveAgentAccount(id,game,b,kind) {
+  if(b) b.disabled=true;
   try {
-    if(navigator.share) { await navigator.share({title:"Confidential agent access — "+game,text}); status("Share sheet opened. Choose the authorized agent only."); }
-    else { await navigator.clipboard.writeText(text); status("Agent details copied. Paste only in a private conversation with the authorized agent."); }
+    await callAgentVault("save",{game,url:$(id+"Url").value.trim(),username:$(id+"User").value.trim(),password:$(id+"Pass").value});
+    status("Saved securely: "+(kind==="live"?"livestreaming account":"agent panel")+".");
+  } catch(e) { status("Save failed: "+e.message); }
+  finally { if(b) b.disabled=false; }
+}
+async function shareAgentAccount(id,game) {
+  const url=$(id+"Url")?.value.trim()||"", username=$(id+"User")?.value.trim()||"", password=$(id+"Pass")?.value||"";
+  if(!confirm("Share these confidential credentials? Only send them to an authorized agent. Continue?")) return;
+  const details=["FROST SURVIVAL — CONFIDENTIAL AGENT ACCESS","Game: "+game,"Download / panel link: "+(url||"(not added yet)"),"Username: "+username,"Password: "+password,"Keep private. Do not forward."].join("\\n");
+  try {
+    if(navigator.share) { await navigator.share({title:"Confidential agent access — "+game,text:details}); status("Share sheet opened."); }
+    else { await navigator.clipboard.writeText(details); status("Confidential details copied. Share privately only."); }
   } catch(e) { if(e?.name!=="AbortError") status("Sharing was cancelled or unavailable."); }
 }
 // AUTH SESSION
