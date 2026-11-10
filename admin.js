@@ -788,7 +788,7 @@ async function showAgentStreaming() {
     const card = (item, title, url, id, kind) => {
       const linkField = '<label>'+ (kind==="panel" ? "Agent panel URL" : "Livestreaming account download / invite link") +'</label><input class="input" id="'+id+'Url" value="'+safe(url||item.url||'')+'" '+(kind==="panel"?'readonly':'')+' placeholder="'+(kind==="live"?'Add private download or invite link':'')+'">';
       return '<section class="admin-section"><h3>'+safe(title)+'</h3>'+linkField+
-        (kind==="panel" ? '<div class="actions"><button type="button" data-open-chrome="'+id+'Url">🌐 Open in Chrome</button></div>' : '')+
+        (kind==="panel" ? '<p style="margin:8px 0 14px"><a class="btn" href="intent://'+(new URL(url)).host+(new URL(url)).pathname+'#Intent;scheme=https;package=com.android.chrome;end" style="display:inline-block;text-decoration:none;padding:11px 16px;background:#087cf0;color:#fff;border-radius:8px;font-weight:700">🌐 OPEN IN CHROME</a></p>' : '')+
         '<label>Username</label><input class="input" id="'+id+'User" value="'+safe(item.username||'')+'" maxlength="300" autocomplete="off">'+
         '<label>Password</label><div><input class="input" id="'+id+'Pass" type="password" value="'+safe(item.password||'')+'" maxlength="1000" autocomplete="new-password"><button type="button" data-toggle="'+id+'Pass">Show</button></div>'+
         '<div class="actions"><button type="button" data-save="'+id+'" data-game="'+safe(item.gameKey)+'" data-kind="'+kind+'">🔒 Save</button><button type="button" data-share="'+id+'" data-title="'+safe(title)+'">↗ Share</button></div></section>';
