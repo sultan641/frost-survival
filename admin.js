@@ -788,6 +788,7 @@ async function showAgentStreaming() {
     const card = (item, title, url, id, kind) => {
       const linkField = '<label>'+ (kind==="panel" ? "Agent panel URL" : "Livestreaming account download / invite link") +'</label><input class="input" id="'+id+'Url" value="'+safe(url||item.url||'')+'" '+(kind==="panel"?'readonly':'')+' placeholder="'+(kind==="live"?'Add private download or invite link':'')+'">';
       return '<section class="admin-section"><h3>'+safe(title)+'</h3>'+linkField+
+        (kind==="panel" ? '<div class="actions"><button type="button" data-open-chrome="'+id+'Url">🌐 Open in Chrome</button></div>' : '')+
         '<label>Username</label><input class="input" id="'+id+'User" value="'+safe(item.username||'')+'" maxlength="300" autocomplete="off">'+
         '<label>Password</label><div><input class="input" id="'+id+'Pass" type="password" value="'+safe(item.password||'')+'" maxlength="1000" autocomplete="new-password"><button type="button" data-toggle="'+id+'Pass">Show</button></div>'+
         '<div class="actions"><button type="button" data-save="'+id+'" data-game="'+safe(item.gameKey)+'" data-kind="'+kind+'">🔒 Save</button><button type="button" data-share="'+id+'" data-title="'+safe(title)+'">↗ Share</button></div></section>';
@@ -802,10 +803,27 @@ async function showAgentStreaming() {
     }).join("");
     $("agentVaultCards").innerHTML = '<h3>Agent Management Panels</h3>'+panelHtml+'<hr><h3>Agent Livestreaming Accounts</h3>'+liveHtml;
     $("agentVaultStatus").textContent = "Secure owner-only vault connected.";
+    $("agentVaultCards").querySelectorAll("[data-open-chrome]").forEach(b=>b.onclick=()=>openAgentPanelInChrome($(b.dataset.openChrome)?.value||""));
     $("agentVaultCards").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleAgentPassword(b.dataset.toggle,b));
     $("agentVaultCards").querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>saveAgentAccount(b.dataset.save,b.dataset.game,b,b.dataset.kind));
     $("agentVaultCards").querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareAgentAccount(b.dataset.share,b.dataset.title));
   } catch(e) { $("agentVaultStatus").textContent = "Secure vault unavailable: " + e.message; }
+}
+function openAgentPanelInChrome(url) {
+  if(!url) return status("Agent panel URL is missing.");
+  try {
+    const parsed = new URL(url);
+    if(parsed.protocol !== "https:") return status("Only secure HTTPS panel links can be opened.");
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if(isAndroid) {
+      const intent = "intent://" + parsed.host + parsed.pathname + parsed.search + parsed.hash +
+        "#Intent;scheme=https;package=com.android.chrome;end";
+      window.location.href = intent;
+    } else {
+      const opened = window.open(parsed.href, "_blank");
+      if(!opened) status("Chrome could not be opened. Allow pop-ups or copy the panel URL.");
+    }
+  } catch(e) { status("Could not open the agent panel: " + e.message); }
 }
 function toggleAgentPassword(id,b) { const f=$(id); if(!f) return; f.type=f.type==="password"?"text":"password"; b.textContent=f.type==="password"?"Show":"Hide"; }
 async function saveAgentAccount(id,game,b,kind) {
