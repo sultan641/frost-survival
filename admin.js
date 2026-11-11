@@ -1039,7 +1039,24 @@ async function showDeveloperAI() {
     <div class="frost-ai-layout">
       <aside class="frost-ai-history"><button onclick="newDeveloperAIChat()">＋ New chat</button><strong>Chat history</strong><div id="developerAIHistory"></div></aside>
       <section class="frost-ai-main">
-        <div class="frost-ai-toolbar"><strong>Frost Developer AI</strong><span><button class="secondary" onclick="renameDeveloperAIChat()">✎ Rename</button> <button class="secondary" onclick="exportDeveloperAIChat()">⬇ Save chat</button> <button class="secondary" onclick="deleteDeveloperAIChat()">🗑 Delete</button></span></div>
+        <div class="frost-ai-toolbar"><strong>Frost Developer AI</strong><span><button class="secondary" type="button" onclick="toggleDeveloperThumbnailStudio()">🎨 Thumbnail Studio</button> <button class="secondary" onclick="renameDeveloperAIChat()">✎ Rename</button> <button class="secondary" onclick="exportDeveloperAIChat()">⬇ Save chat</button> <button class="secondary" onclick="deleteDeveloperAIChat()">🗑 Delete</button></span></div>
+        <section id="developerThumbnailStudio" class="admin-section" hidden style="margin:12px 0;border-color:#347bd2;background:linear-gradient(145deg,#10213a,#0b1729)">
+          <h3>🎨 Private AI Thumbnail Studio</h3>
+          <p class="hint">Owner-only image creation for Frost Survival. Creates YouTube-ready 16:9 gaming thumbnails.</p>
+          <label for="devThumbGame">Game</label>
+          <select class="input" id="devThumbGame"><option>Whiteout Survival V4</option><option>Whiteout Survival V5 China</option><option>Whiteout Survival V5 Europe</option><option>KingShot V4</option><option>Universal 4X</option></select>
+          <label for="devThumbTitle">Thumbnail headline</label>
+          <input class="input" id="devThumbTitle" maxlength="90" placeholder="e.g. 140K FREE FROST STARS">
+          <label for="devThumbPrompt">Describe the thumbnail</label>
+          <textarea class="input" id="devThumbPrompt" rows="3" maxlength="1800" placeholder="Describe character, rewards, background, colours, lighting and composition…"></textarea>
+          <label for="devThumbStyle">Design style</label>
+          <select class="input" id="devThumbStyle"><option value="cinematic">Cinematic 3D gaming poster</option><option value="frost">Frost Survival blue neon style</option><option value="rewards">Bright rewards / giveaway thumbnail</option><option value="arena">Competitive arena / ranking poster</option><option value="minimal">Clean professional gaming design</option><option value="custom">Follow my description</option></select>
+          <label for="devThumbReference">Optional reference image</label>
+          <input class="input" id="devThumbReference" type="file" accept="image/png,image/jpeg,image/webp">
+          <div class="actions"><button id="devThumbGenerate" type="button" onclick="generateDeveloperThumbnail()">✨ Generate Thumbnail</button></div>
+          <p id="devThumbStatus" class="hint" aria-live="polite"></p>
+          <div id="devThumbResult"></div>
+        </section>
         <div id="developerAIChat" class="frost-ai-chat" role="log" aria-live="polite"></div>
         <div id="developerAIDrafts"></div>
         <div id="developerAIPreview" class="frost-ai-attachments"></div>
@@ -1054,8 +1071,39 @@ async function showDeveloperAI() {
     </div>`;
   $("developerAIForm").onsubmit=sendDeveloperAI;
   $("developerAIFile").onchange=addDeveloperAIImages;
+  $("devThumbReference").onchange=async e=>{
+    const file=e.target.files?.[0];developerThumbnailReference=null;
+    if(!file)return;
+    if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>5000000){e.target.value="";status("Reference image must be PNG, JPG or WebP under 5 MB.");return;}
+    const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(",")[1]);r.onerror=reject;r.readAsDataURL(file);});
+    developerThumbnailReference={data,mime_type:file.type};
+  };
   $("developerAIInput").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("developerAIForm").requestSubmit();}};
   renderDeveloperAI();
+}
+let developerThumbnailReference=null;
+function toggleDeveloperThumbnailStudio(){
+  const panel=$("developerThumbnailStudio");
+  if(!panel)return;
+  panel.hidden=!panel.hidden;
+  if(!panel.hidden)panel.scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function generateDeveloperThumbnail(){
+  const button=$("devThumbGenerate"),statusBox=$("devThumbStatus"),resultBox=$("devThumbResult");
+  const title=$("devThumbTitle").value.trim(),description=$("devThumbPrompt").value.trim();
+  if(!title&&!description){statusBox.textContent="Add a headline or describe the thumbnail first.";return;}
+  button.disabled=true;statusBox.textContent="Generating your private thumbnail… This may take a little time.";resultBox.innerHTML="";
+  try{
+    const data=await callDeveloperAI("generate_thumbnail",{
+      game:$("devThumbGame").value,title,description,style:$("devThumbStyle").value,
+      reference:developerThumbnailReference
+    });
+    if(!data.image)throw new Error("The image model returned no image. Please try again.");
+    const src="data:"+(data.mime_type||"image/png")+";base64,"+data.image;
+    resultBox.innerHTML='<div class="admin-section"><img src="'+src+'" alt="Generated Frost Survival thumbnail" style="display:block;width:100%;max-width:760px;height:auto;border-radius:12px"><div class="actions"><a class="btn" download="frost-survival-thumbnail.png" href="'+src+'" style="display:inline-block;text-decoration:none;padding:10px 14px">⬇ Download PNG</a></div></div>';
+    statusBox.textContent="Thumbnail generated. Download it to your device.";
+  }catch(e){statusBox.textContent="Generation failed: "+e.message;}
+  finally{button.disabled=false;}
 }
 function renderDeveloperAI() {
   const history=$("developerAIHistory");
