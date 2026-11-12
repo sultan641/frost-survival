@@ -1261,13 +1261,50 @@ function showYoutubeLinkFixer() {
     <p>Scan every uploaded video, inspect its complete description and links, replace only selected links, or edit a complete description.</p>
     <div class="admin-section">
       <div class="actions">
-        <a class="btn" href="youtube-studio.html">Open YouTube Studio / Reconnect</a>
+        <a class="btn" id="youtubeConnectAction" href="youtube-studio.html" hidden>Connect YouTube</a>
         <button id="youtubeScanBtn" onclick="scanYoutubeOldLinks()">Load All Channel Videos</button>
       </div>
-      <p class="hint">Videos are loaded from your connected channel. Changes are saved directly to YouTube. Link-only changes preserve all other description text.</p>
+      <p class="hint" id="youtubeConnectionHint">Checking YouTube connection…</p>
     </div>
     <div id="youtubeLinkResults"></div>
   `;
+  refreshYoutubeManagerConnection();
+}
+async function refreshYoutubeManagerConnection() {
+  const action = $("youtubeConnectAction");
+  const hint = $("youtubeConnectionHint");
+  if (!action || !hint) return;
+  action.hidden = true;
+  try {
+    const { data: sessionData } = await db.auth.getSession();
+    const session = sessionData?.session;
+    if (!session || session.user.id !== ADMIN_UID) {
+      hint.textContent = "Admin session unavailable. Sign in again to manage YouTube videos.";
+      action.hidden = false;
+      return;
+    }
+    const response = await fetch(SUPABASE_URL + "/functions/v1/youtube-oauth-status", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + session.access_token,
+        apikey: SUPABASE_KEY,
+        "Content-Type": "application/json"
+      },
+      body: "{}"
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Connection status check failed");
+    if (data.connected) {
+      action.hidden = true;
+      hint.textContent = "YouTube is connected. Videos are loaded from your connected channel.";
+    } else {
+      action.hidden = false;
+      hint.textContent = "YouTube is disconnected. Connect YouTube to load and manage channel videos.";
+    }
+  } catch (error) {
+    action.hidden = false;
+    hint.textContent = "Could not verify YouTube connection. Reconnect YouTube if video loading fails.";
+  }
 }
 window.addEventListener("popstate", () => {
   if (window.__frostYoutubeFixerHistory) showDashboard();
