@@ -10,13 +10,19 @@
   button.textContent = "← Back";
   button.setAttribute("aria-label","Go to previous page");
   button.addEventListener("click", () => {
+    // Prefer the real browser history. The admin's dynamic tool pages add
+    // their own history entries, so Back returns to the exact prior view.
     let previous = "";
     try { previous = document.referrer ? new URL(document.referrer).href : ""; } catch (_) {}
-    if (previous && new URL(previous).origin === location.origin && previous !== location.href) {
+    if (history.length > 1 && previous && new URL(previous).origin === location.origin) {
       history.back();
       return;
     }
     const path = location.pathname.toLowerCase();
+    if (/youtube-links/.test(location.hash) && typeof showDashboard === "function") {
+      history.back();
+      return;
+    }
     location.href = /discord-control|youtube-studio|growth-center|admin/.test(path) ? "admin.html" : "index.html";
   });
   document.body.appendChild(button);
