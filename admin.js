@@ -1198,7 +1198,7 @@ function showYoutubeLinkFixer() {
     <h2>🔗 YouTube Description Link Fixer</h2>
     <p>Find the expired Frost Survival Discord invite in all videos on your connected channel. Only the old invite is replaced; other description text remains unchanged.</p>
     <div class="admin-section">
-      <p><strong>Old:</strong> <code>discord.gg/NVf6zsb35</code></p>
+      <p><strong>Old links:</strong> <code>discord.gg/NVf6zsb35</code> and <code>discord.gg/PCp8nytZF</code></p>
       <p><strong>New:</strong> <code>discord.gg/G8gQKnkUg4</code></p>
       <p class="hint">First reconnect YouTube in YouTube Studio to grant the additional video-edit permission.</p>
       <div class="actions">
