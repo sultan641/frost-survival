@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Frost Survival Admin</title>
   <link rel="stylesheet" href="style.css?v=20261101-audit1">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0/dist/umd/supabase.min.js';this.onerror=function(){window.frostSupabaseLoadFailed=true;var s=document.getElementById('adminStatus');if(s)s.textContent='Supabase login library failed to load from both CDNs. Switch network or browser and reload.';};"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0';this.onerror=function(){window.frostSupabaseLoadFailed=true;var s=document.getElementById('adminStatus');if(s)s.textContent='Supabase login library failed to load from both CDNs. Switch network or browser and reload.';};"></script>
   <script>window.frostAdminJsReady=false;window.frostAdminSubmitGuard=function(e){if(!window.frostAdminJsReady){e.preventDefault();var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin login script did not start. Reload the page; if it repeats, switch network or browser.';}return false;}return true;};</script>
 </head>
 <body>
@@ -60,7 +60,7 @@
     <div class="wrap"><a href="index.html">Back to site</a></div>
   </footer>
 
-  <script src="admin.js?v=20261112-admin-auth-diagnostic1" onerror="var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin JavaScript file failed to load. Refresh the page and try again.';}"></script><script src="analytics.js?v=7"></script>
+  <script src="admin.js?v=20261112-admin-auth-diagnostic2" onerror="var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin JavaScript file failed to load. Refresh the page and try again.';}"></script><script src="analytics.js?v=7"></script>
 <script src="back-navigation.js?v=1"></script>
 </body>
 </html>
