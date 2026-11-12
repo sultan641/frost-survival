@@ -1677,13 +1677,13 @@ async function processYoutubeGenericJob(key){
     const remaining=job.total-job.processed,percent=job.total?Math.round(job.processed/job.total*100):100;
     if(!area)return;
     area.style.display="block";
-    area.innerHTML='<h4>'+safe(job.label)+' progress</h4><p><strong>Completed:</strong> '+job.succeeded.length+' · <strong>Failed:</strong> '+job.failed.length+' · <strong>Remaining:</strong> '+remaining+' of '+job.total+'</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+percent+'%;background:#1685ff"></div></div><p>'+percent+'% complete · Batch '+Math.min(Math.ceil(job.processed/50),Math.ceil(job.total/50))+' of '+Math.ceil(job.total/50)+(job.processing?' · Working automatically…':'')+'</p>'+(remaining?(job.processing?'<p>Keep this page open while batches run.</p>':'<button type="button" onclick="processYoutubeGenericJob(\''+key+'\')">Resume next '+Math.min(50,remaining)+' videos</button>'):'<p><strong>All selected videos processed.</strong></p>')+(job.failed.length?'<details open><summary>Failed items ('+job.failed.length+')</summary>'+job.failed.map(v=>'<p>'+safe(v.title||v.id)+' — '+safe(v.error)+'</p>').join('')+'</details>':'');
+    area.innerHTML='<h4>'+safe(job.label)+' progress</h4><p><strong>Completed:</strong> '+job.succeeded.length+' · <strong>Failed:</strong> '+job.failed.length+' · <strong>Remaining:</strong> '+remaining+' of '+job.total+'</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+percent+'%;background:#1685ff"></div></div><p>'+percent+'% complete · Batch '+Math.min(Math.ceil(job.processed/10),Math.ceil(job.total/10))+' of '+Math.ceil(job.total/10)+(job.processing?' · Working automatically…':'')+'</p>'+(remaining?(job.processing?'<p>Keep this page open while batches run.</p>':'<button type="button" onclick="processYoutubeGenericJob(\''+key+'\')">Resume next '+Math.min(10,remaining)+' videos</button>'):'<p><strong>All selected videos processed.</strong></p>')+(job.failed.length?'<details open><summary>Failed items ('+job.failed.length+')</summary>'+job.failed.map(v=>'<p>'+safe(v.title||v.id)+' — '+safe(v.error)+'</p>').join('')+'</details>':'');
   };
   try{
     while(job.processed<job.total){
-      const batch=job.items.slice(job.processed,job.processed+50);
+      const batch=job.items.slice(job.processed,job.processed+10);
       render();
-      status(job.label+': processing batch '+(Math.floor(job.processed/50)+1)+' of '+Math.ceil(job.total/50)+'…');
+      status(job.label+': processing batch '+(Math.floor(job.processed/10)+1)+' of '+Math.ceil(job.total/10)+'…');
       try{
         const result=await job.runBatch(batch);
         job.succeeded.push(...(result.succeeded||[]));
