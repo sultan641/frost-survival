@@ -1256,38 +1256,31 @@ function showYoutubeLinkFixer() {
   }
   $("adminContent").innerHTML = `
     <button class="secondary" onclick="showDashboard()">← Admin Dashboard</button>
-    <h2>🔗 YouTube Description Link Fixer</h2>
-    <p>Find the expired Frost Survival Discord invite in all videos on your connected channel. Only the old invite is replaced; other description text remains unchanged.</p>
+    <h2>🔗 YouTube Video & Description Manager</h2>
+    <p>Scan every uploaded video, inspect its complete description and links, replace only selected links, or edit a complete description.</p>
     <div class="admin-section">
-      <p><strong>Old links:</strong> <code>discord.gg/NVf6zsb35</code> and <code>discord.gg/PCp8nytZF</code></p>
-      <p><strong>New:</strong> <code>discord.gg/G8gQKnkUg4</code></p>
-      <p class="hint">First reconnect YouTube in YouTube Studio to grant the additional video-edit permission.</p>
       <div class="actions">
         <a class="btn" href="youtube-studio.html">Open YouTube Studio / Reconnect</a>
-        <button id="youtubeScanBtn" onclick="scanYoutubeOldLinks()">Scan All Videos</button>
+        <button id="youtubeScanBtn" onclick="scanYoutubeOldLinks()">Load All Channel Videos</button>
       </div>
+      <p class="hint">Videos are loaded from your connected channel. Changes are saved directly to YouTube. Link-only changes preserve all other description text.</p>
     </div>
     <div id="youtubeLinkResults"></div>
   `;
 }
-// The browser Back button returns from this in-panel tool to the Admin Dashboard.
 window.addEventListener("popstate", () => {
   if (window.__frostYoutubeFixerHistory) showDashboard();
 });
-
-async function youtubeLinkRequest(action, videoIds = []) {
+async function youtubeLinkRequest(action, payload = {}) {
   const { data: sessionData } = await db.auth.getSession();
   const access = sessionData?.session?.access_token;
   if (!access) throw new Error("Please sign in again.");
   const { data, error } = await db.functions.invoke("youtube-link-replacer", {
-    body: { action, videoIds },
-    headers: { Authorization: "Bearer " + access }
+    body: { action, ...payload }, headers: { Authorization: "Bearer " + access }
   });
   if (error) {
-    const detail = error.context?.status
-      ? " (HTTP " + error.context.status + ")"
-      : "";
-    throw new Error(error.message + detail + ". Check Edge Function CORS/network and deployment.");
+    const detail = error.context?.status ? " (HTTP " + error.context.status + ")" : "";
+    throw new Error(error.message + detail + ". Check the Edge Function response and network.");
   }
   if (data?.error) throw new Error(data.error);
   return data;
@@ -1295,44 +1288,101 @@ async function youtubeLinkRequest(action, videoIds = []) {
 async function scanYoutubeOldLinks() {
   const btn = $("youtubeScanBtn"), area = $("youtubeLinkResults");
   if (btn) btn.disabled = true;
-  area.textContent = "Scanning your channel videos…";
+  area.textContent = "Loading all channel videos and descriptions…";
   try {
     youtubeLinkScan = await youtubeLinkRequest("scan");
     renderYoutubeLinkMatches();
   } catch (e) {
-    area.innerHTML = '<div class="admin-record"><strong>Scan failed</strong><p>' + safe(e.message) + '</p><p>Open YouTube Studio, reconnect the channel, approve the requested permissions, then scan again.</p></div>';
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+    area.innerHTML = '<div class="admin-record"><strong>Could not load videos</strong><p>' + safe(e.message) + '</p></div>';
+  } finally { if (btn) btn.disabled = false; }
 }
 function renderYoutubeLinkMatches() {
   const area = $("youtubeLinkResults"), scan = youtubeLinkScan;
   if (!area || !scan) return;
-  if (!scan.matches?.length) {
-    area.innerHTML = '<div class="admin-record"><h3>Scan complete</h3><p>Checked ' + Number(scan.totalVideos || 0) + ' videos. No old invite links were found.</p></div>';
-    return;
-  }
-  area.innerHTML = '<div class="admin-section"><h3>Scan results</h3><p>Checked ' + Number(scan.totalVideos) + ' videos · Found ' + Number(scan.matchedVideos) + ' videos · ' + Number(scan.totalOccurrences) + ' old-link occurrences.</p><p>Select the videos you want to update. Maximum 100 per batch.</p><div class="actions"><button onclick="selectAllYoutubeMatches(true)">Select all</button><button class="secondary" onclick="selectAllYoutubeMatches(false)">Select none</button><button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace selected links</button></div><div id="youtubeMatchList">' +
-    scan.matches.map(v => '<label class="admin-record" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" class="youtube-link-choice" value="' + safe(v.id) + '" checked style="width:auto;margin:4px 0"><span><strong>' + safe(v.title) + '</strong><br><a href="' + safe(v.url) + '" target="_blank" rel="noopener">Open video</a><br><small>' + Number(v.occurrences) + ' old-link occurrence(s)</small></span></label>').join("") +
-    '</div><p class="hint">The tool changes descriptions only. It does not edit video titles, thumbnails, visibility, comments, or captions.</p></div>';
+  const videos = scan.videos || [];
+  area.innerHTML = `
+    <div class="admin-section">
+      <h3>Channel videos</h3>
+      <p>Loaded ${Number(scan.totalVideos || videos.length)} videos · ${Number(scan.matchedVideos || 0)} contain the previously configured old invite links.</p>
+      <div class="actions">
+        <button onclick="selectAllYoutubeMatches(true)">Select all</button>
+        <button class="secondary" onclick="selectAllYoutubeMatches(false)">Select none</button>
+      </div>
+      <h3>Replace a link only</h3>
+      <p class="hint">Enter the exact old link and new link. Only that text is replaced; the rest of every selected description stays untouched.</p>
+      <label>Old link</label><input id="youtubeOldLink" value="discord.gg/NVf6zsb35" placeholder="Old Discord invite or URL">
+      <label>New link</label><input id="youtubeNewLink" value="discord.gg/G8gQKnkUg4" placeholder="New Discord invite or URL">
+      <button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace link in selected videos</button>
+      <hr>
+      <h3>Replace complete descriptions (optional)</h3>
+      <p class="hint">This replaces the entire description of every selected video with the text below. Use this only when you really want the same full description on all selected videos.</p>
+      <textarea id="youtubeBulkDescription" rows="7" placeholder="Enter the complete new description for all selected videos"></textarea>
+      <button class="danger" id="youtubeBulkDescriptionBtn" onclick="applyYoutubeBulkDescription()">Replace full descriptions of selected videos</button>
+    </div>
+    <div id="youtubeMatchList">
+      ${videos.map(v => `
+        <div class="admin-record">
+          <label style="display:flex;gap:9px;align-items:center">
+            <input type="checkbox" class="youtube-link-choice" value="${safe(v.id)}" style="width:auto">
+            <strong>${safe(v.title)}</strong>
+          </label>
+          <p><a href="${safe(v.url)}" target="_blank" rel="noopener">Open video on YouTube</a> · ${Number(v.occurrences || 0)} old invite occurrences</p>
+          <p><strong>Links found:</strong> ${v.links?.length ? v.links.map(link => '<code>' + safe(link) + '</code>').join(' · ') : 'No links detected'}</p>
+          <details>
+            <summary>View / edit complete description</summary>
+            <textarea id="youtube-description-${safe(v.id)}" rows="9" style="width:100%;box-sizing:border-box">${safe(v.description)}</textarea>
+            <button onclick="saveYoutubeVideoDescription('${safe(v.id)}')">Save this video's full description</button>
+          </details>
+        </div>
+      `).join("")}
+    </div>
+    <p class="hint">Maximum 100 videos per update. YouTube's API may reject some edits if the channel permissions or quota do not allow them.</p>
+  `;
 }
 function selectAllYoutubeMatches(checked) {
   document.querySelectorAll(".youtube-link-choice").forEach(el => { el.checked = checked; });
 }
+function selectedYoutubeIds() {
+  return Array.from(document.querySelectorAll(".youtube-link-choice:checked")).map(el => el.value);
+}
 async function applyYoutubeLinkFix() {
-  const ids = Array.from(document.querySelectorAll(".youtube-link-choice:checked")).map(el => el.value);
+  const ids = selectedYoutubeIds();
+  const oldLink = $("youtubeOldLink")?.value.trim(), newLink = $("youtubeNewLink")?.value.trim();
   if (!ids.length) return status("Select at least one video.");
   if (ids.length > 100) return status("Select no more than 100 videos per batch.");
-  if (!confirm("Replace the old Discord invite in " + ids.length + " selected YouTube descriptions? This will save changes to YouTube.")) return;
-  const btn = $("youtubeApplyBtn");
-  if (btn) btn.disabled = true;
-  status("Updating selected YouTube descriptions…");
+  if (!oldLink || !newLink) return status("Enter both the old and new links.");
+  if (oldLink === newLink) return status("The old and new links are identical.");
+  if (!confirm("Replace only this link in " + ids.length + " selected descriptions? All other description text will remain unchanged.")) return;
+  const btn = $("youtubeApplyBtn"); if (btn) btn.disabled = true;
+  status("Replacing selected links…");
   try {
-    const result = await youtubeLinkRequest("apply", ids);
-    status("Successfully updated " + result.updated + " video descriptions.");
+    const result = await youtubeLinkRequest("apply-links", { videoIds: ids, replacements: [{ oldLink, newLink }] });
+    status("Updated links in " + result.updated + " videos.");
     await scanYoutubeOldLinks();
-  } catch (e) {
-    status("Update failed: " + e.message);
-    if (btn) btn.disabled = false;
-  }
+  } catch (e) { status("Link replacement failed: " + e.message); if (btn) btn.disabled = false; }
+}
+async function saveYoutubeVideoDescription(videoId) {
+  const field = $("youtube-description-" + videoId);
+  if (!field) return;
+  if (!confirm("Replace the entire description for this video?")) return;
+  status("Saving complete video description…");
+  try {
+    const result = await youtubeLinkRequest("update-description", { videoId, description: field.value });
+    status("Full description saved for " + result.updated + " video.");
+    await scanYoutubeOldLinks();
+  } catch (e) { status("Description update failed: " + e.message); }
+}
+async function applyYoutubeBulkDescription() {
+  const ids = selectedYoutubeIds(), description = $("youtubeBulkDescription")?.value;
+  if (!ids.length) return status("Select at least one video.");
+  if (ids.length > 100) return status("Select no more than 100 videos per batch.");
+  if (!description?.trim()) return status("Enter the complete description first.");
+  if (!confirm("WARNING: This will replace the ENTIRE description on " + ids.length + " selected videos with the same text. Continue?")) return;
+  const btn = $("youtubeBulkDescriptionBtn"); if (btn) btn.disabled = true;
+  status("Replacing complete descriptions…");
+  try {
+    const result = await youtubeLinkRequest("bulk-description", { videoIds: ids, description });
+    status("Replaced complete descriptions on " + result.updated + " videos.");
+    await scanYoutubeOldLinks();
+  } catch (e) { status("Bulk description update failed: " + e.message); if (btn) btn.disabled = false; }
 }
