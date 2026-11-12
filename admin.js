@@ -81,8 +81,12 @@ $("loginForm").addEventListener("submit", async event => {
   const password = $("password").value;
   if (button) button.disabled = true;
   status("Signing in...");
+  const slowLoginNotice = window.setTimeout(() => {
+    status("Sign-in is still waiting for the browser auth client. Do not submit repeatedly; check your connection or try the page in Chrome.");
+  }, 10000);
   if (!db) {
     status("Sign-in is unavailable because the Supabase library failed to load. Reload the page or switch networks.");
+    window.clearTimeout(slowLoginNotice);
     if (button) button.disabled = false;
     return;
   }
@@ -112,6 +116,7 @@ $("loginForm").addEventListener("submit", async event => {
     console.error("Admin sign-in error:", error);
     status("Login error: " + (error?.message || String(error)));
   } finally {
+    window.clearTimeout(slowLoginNotice);
     if (button) button.disabled = false;
   }
 });
@@ -876,10 +881,13 @@ async function shareAgentAccount(id,game) {
 // AUTH SESSION
 // Avoid calling Supabase auth methods from inside onAuthStateChange.
 // Login submits directly to Supabase, then refreshes the dashboard.
+const authBootTimer = window.setTimeout(() => {
+  status("Admin auth is taking too long to initialize. Check your connection, then submit once; an error will be shown if the request fails.");
+}, 10000);
 refreshAuth().catch(error => {
   console.error("Initial authentication check failed:", error);
   status("Could not check login status: " + (error.message || error));
-});
+}).finally(() => window.clearTimeout(authBootTimer));
 
 
 async function callDeveloper(action, payload = {}) {
