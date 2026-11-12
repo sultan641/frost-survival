@@ -6,10 +6,10 @@ const SUPABASE_KEY = "sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
 const ADMIN_UID = "9cd04a06-6937-474a-9b13-ea39b2c3bd35";
 
 const supabaseReady = !!(window.supabase && typeof window.supabase.createClient === "function");
-// Admin sessions stay in memory only: every fresh page load requires a new sign-in.
+// Persist the admin session securely in this browser so refreshes do not force another login.
 const db = supabaseReady ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    persistSession: false,
+    persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false,
     storageKey: "frost-admin-console-auth"
