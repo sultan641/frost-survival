@@ -1413,7 +1413,7 @@ function renderYoutubeLinkMatches() {
     </div>
     ${videos.length > youtubeVisibleVideoCount ? '<button type="button" class="secondary" onclick="showMoreYoutubeVideos()">Show 10 more videos (' + (videos.length - youtubeVisibleVideoCount) + ' remaining)</button>' : ''}
     <p class="hint">Showing ${Math.min(videos.length, youtubeVisibleVideoCount)} of ${videos.length} videos. Select all includes hidden videos.</p>
-      <p class="hint">Maximum 50 videos per update. YouTube's API may reject some edits if the channel permissions or quota do not allow them.</p>
+      <p class="hint">Bulk actions run in batches of 50. Use the progress controls under each action to continue and review failed items.</p>
   `;
 }
 function selectAllYoutubeMatches(checked) {
