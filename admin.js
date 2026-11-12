@@ -1261,7 +1261,7 @@ function showYoutubeLinkFixer() {
     <p>Scan every uploaded video, inspect its complete description and links, replace only selected links, or edit a complete description.</p>
     <div class="admin-section">
       <div class="actions">
-        <a class="btn" id="youtubeConnectAction" href="youtube-studio.html" hidden>Connect YouTube</a>
+        <a class="btn" id="youtubeConnectAction" href="youtube-studio.html" style="display:none">Connect YouTube</a>
         <button id="youtubeScanBtn" onclick="scanYoutubeOldLinks()">Load All Channel Videos</button>
       </div>
       <p class="hint" id="youtubeConnectionHint">Checking YouTube connection…</p>
@@ -1274,13 +1274,13 @@ async function refreshYoutubeManagerConnection() {
   const action = $("youtubeConnectAction");
   const hint = $("youtubeConnectionHint");
   if (!action || !hint) return;
-  action.hidden = true;
+  action.style.display = "none";
   try {
     const { data: sessionData } = await db.auth.getSession();
     const session = sessionData?.session;
     if (!session || session.user.id !== ADMIN_UID) {
       hint.textContent = "Admin session unavailable. Sign in again to manage YouTube videos.";
-      action.hidden = false;
+      action.style.display = "inline-block";
       return;
     }
     const response = await fetch(SUPABASE_URL + "/functions/v1/youtube-oauth-status", {
@@ -1295,10 +1295,10 @@ async function refreshYoutubeManagerConnection() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Connection status check failed");
     if (data.connected) {
-      action.hidden = true;
+      action.style.display = "none";
       hint.textContent = "YouTube is connected. Videos are loaded from your connected channel.";
     } else {
-      action.hidden = false;
+      action.style.display = "inline-block";
       hint.textContent = "YouTube is disconnected. Connect YouTube to load and manage channel videos.";
     }
   } catch (error) {
