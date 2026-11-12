@@ -6,7 +6,15 @@ const SUPABASE_KEY = "sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
 const ADMIN_UID = "9cd04a06-6937-474a-9b13-ea39b2c3bd35";
 
 const supabaseReady = !!(window.supabase && typeof window.supabase.createClient === "function");
-const db = supabaseReady ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+// Admin sessions stay in memory only: every fresh page load requires a new sign-in.
+const db = supabaseReady ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+    storageKey: "frost-admin-console-auth"
+  }
+}) : null;
 
 const games = [
   "Whiteout Survival V4",
@@ -60,7 +68,17 @@ async function refreshAuth() {
     return;
   }
 
-  if (session.user.id !== ADMIN_UID) {
+  // Verify the token with Supabase Auth instead of trusting locally decoded session data.
+  const { data: verified, error: verifyError } = await db.auth.getUser(session.access_token);
+  if (verifyError || !verified?.user) {
+    await db.auth.signOut();
+    $("loginBox").hidden = false;
+    $("adminBox").hidden = true;
+    status("Your session could not be verified. Please sign in again.");
+    return;
+  }
+
+  if (verified.user.id !== ADMIN_UID) {
     $("loginBox").hidden = false;
     $("adminBox").hidden = true;
     status("Access denied. Signed-in account is not the configured administrator.");
