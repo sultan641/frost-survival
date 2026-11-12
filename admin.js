@@ -1248,6 +1248,7 @@ function discardDeveloperAnnouncement(index) {
 }
 
 let youtubeLinkScan = null;
+let youtubeRetryJob = null;
 function showYoutubeLinkFixer() {
   youtubeLinkScan = null;
   if (!window.__frostYoutubeFixerHistory) {
@@ -1340,6 +1341,12 @@ function renderYoutubeLinkMatches() {
       <p class="hint">This replaces the entire description of every selected video with the text below. Use this only when you really want the same full description on all selected videos.</p>
       <textarea id="youtubeBulkDescription" rows="7" placeholder="Enter the complete new description for all selected videos"></textarea>
       <button class="danger" id="youtubeBulkDescriptionBtn" onclick="applyYoutubeBulkDescription()">Replace full descriptions of selected videos</button>
+      <hr>
+      <h3>Post a comment on selected videos</h3>
+      <p class="hint">This posts the same public YouTube comment under each selected video. Comments may be disabled or held for review by YouTube.</p>
+      <textarea id="youtubeBulkComment" rows="3" placeholder="Write the comment to post on selected videos"></textarea>
+      <button id="youtubePostCommentBtn" onclick="postYoutubeComments()">Post comment on selected videos</button>
+      <div id="youtubeBatchResults" class="admin-section" aria-live="polite"></div>
     </div>
     <div id="youtubeMatchList">
       ${videos.map(v => `
@@ -1367,21 +1374,67 @@ function selectAllYoutubeMatches(checked) {
 function selectedYoutubeIds() {
   return Array.from(document.querySelectorAll(".youtube-link-choice:checked")).map(el => el.value);
 }
+function renderYoutubeBatchResults(result, operation) {
+  const area = $("youtubeBatchResults");
+  if (!area) return;
+  const done = result.succeeded || [];
+  const failed = result.failed || [];
+  area.innerHTML = `
+    <h3>${operation} — results</h3>
+    <p><strong>Done:</strong> ${done.length} · <strong>Not done:</strong> ${failed.length} · <strong>Attempted:</strong> ${result.attempted || done.length + failed.length}</p>
+    <div class="admin-record"><h4>Completed successfully (${done.length})</h4>
+      ${done.length ? done.map(v => '<p>✓ ' + safe(v.title) + ' — <a href="https://www.youtube.com/watch?v=' + safe(v.id) + '" target="_blank" rel="noopener">Open video</a></p>').join("") : '<p>None yet.</p>'}
+    </div>
+    <div class="admin-record"><h4>Not completed (${failed.length})</h4>
+      ${failed.length ? failed.map(v => '<p>✕ ' + safe(v.title) + ' — ' + safe(v.error) + '</p>').join("") : '<p>All selected videos completed.</p>'}
+    </div>
+    ${failed.length ? '<button onclick="retryFailedYoutubeBatch()">Retry failed videos (' + failed.length + ')</button>' : ''}
+  `;
+}
+async function runYoutubeBatch(action, payload, label) {
+  const result = await youtubeLinkRequest(action, payload);
+  youtubeRetryJob = result.failed?.length ? { action, payload: { ...payload, videoIds: result.failed.map(v => v.id) }, label } : null;
+  renderYoutubeBatchResults(result, label);
+  await scanYoutubeOldLinks();
+  renderYoutubeBatchResults(result, label);
+  return result;
+}
+async function retryFailedYoutubeBatch() {
+  if (!youtubeRetryJob) return;
+  const job = youtubeRetryJob;
+  const area = $("youtubeBatchResults");
+  if (area) area.textContent = "Retrying videos that were not completed…";
+  try { await runYoutubeBatch(job.action, job.payload, job.label + " — retry"); }
+  catch (e) { if (area) area.textContent = "Retry failed: " + e.message; }
+}
 async function applyYoutubeLinkFix() {
   const ids = selectedYoutubeIds();
   const oldLink = $("youtubeOldLink")?.value.trim(), newLink = $("youtubeNewLink")?.value.trim();
   if (!ids.length) return status("Select at least one video.");
-  if (ids.length > 100) return status("Select no more than 50 videos per batch.");
+  if (ids.length > 50) return status("Select no more than 50 videos per batch.");
   if (!oldLink || !newLink) return status("Enter both the old and new links.");
   if (oldLink === newLink) return status("The old and new links are identical.");
   if (!confirm("Replace only this link in " + ids.length + " selected descriptions? All other description text will remain unchanged.")) return;
   const btn = $("youtubeApplyBtn"); if (btn) btn.disabled = true;
   status("Replacing selected links…");
   try {
-    const result = await youtubeLinkRequest("apply-links", { videoIds: ids, replacements: [{ oldLink, newLink }] });
-    status("Updated links in " + result.updated + " videos.");
-    await scanYoutubeOldLinks();
-  } catch (e) { status("Link replacement failed: " + e.message); if (btn) btn.disabled = false; }
+    const result = await runYoutubeBatch("apply-links", { videoIds: ids, replacements: [{ oldLink, newLink }] }, "Link replacement");
+    status("Link update finished: " + result.succeeded.length + " done, " + result.failed.length + " not done.");
+  } catch (e) { status("Link replacement failed: " + e.message); }
+  finally { if (btn) btn.disabled = false; }
+}
+async function postYoutubeComments() {
+  const ids = selectedYoutubeIds(), comment = $("youtubeBulkComment")?.value.trim();
+  if (!ids.length) return status("Select at least one video.");
+  if (ids.length > 50) return status("Select no more than 50 videos per batch.");
+  if (!comment) return status("Write a comment first.");
+  if (!confirm("Post this public comment under " + ids.length + " selected videos?")) return;
+  const btn = $("youtubePostCommentBtn"); if (btn) btn.disabled = true;
+  try {
+    const result = await runYoutubeBatch("post-comment", { videoIds: ids, comment }, "YouTube comment");
+    status("Comment posting finished: " + result.succeeded.length + " posted, " + result.failed.length + " not posted.");
+  } catch (e) { status("Comment posting failed: " + e.message); }
+  finally { if (btn) btn.disabled = false; }
 }
 async function saveYoutubeVideoDescription(videoId) {
   const field = $("youtube-description-" + videoId);
@@ -1389,9 +1442,8 @@ async function saveYoutubeVideoDescription(videoId) {
   if (!confirm("Replace the entire description for this video?")) return;
   status("Saving complete video description…");
   try {
-    const result = await youtubeLinkRequest("update-description", { videoId, description: field.value });
-    status("Full description saved for " + result.updated + " video.");
-    await scanYoutubeOldLinks();
+    const result = await runYoutubeBatch("update-description", { videoId, description: field.value }, "Full description update");
+    status("Description update finished: " + result.succeeded.length + " done, " + result.failed.length + " not done.");
   } catch (e) { status("Description update failed: " + e.message); }
 }
 async function applyYoutubeBulkDescription() {
@@ -1403,8 +1455,7 @@ async function applyYoutubeBulkDescription() {
   const btn = $("youtubeBulkDescriptionBtn"); if (btn) btn.disabled = true;
   status("Replacing complete descriptions…");
   try {
-    const result = await youtubeLinkRequest("bulk-description", { videoIds: ids, description });
-    status("Replaced complete descriptions on " + result.updated + " videos.");
-    await scanYoutubeOldLinks();
+    const result = await runYoutubeBatch("bulk-description", { videoIds: ids, description }, "Bulk description update");
+    status("Description update finished: " + result.succeeded.length + " done, " + result.failed.length + " not done.");
   } catch (e) { status("Bulk description update failed: " + e.message); if (btn) btn.disabled = false; }
 }
