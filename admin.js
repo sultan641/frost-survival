@@ -1227,7 +1227,7 @@ function discardDeveloperAnnouncement(index) {
 let youtubeLinkScan = null;
 function showYoutubeLinkFixer() {
   youtubeLinkScan = null;
-  $("adminContent").innerHTML = \`
+  $("adminContent").innerHTML = `
     <button class="secondary" onclick="showDashboard()">← Admin Dashboard</button>
     <h2>🔗 YouTube Description Link Fixer</h2>
     <p>Find the expired Frost Survival Discord invite in all videos on your connected channel. Only the old invite is replaced; other description text remains unchanged.</p>
@@ -1241,7 +1241,7 @@ function showYoutubeLinkFixer() {
       </div>
     </div>
     <div id="youtubeLinkResults"></div>
-  \`;
+  `;
 }
 async function youtubeLinkRequest(action, videoIds = []) {
   const { data: sessionData } = await db.auth.getSession();
