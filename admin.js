@@ -1288,12 +1288,26 @@ async function youtubeLinkRequest(action, payload = {}) {
 async function scanYoutubeOldLinks() {
   const btn = $("youtubeScanBtn"), area = $("youtubeLinkResults");
   if (btn) btn.disabled = true;
-  area.textContent = "Loading all channel videos and descriptions…";
+  area.textContent = "Starting full channel link audit…";
   try {
-    youtubeLinkScan = await youtubeLinkRequest("scan");
+    const allVideos = [];
+    let pageToken = "";
+    let pageNumber = 0;
+    do {
+      const page = await youtubeLinkRequest("scan", pageToken ? { pageToken } : {});
+      allVideos.push(...(page.videos || []));
+      pageToken = page.nextPageToken || "";
+      pageNumber++;
+      area.textContent = "Scanning all channel videos… " + allVideos.length + " videos checked (" + pageNumber + " batches).";
+    } while (pageToken);
+    const uniqueLinks = Array.from(new Set(allVideos.flatMap(v => v.links || [])));
+    const oldLinks = uniqueLinks.filter(link => !link.includes("discord.gg/G8gQKnkUg4"));
+    const oldOccurrences = allVideos.reduce((n, v) => n + Number(v.occurrences || 0), 0);
+    youtubeLinkScan = { totalVideos: allVideos.length, matchedVideos: allVideos.filter(v => v.occurrences > 0).length,
+      totalOccurrences: oldOccurrences, videos: allVideos, uniqueLinks, oldLinks };
     renderYoutubeLinkMatches();
   } catch (e) {
-    area.innerHTML = '<div class="admin-record"><strong>Could not load videos</strong><p>' + safe(e.message) + '</p></div>';
+    area.innerHTML = '<div class="admin-record"><strong>Could not complete channel scan</strong><p>' + safe(e.message) + '</p><p>Try again. Each batch now scans up to 50 videos to avoid long request timeouts.</p></div>';
   } finally { if (btn) btn.disabled = false; }
 }
 function renderYoutubeLinkMatches() {
@@ -1308,6 +1322,14 @@ function renderYoutubeLinkMatches() {
         <button onclick="selectAllYoutubeMatches(true)">Select all</button>
         <button class="secondary" onclick="selectAllYoutubeMatches(false)">Select none</button>
       </div>
+      <h3>Complete link audit</h3>
+      <p>Found ${scan.uniqueLinks?.length || 0} unique links across all descriptions. Old configured invite occurrences: ${Number(scan.totalOccurrences || 0)}.</p>
+      <label>All links found in your channel</label>
+      <select id="youtubeDetectedLink" onchange="if(this.value)document.getElementById('youtubeOldLink').value=this.value">
+        <option value="">Choose a detected link to inspect or replace</option>
+        ${(scan.uniqueLinks || []).map(link => '<option value="' + safe(link) + '">' + safe(link) + '</option>').join("")}
+      </select>
+      <p class="hint">The video list below shows every detected link beside the video that contains it. After any replacement, the full scan runs again and shows links still present.</p>
       <h3>Replace a link only</h3>
       <p class="hint">Enter the exact old link and new link. Only that text is replaced; the rest of every selected description stays untouched.</p>
       <label>Old link</label><input id="youtubeOldLink" value="discord.gg/NVf6zsb35" placeholder="Old Discord invite or URL">
