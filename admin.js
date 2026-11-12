@@ -1391,8 +1391,38 @@ function renderYoutubeLinkMatches() {
       <hr>
       <h3>Post a comment on selected videos</h3>
       <p class="hint">This posts the same public YouTube comment under each selected video. Comments may be disabled or held for review by YouTube.</p>
-      <textarea id="youtubeBulkComment" rows="3" placeholder="Write the comment to post on selected videos"></textarea>
-      <button id="youtubePostCommentBtn" onclick="postYoutubeComments()">Post comment on selected videos</button><div id="youtubePostCommentProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
+      <textarea id="youtubeBulkComment" rows="12" placeholder="Write the comment to post on selected videos">❄️ FROST SURVIVAL — GAME HUB
+
+⬇️ Main Website & Downloads:
+https://sultan641.github.io/frost-survival/
+
+🚀 Join Our Discord:
+https://discord.gg/G8gQKnkUg4
+
+👤 Discord Username: sultan_gld
+
+🎮 Game Downloads:
+
+🔹 Whiteout Survival V4:
+https://sultan641.github.io/frost-survival/wos-v4.html
+
+🔹 Whiteout Survival V5 China:
+https://sultan641.github.io/frost-survival/v5-china.html
+
+🔹 Whiteout Survival V5 Europe:
+https://sultan641.github.io/frost-survival/v5-europe.html
+
+🔹 KingShot V4:
+https://sultan641.github.io/frost-survival/kingshot-v4.html
+
+🎁 Gift Codes:
+Check the website for the latest gift codes and updates!
+
+Join our Discord for support, news, downloads and community events.
+
+FROST SURVIVAL — Your Ultimate 4X Gaming Hub!</textarea>
+      <button id="youtubePostCommentBtn" onclick="postYoutubeComments()">Post comment on selected videos</button>
+      <button type="button" class="secondary" onclick="postYoutubeCommentsToAll()">Post this comment on ALL channel videos</button><div id="youtubePostCommentProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
       <div id="youtubeBatchResults" class="admin-section" aria-live="polite"></div>
     </div>
     <div id="youtubeMatchList">
@@ -1641,32 +1671,44 @@ async function processYoutubeGenericJob(key){
   const job=youtubeGenericJobs[key];
   if(!job||job.processing||job.processed>=job.total)return;
   job.processing=true;
-  const batch=job.items.slice(job.processed,job.processed+50);
-  const batchNumber=Math.floor(job.processed/50)+1;
-  const area=$(job.progressId);
+  const area=$(job.progressId),button=$(job.buttonId);
+  if(button)button.disabled=true;
   const render=()=>{
-    const remaining=job.total-job.processed;
-    const percent=job.total?Math.round(job.processed/job.total*100):100;
+    const remaining=job.total-job.processed,percent=job.total?Math.round(job.processed/job.total*100):100;
     if(!area)return;
     area.style.display="block";
-    area.innerHTML='<h4>'+safe(job.label)+' progress</h4><p><strong>Completed:</strong> '+job.succeeded.length+' · <strong>Failed:</strong> '+job.failed.length+' · <strong>Remaining:</strong> '+remaining+' of '+job.total+'</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+percent+'%;background:#1685ff"></div></div><p>'+percent+'% complete · Batch '+Math.min(Math.ceil(job.processed/50),Math.ceil(job.total/50))+' of '+Math.ceil(job.total/50)+'</p>'+(remaining?'<button type="button" onclick="processYoutubeGenericJob(\''+key+'\')">Process next '+Math.min(50,remaining)+' videos</button>':'<p><strong>All selected videos processed.</strong></p>')+(job.failed.length?'<details><summary>Failed items ('+job.failed.length+')</summary>'+job.failed.map(v=>'<p>'+safe(v.title||v.id)+' — '+safe(v.error)+'</p>').join('')+'</details>':'');
+    area.innerHTML='<h4>'+safe(job.label)+' progress</h4><p><strong>Completed:</strong> '+job.succeeded.length+' · <strong>Failed:</strong> '+job.failed.length+' · <strong>Remaining:</strong> '+remaining+' of '+job.total+'</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+percent+'%;background:#1685ff"></div></div><p>'+percent+'% complete · Batch '+Math.min(Math.ceil(job.processed/50),Math.ceil(job.total/50))+' of '+Math.ceil(job.total/50)+(job.processing?' · Working automatically…':'')+'</p>'+(remaining?(job.processing?'<p>Keep this page open while batches run.</p>':'<button type="button" onclick="processYoutubeGenericJob(\''+key+'\')">Resume next '+Math.min(50,remaining)+' videos</button>'):'<p><strong>All selected videos processed.</strong></p>')+(job.failed.length?'<details open><summary>Failed items ('+job.failed.length+')</summary>'+job.failed.map(v=>'<p>'+safe(v.title||v.id)+' — '+safe(v.error)+'</p>').join('')+'</details>':'');
   };
-  render();
   try{
-    const result=await job.runBatch(batch);
-    job.succeeded.push(...(result.succeeded||[]));
-    job.failed.push(...(result.failed||[]));
-    const accounted=(result.succeeded?.length||0)+(result.failed?.length||0);
-    if(accounted<batch.length)job.failed.push(...batch.slice(accounted).map(id=>({id,title:id,error:"No result returned by YouTube."})));
-    job.processed+=batch.length;job.processing=false;render();
-    status(job.label+': '+job.succeeded.length+' completed, '+job.failed.length+' failed, '+(job.total-job.processed)+' remaining.');
-  }catch(error){
-    job.processing=false;render();
-    if(area)area.insertAdjacentHTML("beforeend",'<p>Batch '+batchNumber+' failed: '+safe(error.message)+'</p><button type="button" onclick="processYoutubeGenericJob(\''+key+'\')">Retry this batch</button>');
-    status(job.label+' batch failed. '+(job.total-job.processed)+' remaining.');
+    while(job.processed<job.total){
+      const batch=job.items.slice(job.processed,job.processed+50);
+      render();
+      status(job.label+': processing batch '+(Math.floor(job.processed/50)+1)+' of '+Math.ceil(job.total/50)+'…');
+      try{
+        const result=await job.runBatch(batch);
+        job.succeeded.push(...(result.succeeded||[]));
+        job.failed.push(...(result.failed||[]));
+        const accounted=(result.succeeded?.length||0)+(result.failed?.length||0);
+        if(accounted<batch.length)job.failed.push(...batch.slice(accounted).map(id=>({id,title:id,error:"No result returned by YouTube."})));
+      }catch(error){
+        job.failed.push(...batch.map(id=>({id,title:id,error:error.message||"Batch request failed."})));
+      }
+      job.processed+=batch.length;
+      render();
+      status(job.label+': '+job.succeeded.length+' completed, '+job.failed.length+' failed, '+(job.total-job.processed)+' remaining.');
+    }
+    status(job.label+' finished: '+job.succeeded.length+' completed, '+job.failed.length+' failed.');
   }finally{
-    const button=$(job.buttonId);if(button)button.disabled=false;
+    job.processing=false;
+    if(button)button.disabled=false;
+    render();
   }
+}
+async function postYoutubeCommentsToAll() {
+  const videos=youtubeLinkScan?.videos||[];
+  if(!videos.length)return status("Scan all channel videos first.");
+  youtubeVideoSelection=new Set(videos.map(v=>v.id));
+  await postYoutubeComments();
 }
 async function postYoutubeComments() {
   const ids=selectedYoutubeIds(),comment=$("youtubeBulkComment")?.value.trim();
