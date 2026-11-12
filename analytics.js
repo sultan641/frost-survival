@@ -2,9 +2,18 @@
 (() => {
   const cfg = window.supabase;
   if (!cfg?.createClient) return;
+  // Analytics is write-only and must never share or refresh the Admin auth session.
+  // Separate Supabase clients with default auth persistence can race refresh-token rotation.
   const client = cfg.createClient(
     "https://xnixsavppmmvbzfnybus.supabase.co",
-    "sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT"
+    "sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT",
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    }
   );
   const currentUrl = new URL(window.location.href);
   const path = (currentUrl.pathname || "/").slice(0, 180);
