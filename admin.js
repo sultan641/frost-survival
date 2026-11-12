@@ -154,6 +154,7 @@ function showDashboard() {
       <button onclick="showTab('developer')">🔒 Developer Dashboard</button>
       <button onclick="showTab('ai')">🤖 Developer AI</button>
       <button onclick="showTab('agents')">🔐 Agent Livestreaming</button>
+      <button onclick="showTab('youtube-links')">🔗 YouTube Link Fixer</button>
     </div>
   `;
 
@@ -669,6 +670,7 @@ async function loadTrafficAnalytics(days = 7) {
 }
 
 async function showTab(tab) {
+  if (tab === "youtube-links") { showYoutubeLinkFixer(); return; }
   if (tab === "agents") { await showAgentStreaming(); return; }
   if (tab === "ai") { showDeveloperAI(); return; }
   if (tab === "developer") { await showDeveloperDashboard(); return; }
@@ -1186,4 +1188,79 @@ async function approveDeveloperAnnouncement(index) {
 function discardDeveloperAnnouncement(index) {
   developerAIDrafts.splice(index,1);
   renderDeveloperAI();
+}
+
+let youtubeLinkScan = null;
+function showYoutubeLinkFixer() {
+  youtubeLinkScan = null;
+  $("adminContent").innerHTML = \`
+    <button class="secondary" onclick="showDashboard()">← Admin Dashboard</button>
+    <h2>🔗 YouTube Description Link Fixer</h2>
+    <p>Find the expired Frost Survival Discord invite in all videos on your connected channel. Only the old invite is replaced; other description text remains unchanged.</p>
+    <div class="admin-section">
+      <p><strong>Old:</strong> <code>discord.gg/NVf6zsb35</code></p>
+      <p><strong>New:</strong> <code>discord.gg/PCp8nytZF</code></p>
+      <p class="hint">First reconnect YouTube in YouTube Studio to grant the additional video-edit permission.</p>
+      <div class="actions">
+        <a class="btn" href="youtube-studio.html">Open YouTube Studio / Reconnect</a>
+        <button id="youtubeScanBtn" onclick="scanYoutubeOldLinks()">Scan All Videos</button>
+      </div>
+    </div>
+    <div id="youtubeLinkResults"></div>
+  \`;
+}
+async function youtubeLinkRequest(action, videoIds = []) {
+  const { data: sessionData } = await db.auth.getSession();
+  const access = sessionData?.session?.access_token;
+  if (!access) throw new Error("Please sign in again.");
+  const { data, error } = await db.functions.invoke("youtube-link-replacer", {
+    body: { action, videoIds },
+    headers: { Authorization: "Bearer " + access }
+  });
+  if (error || data?.error) throw new Error(data?.error || error.message);
+  return data;
+}
+async function scanYoutubeOldLinks() {
+  const btn = $("youtubeScanBtn"), area = $("youtubeLinkResults");
+  if (btn) btn.disabled = true;
+  area.textContent = "Scanning your channel videos…";
+  try {
+    youtubeLinkScan = await youtubeLinkRequest("scan");
+    renderYoutubeLinkMatches();
+  } catch (e) {
+    area.innerHTML = '<div class="admin-record"><strong>Scan failed</strong><p>' + safe(e.message) + '</p><p>Open YouTube Studio, reconnect the channel, approve the requested permissions, then scan again.</p></div>';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+function renderYoutubeLinkMatches() {
+  const area = $("youtubeLinkResults"), scan = youtubeLinkScan;
+  if (!area || !scan) return;
+  if (!scan.matches?.length) {
+    area.innerHTML = '<div class="admin-record"><h3>Scan complete</h3><p>Checked ' + Number(scan.totalVideos || 0) + ' videos. No old invite links were found.</p></div>';
+    return;
+  }
+  area.innerHTML = '<div class="admin-section"><h3>Scan results</h3><p>Checked ' + Number(scan.totalVideos) + ' videos · Found ' + Number(scan.matchedVideos) + ' videos · ' + Number(scan.totalOccurrences) + ' old-link occurrences.</p><p>Select the videos you want to update. Maximum 100 per batch.</p><div class="actions"><button onclick="selectAllYoutubeMatches(true)">Select all</button><button class="secondary" onclick="selectAllYoutubeMatches(false)">Select none</button><button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace selected links</button></div><div id="youtubeMatchList">' +
+    scan.matches.map(v => '<label class="admin-record" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" class="youtube-link-choice" value="' + safe(v.id) + '" checked style="width:auto;margin:4px 0"><span><strong>' + safe(v.title) + '</strong><br><a href="' + safe(v.url) + '" target="_blank" rel="noopener">Open video</a><br><small>' + Number(v.occurrences) + ' old-link occurrence(s)</small></span></label>').join("") +
+    '</div><p class="hint">The tool changes descriptions only. It does not edit video titles, thumbnails, visibility, comments, or captions.</p></div>';
+}
+function selectAllYoutubeMatches(checked) {
+  document.querySelectorAll(".youtube-link-choice").forEach(el => { el.checked = checked; });
+}
+async function applyYoutubeLinkFix() {
+  const ids = Array.from(document.querySelectorAll(".youtube-link-choice:checked")).map(el => el.value);
+  if (!ids.length) return status("Select at least one video.");
+  if (ids.length > 100) return status("Select no more than 100 videos per batch.");
+  if (!confirm("Replace the old Discord invite in " + ids.length + " selected YouTube descriptions? This will save changes to YouTube.")) return;
+  const btn = $("youtubeApplyBtn");
+  if (btn) btn.disabled = true;
+  status("Updating selected YouTube descriptions…");
+  try {
+    const result = await youtubeLinkRequest("apply", ids);
+    status("Successfully updated " + result.updated + " video descriptions.");
+    await scanYoutubeOldLinks();
+  } catch (e) {
+    status("Update failed: " + e.message);
+    if (btn) btn.disabled = false;
+  }
 }
