@@ -1529,38 +1529,19 @@ function selectAllYoutubeComments(checked) {
   document.querySelectorAll(".youtube-comment-choice").forEach(el => { el.checked = checked; });
 }
 async function replaceSelectedYoutubeComments() {
-  const indexes = Array.from(document.querySelectorAll(".youtube-comment-choice:checked")).map(el => Number(el.value));
-  if (!indexes.length) return status("Select at least one comment.");
-  const selected = indexes.map(i => youtubeCommentMatches[i]).filter(Boolean);
-  if (!confirm("Replace Discord invite links in " + selected.length + " selected comments? Only comments you own can be edited.")) return;
-  const area = $("youtubeCommentResults");
-  let done = 0, failed = [];
-  for (let i = 0; i < selected.length; i += 50) {
-    const batch = selected.slice(i, i + 50);
-    if (area) area.textContent = "Updating comments… " + done + " of " + selected.length + " completed.";
-    try {
-      const result = await youtubeLinkRequest("replace-comments", { comments: batch });
-      done += result.succeeded?.length || 0;
-      failed.push(...(result.failed || []));
-    } catch (e) { failed.push(...batch.map(c => ({ id:c.id, error:e.message }))); }
+  const indexes=Array.from(document.querySelectorAll(".youtube-comment-choice:checked")).map(el=>Number(el.value));
+  if(!indexes.length)return status("Select at least one comment.");
+  const selected=indexes.map(i=>youtubeCommentMatches[i]).filter(Boolean);
+  if(!confirm("Replace Discord invite links in "+selected.length+" selected comments? Only comments you own can be edited."))return;
+  const area=$("youtubeCommentResults");let done=0,failed=[];const totalBatches=Math.ceil(selected.length/50);
+  for(let i=0;i<selected.length;i+=50){
+    const batch=selected.slice(i,i+50),percent=Math.round(i/selected.length*100);
+    if(area)area.innerHTML='<h4>Existing comment link replacement progress</h4><p>Completed: '+done+' · Failed: '+failed.length+' · Remaining: '+(selected.length-i)+' comments</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+percent+'%;background:#1685ff"></div></div><p>Batch '+(Math.floor(i/50)+1)+' of '+totalBatches+' running…</p>';
+    try{const result=await youtubeLinkRequest("replace-comments",{comments:batch});done+=result.succeeded?.length||0;failed.push(...(result.failed||[]));}
+    catch(e){failed.push(...batch.map(c=>({id:c.id,error:e.message})));}
   }
-  if (area) area.innerHTML = '<h4>Comment update results</h4><p><strong>Updated:</strong> ' + done + ' · <strong>Not updated:</strong> ' + failed.length + '</p>' +
-    (failed.length ? '<details open><summary>Comments that could not be updated</summary>' + failed.map(f => '<p>' + safe(f.id) + ' — ' + safe(f.error) + '</p>').join("") + '</details>' : '<p>All selected comments were updated.</p>');
+  if(area)area.innerHTML='<h4>Existing comment link replacement — complete</h4><p><strong>Updated:</strong> '+done+' · <strong>Not updated:</strong> '+failed.length+' · <strong>Remaining:</strong> 0</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:100%;background:#1685ff"></div></div>'+(failed.length?'<details open><summary>Comments not updated</summary>'+failed.map(f=>'<p>'+safe(f.id)+' — '+safe(f.error)+'</p>').join('')+'</details>':'<p>All selected comments updated.</p>');
   await scanYoutubeDiscordComments();
-}
-const youtubeGenericJobs={};
-function startYoutubeGenericJob(key,label,items,progressId,buttonId,runBatch){
-  youtubeGenericJobs[key]={key,label,items,total:items.length,processed:0,succeeded:[],failed:[],progressId,buttonId,runBatch,processing:false};
-  const b=$(buttonId);if(b)b.disabled=true;processYoutubeGenericJob(key);
-}
-async function processYoutubeGenericJob(key){
-  const j=youtubeGenericJobs[key];if(!j||j.processing||j.processed>=j.total)return;j.processing=true;
-  const area=$(j.progressId),batch=j.items.slice(j.processed,j.processed+50),n=Math.floor(j.processed/50)+1;
-  const render=()=>{const rem=j.total-j.processed,p=j.total?Math.round(j.processed/j.total*100):100;if(area){area.style.display="block";area.innerHTML='<h4>'+safe(j.label)+' progress</h4><p>Completed: '+j.succeeded.length+' · Failed: '+j.failed.length+' · Remaining: '+rem+' of '+j.total+'</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+p+'%;background:#1685ff"></div></div><p>'+p+'% · Batch '+Math.min(Math.ceil(j.processed/50),Math.ceil(j.total/50))+' of '+Math.ceil(j.total/50)+'</p>'+(rem?'<button onclick="processYoutubeGenericJob(\''+key+'\')">Process next '+Math.min(50,rem)+' videos</button>':'<strong>All selected videos processed.</strong>')+(j.failed.length?'<details><summary>Failed ('+j.failed.length+')</summary>'+j.failed.map(x=>'<p>'+safe(x.title||x.id)+' — '+safe(x.error)+'</p>').join('')+'</details>':'');}};
-  render();
-  try{const r=await j.runBatch(batch);j.succeeded.push(...(r.succeeded||[]));j.failed.push(...(r.failed||[]));j.processed+=batch.length;j.processing=false;render();status(j.label+': '+j.succeeded.length+' completed, '+j.failed.length+' failed, '+(j.total-j.processed)+' remaining.');}
-  catch(e){j.processing=false;render();if(area)area.insertAdjacentHTML("beforeend",'<p>Batch failed: '+safe(e.message)+'</p><button onclick="processYoutubeGenericJob(\''+key+'\')">Retry this batch</button>');}
-  finally{const b=$(j.buttonId);if(b)b.disabled=false;}
 }
 async function postYoutubeComments() {
   const ids=selectedYoutubeIds(),comment=$("youtubeBulkComment")?.value.trim();
