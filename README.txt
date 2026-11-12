@@ -15,7 +15,7 @@ PRESERVED LINKS
 - V5 China: https://passport.wjdr2.top/ops-register?promo=sultaan
 - KingShot V4: https://landing.yunxiaoze.com/?id=YqZv76nI
 - V5 Europe promoter code: 16365
-- Discord: https://discord.gg/NVf6zsb35
+- Discord: https://discord.gg/G8gQKnkUg4
 - Telegram: https://t.me/frostsurvival
 - YouTube: https://youtube.com/@gm_sultaan
 - TikTok: https://www.tiktok.com/@wolfwos
