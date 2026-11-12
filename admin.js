@@ -1469,34 +1469,123 @@ function renderYoutubeLinkProgress() {
   const area = $("youtubeLinkProgress"), job = youtubeLinkBatchJob;
   if (!area || !job) return;
   area.style.display = "block";
-  const remaining = Math.max(0, job.total - job.processed), percent = job.total ? Math.round(job.processed / job.total * 100) : 100;
-  area.innerHTML = '<h4>Discord invite replacement progress</h4><p><strong>Completed:</strong> ' + job.succeeded.length + ' · <strong>Failed:</strong> ' + job.failed.length + ' · <strong>Remaining:</strong> ' + remaining + ' of ' + job.total + ' videos</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:' + percent + '%;background:#1685ff"></div></div><p>' + percent + '% complete · Batch ' + Math.min(Math.ceil(job.processed/50),Math.ceil(job.total/50)) + ' of ' + Math.ceil(job.total/50) + '</p>' + (remaining ? '<button type="button" onclick="processNextYoutubeLinkBatch()">Process next ' + Math.min(50,remaining) + ' videos</button>' : '<p><strong>All selected videos processed.</strong></p>') + (job.failed.length ? '<details><summary>Failed videos (' + job.failed.length + ')</summary>' + job.failed.map(v=>'<p>'+safe(v.title||v.id)+' — '+safe(v.error)+'</p>').join('')+'</details>' : '');
+  const remaining = Math.max(0, job.total - job.processed);
+  const percent = job.total ? Math.round(job.processed / job.total * 100) : 100;
+  const batchSize = 50;
+  const batchNumber = Math.min(Math.ceil(job.processed / batchSize), Math.ceil(job.total / batchSize));
+  area.innerHTML =
+    '<h4>Discord invite replacement progress</h4>' +
+    '<p><strong>Completed:</strong> ' + job.succeeded.length +
+    ' · <strong>Failed:</strong> ' + job.failed.length +
+    ' · <strong>Remaining:</strong> ' + remaining + ' of ' + job.total + ' videos</p>' +
+    '<div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:' + percent + '%;background:#1685ff"></div></div>' +
+    '<p>' + percent + '% complete · Batch ' + batchNumber + ' of ' + Math.ceil(job.total / batchSize) +
+    (job.processing ? ' · Working automatically…' : '') + '</p>' +
+    (job.processing ? '<p>Keep this page open while the automatic batches run. You can switch tabs, but closing this page stops the run.</p>' :
+      (remaining ? '<button type="button" onclick="processNextYoutubeLinkBatch()">Resume remaining videos (' + remaining + ')</button>' :
+        '<p><strong>All selected videos processed.</strong></p>')) +
+    (job.failed.length ? '<button type="button" class="secondary" onclick="retryFailedYoutubeLinks()">Retry failed videos (' + job.failed.length + ')</button>' : '') +
+    (job.failed.length ? '<details><summary>Failed videos (' + job.failed.length + ')</summary>' +
+      job.failed.map(v => '<p>' + safe(v.title || v.id) + ' — ' + safe(v.error) + '</p>').join('') + '</details>' : '');
 }
 async function processNextYoutubeLinkBatch() {
-  const job=youtubeLinkBatchJob;
-  if(!job||job.processing||job.processed>=job.total)return;
-  job.processing=true; renderYoutubeLinkProgress();
-  const batch=job.videoIds.slice(job.processed,job.processed+50), batchNo=Math.floor(job.processed/50)+1;
+  const job = youtubeLinkBatchJob;
+  if (!job || job.processing || job.processed >= job.total) return;
+  job.processing = true;
+  const button = $("youtubeApplyBtn");
+  if (button) button.disabled = true;
+  renderYoutubeLinkProgress();
+
   try {
-    const result=await youtubeLinkRequest("apply-links",{videoIds:batch,replacements:job.replacements});
-    job.succeeded.push(...(result.succeeded||[])); job.failed.push(...(result.failed||[]));
-    const accounted=(result.succeeded?.length||0)+(result.failed?.length||0);
-    if(accounted<batch.length)job.failed.push(...batch.slice(accounted).map(id=>({id,title:id,error:"No result returned by YouTube."})));
-    job.processed+=batch.length; job.processing=false; renderYoutubeLinkProgress();
-    status('Batch '+batchNo+' finished: '+job.succeeded.length+' completed, '+job.failed.length+' failed, '+(job.total-job.processed)+' remaining.');
-    if(job.processed>=job.total){youtubeRetryJob=job.failed.length?{action:"apply-links",payload:{videoIds:job.failed.map(v=>v.id),replacements:job.replacements},label:"Discord invite replacement"}:null;await scanYoutubeOldLinks();renderYoutubeLinkProgress();status('All batches finished: '+job.succeeded.length+' completed, '+job.failed.length+' failed.');}
-  } catch(e) { job.processing=false;renderYoutubeLinkProgress();const area=$("youtubeLinkProgress");if(area)area.insertAdjacentHTML("beforeend",'<p>Batch failed: '+safe(e.message)+'</p><button onclick="processNextYoutubeLinkBatch()">Retry this batch</button>');status('Batch '+batchNo+' failed. '+(job.total-job.processed)+' remaining.');}
+    // Automatically continue through every 50-video batch; no manual click is needed.
+    while (job.processed < job.total) {
+      const batch = job.videoIds.slice(job.processed, job.processed + 50);
+      const batchNo = Math.floor(job.processed / 50) + 1;
+      renderYoutubeLinkProgress();
+      status('Updating batch ' + batchNo + ' of ' + Math.ceil(job.total / 50) +
+        ' (' + batch.length + ' videos). ' + job.processed + ' of ' + job.total + ' processed…');
+      try {
+        const result = await youtubeLinkRequest("apply-links", {
+          videoIds: batch,
+          replacements: job.replacements
+        });
+        const succeeded = result.succeeded || [];
+        const failed = result.failed || [];
+        job.succeeded.push(...succeeded);
+        job.failed.push(...failed);
+        const accounted = succeeded.length + failed.length;
+        if (accounted < batch.length) {
+          job.failed.push(...batch.slice(accounted).map(id => ({
+            id, title: id, error: "No result returned by YouTube."
+          })));
+        }
+      } catch (error) {
+        // A failed batch is recorded and the following batch still proceeds.
+        job.failed.push(...batch.map(id => ({
+          id, title: id, error: error.message || "Batch request failed."
+        })));
+      }
+      job.processed += batch.length;
+      renderYoutubeLinkProgress();
+      status('Automatic update: ' + job.succeeded.length + ' completed, ' +
+        job.failed.length + ' failed, ' + (job.total - job.processed) + ' remaining.');
+    }
+
+    youtubeRetryJob = job.failed.length ? {
+      action: "apply-links",
+      payload: { videoIds: job.failed.map(v => v.id), replacements: job.replacements },
+      label: "Discord invite replacement"
+    } : null;
+
+    status('All batches finished: ' + job.succeeded.length + ' completed, ' +
+      job.failed.length + ' failed.');
+    renderYoutubeLinkProgress();
+    await scanYoutubeOldLinks();
+    renderYoutubeLinkProgress();
+  } finally {
+    job.processing = false;
+    if (button) button.disabled = false;
+    renderYoutubeLinkProgress();
+  }
+}
+async function retryFailedYoutubeLinks() {
+  const current = youtubeLinkBatchJob;
+  if (!current || !current.failed.length || current.processing) return;
+  const failedIds = Array.from(new Set(current.failed.map(v => v.id).filter(Boolean)));
+  if (!failedIds.length) return status("There are no retryable failed video IDs.");
+  if (!confirm("Retry " + failedIds.length + " failed videos? They will run automatically in batches of 50.")) return;
+  youtubeLinkBatchJob = {
+    videoIds: failedIds,
+    replacements: current.replacements,
+    total: failedIds.length,
+    processed: 0,
+    succeeded: [],
+    failed: [],
+    processing: false
+  };
+  await processNextYoutubeLinkBatch();
 }
 async function applyYoutubeLinkFix() {
-  const ids=selectedYoutubeIds(),oldLink=$("youtubeOldLink")?.value.trim(),newLink=$("youtubeNewLink")?.value.trim();
-  if(!ids.length)return status("Select at least one video.");
-  if(!newLink)return status("Enter the new Discord invite link.");
-  if(oldLink&&oldLink===newLink)return status("The old and new links are identical.");
-  const replacements=oldLink?[{oldLink,newLink}]:[];
-  if(!confirm((oldLink?"Replace this exact link":"Replace ALL Discord invite links")+" in "+ids.length+" selected descriptions? It will run in batches of 50."))return;
-  const btn=$("youtubeApplyBtn");if(btn)btn.disabled=true;
-  youtubeLinkBatchJob={videoIds:ids,replacements,total:ids.length,processed:0,succeeded:[],failed:[],processing:false};
-  renderYoutubeLinkProgress();await processNextYoutubeLinkBatch();
+  const ids = selectedYoutubeIds();
+  const oldLink = $("youtubeOldLink")?.value.trim();
+  const newLink = $("youtubeNewLink")?.value.trim();
+  if (!ids.length) return status("Select at least one video.");
+  if (!newLink) return status("Enter the new Discord invite link.");
+  if (oldLink && oldLink === newLink) return status("The old and new links are identical.");
+  const replacements = oldLink ? [{ oldLink, newLink }] : [];
+  if (!confirm((oldLink ? "Replace this exact link" : "Replace ALL Discord invite links") +
+      " in " + ids.length + " selected descriptions? All videos will run automatically in batches of 50.")) return;
+  youtubeLinkBatchJob = {
+    videoIds: ids,
+    replacements,
+    total: ids.length,
+    processed: 0,
+    succeeded: [],
+    failed: [],
+    processing: false
+  };
+  renderYoutubeLinkProgress();
+  await processNextYoutubeLinkBatch();
 }
 let youtubeCommentMatches = [];
 async function scanYoutubeDiscordComments() {
