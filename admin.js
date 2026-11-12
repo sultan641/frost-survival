@@ -832,6 +832,7 @@ async function showAgentStreaming() {
   const panels = [
     {game:"Whiteout Survival V4",url:"https://daili.cqwzcj.com/index",id:"wosv4"},
     {game:"Whiteout Survival V5 China",url:"https://admin.wjdr2.top/ops-panel.html",id:"wosv5cn"},
+    {game:"Whiteout Survival UV V6",url:"https://play.whiteoutsurvivalhq.com/seller",id:"wosuv6"},
     {game:"KingShot V4",url:"https://dlcms.bbwgtg.xyz/login",id:"ksv4"}
   ];
   const live = [
