@@ -5,7 +5,8 @@ const SUPABASE_URL = "https://xnixsavppmmvbzfnybus.supabase.co";
 const SUPABASE_KEY = "sb_publishable_tx2KV3IddBr70wmLIrsLzQ_1DSHcUdT";
 const ADMIN_UID = "9cd04a06-6937-474a-9b13-ea39b2c3bd35";
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseReady = !!(window.supabase && typeof window.supabase.createClient === "function");
+const db = supabaseReady ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const games = [
   "Whiteout Survival V4",
@@ -21,7 +22,11 @@ let announcements = [];
 const $ = id => document.getElementById(id);
 
 function status(message) {
-  $("adminStatus").textContent = message;
+  const node = $("adminStatus");
+  if (!node) return;
+  node.textContent = String(message ?? "");
+  node.hidden = false;
+  node.style.display = "block";
 }
 
 function safe(value) {
@@ -37,6 +42,10 @@ function safe(value) {
 // AUTHENTICATION
 
 async function refreshAuth() {
+  if (!db) {
+    status("Admin login could not start: the Supabase sign-in library did not load. Reload this page; if it continues, try another network or browser.");
+    return;
+  }
   const { data, error } = await db.auth.getSession();
   if (error) {
     status("Session check failed: " + error.message);
@@ -72,6 +81,11 @@ $("loginForm").addEventListener("submit", async event => {
   const password = $("password").value;
   if (button) button.disabled = true;
   status("Signing in...");
+  if (!db) {
+    status("Sign-in is unavailable because the Supabase library failed to load. Reload the page or switch networks.");
+    if (button) button.disabled = false;
+    return;
+  }
 
   try {
     const { data, error } = await db.auth.signInWithPassword({ email, password });
@@ -123,6 +137,18 @@ $("signOutButton").addEventListener("click", () => {
     console.error("Admin sign-out error:", error);
     status("Sign-out error: " + (error?.message || String(error)));
   });
+});
+
+// Let the HTML form guard know the JavaScript handler is attached.
+window.frostAdminJsReady = true;
+
+// Surface uncaught runtime errors instead of leaving a silent sign-in form.
+window.addEventListener("error", event => {
+  if (!window.frostAdminJsReady) status("Admin script error: " + (event.message || "Could not start the Admin Console."));
+});
+window.addEventListener("unhandledrejection", event => {
+  const reason = event.reason;
+  status("Admin operation failed: " + (reason?.message || String(reason || "Unknown error")));
 });
 
 // MAIN DASHBOARD
