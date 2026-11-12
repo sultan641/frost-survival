@@ -1358,7 +1358,7 @@ function renderYoutubeLinkMatches() {
         </div>
       `).join("")}
     </div>
-    <p class="hint">Maximum 100 videos per update. YouTube's API may reject some edits if the channel permissions or quota do not allow them.</p>
+    <p class="hint">Maximum 50 videos per update. YouTube's API may reject some edits if the channel permissions or quota do not allow them.</p>
   `;
 }
 function selectAllYoutubeMatches(checked) {
@@ -1371,7 +1371,7 @@ async function applyYoutubeLinkFix() {
   const ids = selectedYoutubeIds();
   const oldLink = $("youtubeOldLink")?.value.trim(), newLink = $("youtubeNewLink")?.value.trim();
   if (!ids.length) return status("Select at least one video.");
-  if (ids.length > 100) return status("Select no more than 100 videos per batch.");
+  if (ids.length > 100) return status("Select no more than 50 videos per batch.");
   if (!oldLink || !newLink) return status("Enter both the old and new links.");
   if (oldLink === newLink) return status("The old and new links are identical.");
   if (!confirm("Replace only this link in " + ids.length + " selected descriptions? All other description text will remain unchanged.")) return;
@@ -1397,7 +1397,7 @@ async function saveYoutubeVideoDescription(videoId) {
 async function applyYoutubeBulkDescription() {
   const ids = selectedYoutubeIds(), description = $("youtubeBulkDescription")?.value;
   if (!ids.length) return status("Select at least one video.");
-  if (ids.length > 100) return status("Select no more than 100 videos per batch.");
+  if (ids.length > 100) return status("Select no more than 50 videos per batch.");
   if (!description?.trim()) return status("Enter the complete description first.");
   if (!confirm("WARNING: This will replace the ENTIRE description on " + ids.length + " selected videos with the same text. Continue?")) return;
   const btn = $("youtubeBulkDescriptionBtn"); if (btn) btn.disabled = true;
