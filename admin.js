@@ -1484,8 +1484,8 @@ async function processNextYoutubeLinkBatch() {
     job.succeeded.push(...(result.succeeded || []));
     job.failed.push(...(result.failed || []));
     job.processed += batch.length;
-    if (result.succeeded?.length + (result.failed?.length || 0) < batch.length) {
-      const accounted = (result.succeeded?.length || 0) + (result.failed?.length || 0);
+    const accounted = (result.succeeded?.length || 0) + (result.failed?.length || 0);
+    if (accounted < batch.length) {
       if (accounted < batch.length) job.failed.push(...batch.slice(accounted).map(id => ({ id, title: id, error: "No result returned by YouTube for this video." })));
     }
     renderYoutubeLinkProgress();
