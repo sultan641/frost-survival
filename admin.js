@@ -1249,6 +1249,7 @@ function discardDeveloperAnnouncement(index) {
 
 let youtubeLinkScan = null;
 let youtubeRetryJob = null;
+let youtubeLinkBatchJob = null;
 function showYoutubeLinkFixer() {
   youtubeLinkScan = null;
   if (!window.__frostYoutubeFixerHistory) {
@@ -1373,6 +1374,7 @@ function renderYoutubeLinkMatches() {
       <label>Old link (optional — blank means all Discord invites)</label><input id="youtubeOldLink" placeholder="Specific old invite, or leave blank for all">
       <label>New link</label><input id="youtubeNewLink" value="https://discord.gg/G8gQKnkUg4" placeholder="New Discord invite or URL">
       <button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace Discord invites in selected videos</button>
+      <div id="youtubeLinkProgress" class="admin-record" aria-live="polite" style="margin-top:10px" hidden></div>
       <hr>
       <h3>Audit existing comments</h3>
       <p class="hint">Scans public comment threads across the connected channel, including replies returned by YouTube. Only comments authored by the connected channel can be edited.</p>
@@ -1449,22 +1451,78 @@ async function retryFailedYoutubeBatch() {
   try { await runYoutubeBatch(job.action, job.payload, job.label + " — retry"); }
   catch (e) { if (area) area.textContent = "Retry failed: " + e.message; }
 }
+function renderYoutubeLinkProgress() {
+  const area = $("youtubeLinkProgress");
+  const job = youtubeLinkBatchJob;
+  if (!area || !job) return;
+  area.hidden = false;
+  const percent = job.total ? Math.round((job.processed / job.total) * 100) : 0;
+  const remaining = Math.max(0, job.total - job.processed);
+  const nextCount = Math.min(50, remaining);
+  area.innerHTML = '<h4>Discord invite replacement progress</h4>' +
+    '<p><strong>Completed:</strong> ' + job.succeeded.length + ' · <strong>Failed:</strong> ' + job.failed.length +
+    ' · <strong>Remaining:</strong> ' + remaining + ' of ' + job.total + ' videos</p>' +
+    '<div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:' + percent + '%;background:#1685ff"></div></div>' +
+    '<p>Batch ' + Math.ceil(job.processed / 50) + ' of ' + Math.ceil(job.total / 50) + ' · ' + percent + '% complete</p>' +
+    (remaining ? '<button type="button" id="youtubeNextBatchBtn" onclick="processNextYoutubeLinkBatch()">Process next ' + nextCount + ' videos</button>' :
+      '<p><strong>All selected videos have been processed.</strong></p>') +
+    (job.failed.length ? '<details><summary>View failed videos (' + job.failed.length + ')</summary>' +
+      job.failed.map(v => '<p>' + safe(v.title || v.id) + ' — ' + safe(v.error) + '</p>').join("") + '</details>' : '');
+}
+async function processNextYoutubeLinkBatch() {
+  const job = youtubeLinkBatchJob;
+  if (!job || job.processing || job.processed >= job.total) return;
+  job.processing = true;
+  const button = $("youtubeNextBatchBtn");
+  if (button) button.disabled = true;
+  const batch = job.videoIds.slice(job.processed, job.processed + 50);
+  const batchNumber = Math.floor(job.processed / 50) + 1;
+  const area = $("youtubeLinkProgress");
+  if (area) area.insertAdjacentHTML("beforeend", '<p>Processing batch ' + batchNumber + ' (' + batch.length + ' videos)… Please keep this page open.</p>');
+  try {
+    const result = await youtubeLinkRequest("apply-links", { videoIds: batch, replacements: job.replacements });
+    job.succeeded.push(...(result.succeeded || []));
+    job.failed.push(...(result.failed || []));
+    job.processed += batch.length;
+    if (result.succeeded?.length + (result.failed?.length || 0) < batch.length) {
+      const accounted = (result.succeeded?.length || 0) + (result.failed?.length || 0);
+      if (accounted < batch.length) job.failed.push(...batch.slice(accounted).map(id => ({ id, title: id, error: "No result returned by YouTube for this video." })));
+    }
+    renderYoutubeLinkProgress();
+    status('Batch ' + batchNumber + ' finished. ' + job.succeeded.length + ' completed; ' + job.failed.length + ' failed; ' + (job.total - job.processed) + ' remaining.');
+    if (job.processed >= job.total) {
+      youtubeRetryJob = job.failed.length ? { action: "apply-links", payload: { videoIds: job.failed.map(v => v.id), replacements: job.replacements }, label: "Discord invite replacement" } : null;
+      const done = job.succeeded.length, failed = job.failed.length;
+      await scanYoutubeOldLinks();
+      renderYoutubeLinkProgress();
+      status('All batches finished: ' + done + ' videos updated, ' + failed + ' failed.');
+    }
+  } catch (error) {
+    job.lastError = error.message;
+    renderYoutubeLinkProgress();
+    if (area) area.insertAdjacentHTML("beforeend", '<p>Batch failed: ' + safe(error.message) + '. You can retry this batch using the button below.</p><button type="button" onclick="processNextYoutubeLinkBatch()">Retry this 50-video batch</button>');
+    status('Batch ' + batchNumber + ' failed. ' + (job.total - job.processed) + ' videos remain.');
+  } finally {
+    job.processing = false;
+    const next = $("youtubeNextBatchBtn");
+    if (next) next.disabled = false;
+    const apply = $("youtubeApplyBtn");
+    if (apply) apply.disabled = false;
+  }
+}
 async function applyYoutubeLinkFix() {
   const ids = selectedYoutubeIds();
   const oldLink = $("youtubeOldLink")?.value.trim(), newLink = $("youtubeNewLink")?.value.trim();
   if (!ids.length) return status("Select at least one video.");
-  if (ids.length > 50) return status("Select no more than 50 videos per batch.");
   if (!newLink) return status("Enter the new Discord invite link.");
   if (oldLink && oldLink === newLink) return status("The old and new links are identical.");
   const replacements = oldLink ? [{ oldLink, newLink }] : [];
-  if (!confirm((oldLink ? "Replace this exact link" : "Replace ALL Discord invite links") + " in " + ids.length + " selected descriptions? All other description text will remain unchanged.")) return;
-  const btn = $("youtubeApplyBtn"); if (btn) btn.disabled = true;
-  status("Replacing selected links…");
-  try {
-    const result = await runYoutubeBatch("apply-links", { videoIds: ids, replacements }, "Discord invite replacement");
-    status("Link update finished: " + result.succeeded.length + " done, " + result.failed.length + " not done.");
-  } catch (e) { status("Link replacement failed: " + e.message); }
-  finally { if (btn) btn.disabled = false; }
+  if (!confirm((oldLink ? "Replace this exact link" : "Replace ALL Discord invite links") + " in " + ids.length + " selected descriptions? Videos will be processed in batches of 50. You can review progress and start each next batch.")) return;
+  const btn = $("youtubeApplyBtn");
+  if (btn) btn.disabled = true;
+  youtubeLinkBatchJob = { videoIds: ids, replacements, total: ids.length, processed: 0, succeeded: [], failed: [], processing: false };
+  renderYoutubeLinkProgress();
+  await processNextYoutubeLinkBatch();
 }
 let youtubeCommentMatches = [];
 async function scanYoutubeDiscordComments() {
