@@ -1322,9 +1322,21 @@ async function youtubeLinkRequest(action, payload = {}) {
   });
   if (error) {
     let detail = "";
-    try { const response = error.context; if (response && typeof response.clone === "function") { const body = await response.clone().json(); if (body?.error) detail = ": " + body.error; } } catch (_) {}
-    const statusCode = error.context?.status;
-    throw new Error((error.message || "Request failed") + (statusCode ? " (HTTP " + statusCode + ")" : "") + detail);
+    const response = error.context;
+    if (response) {
+      try {
+        let raw = "";
+        if (typeof response.clone === "function") raw = await response.clone().text();
+        else if (typeof response.text === "function") raw = await response.text();
+        if (raw) {
+          try { const body = JSON.parse(raw); detail = body?.error || body?.message || raw; }
+          catch (_) { detail = raw; }
+        }
+      } catch (readError) { detail = "Could not read server error response: " + String(readError?.message || readError); }
+    }
+    const statusCode = response?.status;
+    const base = error.message || "Request failed";
+    throw new Error(base + (statusCode ? " (HTTP " + statusCode + ")" : "") + (detail ? ": " + detail : ""));
   }
   if (data?.error) throw new Error(data.error);
   return data;
