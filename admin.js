@@ -177,6 +177,11 @@ window.addEventListener("unhandledrejection", event => {
 // MAIN DASHBOARD
 
 function showDashboard() {
+  // Clear the in-panel YouTube fixer history entry when returning to the dashboard.
+  if (window.__frostYoutubeFixerHistory) {
+    window.__frostYoutubeFixerHistory = false;
+    history.replaceState(null, "", location.pathname + location.search);
+  }
   selectedGame = "";
 
   $("adminContent").innerHTML = `
@@ -1245,6 +1250,10 @@ function discardDeveloperAnnouncement(index) {
 let youtubeLinkScan = null;
 function showYoutubeLinkFixer() {
   youtubeLinkScan = null;
+  if (!window.__frostYoutubeFixerHistory) {
+    history.pushState({ frostAdminView: "youtube-links" }, "", "#youtube-links");
+    window.__frostYoutubeFixerHistory = true;
+  }
   $("adminContent").innerHTML = `
     <button class="secondary" onclick="showDashboard()">← Admin Dashboard</button>
     <h2>🔗 YouTube Description Link Fixer</h2>
@@ -1261,6 +1270,11 @@ function showYoutubeLinkFixer() {
     <div id="youtubeLinkResults"></div>
   `;
 }
+// The browser Back button returns from this in-panel tool to the Admin Dashboard.
+window.addEventListener("popstate", () => {
+  if (window.__frostYoutubeFixerHistory) showDashboard();
+});
+
 async function youtubeLinkRequest(action, videoIds = []) {
   const { data: sessionData } = await db.auth.getSession();
   const access = sessionData?.session?.access_token;
@@ -1269,7 +1283,13 @@ async function youtubeLinkRequest(action, videoIds = []) {
     body: { action, videoIds },
     headers: { Authorization: "Bearer " + access }
   });
-  if (error || data?.error) throw new Error(data?.error || error.message);
+  if (error) {
+    const detail = error.context?.status
+      ? " (HTTP " + error.context.status + ")"
+      : "";
+    throw new Error(error.message + detail + ". Check Edge Function CORS/network and deployment.");
+  }
+  if (data?.error) throw new Error(data.error);
   return data;
 }
 async function scanYoutubeOldLinks() {
