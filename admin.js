@@ -1321,8 +1321,10 @@ async function youtubeLinkRequest(action, payload = {}) {
     body: { action, ...payload }, headers: { Authorization: "Bearer " + access }
   });
   if (error) {
-    const detail = error.context?.status ? " (HTTP " + error.context.status + ")" : "";
-    throw new Error(error.message + detail + ". Check the Edge Function response and network.");
+    let detail = "";
+    try { const response = error.context; if (response && typeof response.clone === "function") { const body = await response.clone().json(); if (body?.error) detail = ": " + body.error; } } catch (_) {}
+    const statusCode = error.context?.status;
+    throw new Error((error.message || "Request failed") + (statusCode ? " (HTTP " + statusCode + ")" : "") + detail);
   }
   if (data?.error) throw new Error(data.error);
   return data;
