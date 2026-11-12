@@ -1381,6 +1381,7 @@ function renderYoutubeLinkMatches() {
       <h3>Audit existing comments</h3>
       <p class="hint">Scans public comment threads across the connected channel, including replies returned by YouTube. Only comments authored by the connected channel can be edited.</p>
       <button id="youtubeScanCommentsBtn" class="secondary" onclick="scanYoutubeDiscordComments()">Scan all channel comments</button>
+      <div id="youtubeCommentEditProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
       <div id="youtubeCommentResults"></div>
       <hr>
       <h3>Replace complete descriptions (optional)</h3>
@@ -1533,7 +1534,7 @@ async function replaceSelectedYoutubeComments() {
   if(!indexes.length)return status("Select at least one comment.");
   const selected=indexes.map(i=>youtubeCommentMatches[i]).filter(Boolean);
   if(!confirm("Replace Discord invite links in "+selected.length+" selected comments? Only comments you own can be edited."))return;
-  const area=$("youtubeCommentResults");let done=0,failed=[];const totalBatches=Math.ceil(selected.length/50);
+  const area=$("youtubeCommentEditProgress");if(area)area.style.display="block";let done=0,failed=[];const totalBatches=Math.ceil(selected.length/50);
   for(let i=0;i<selected.length;i+=50){
     const batch=selected.slice(i,i+50),percent=Math.round(i/selected.length*100);
     if(area)area.innerHTML='<h4>Existing comment link replacement progress</h4><p>Completed: '+done+' · Failed: '+failed.length+' · Remaining: '+(selected.length-i)+' comments</p><div style="height:12px;background:#18334d;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+percent+'%;background:#1685ff"></div></div><p>Batch '+(Math.floor(i/50)+1)+' of '+totalBatches+' running…</p>';
