@@ -1367,14 +1367,13 @@ function renderYoutubeLinkMatches() {
       <h3>Complete link audit</h3>
       <p>Found ${scan.uniqueLinks?.length || 0} unique links across all descriptions. Old configured invite occurrences: ${Number(scan.totalOccurrences || 0)}.</p>
       <label>All links found in your channel</label>
-      <select id="youtubeDetectedLink" onchange="if(this.value)document.getElementById('youtubeOldLink').value=this.value">
+      <select id="youtubeDetectedLink">
         <option value="">Choose a detected link to inspect or replace</option>
         ${(scan.uniqueLinks || []).map(link => '<option value="' + safe(link) + '">' + safe(link) + '</option>').join("")}
       </select>
       <p class="hint">The video list below shows every detected link beside the video that contains it. After any replacement, the full scan runs again and shows links still present.</p>
       <h3>Replace Discord invites in descriptions</h3>
-      <p class="hint">Leave the old-link field empty to replace every detected Discord invite URL in the selected descriptions. Other description text is preserved.</p>
-      <label>Old link (optional — blank means all Discord invites)</label><input id="youtubeOldLink" placeholder="Specific old invite, or leave blank for all">
+      <p class="hint">This replaces EVERY Discord server invite link in each selected description, even if invite codes differ. You do not need to select or enter an old link. Other description text is preserved.</p>
       <label>New link</label><input id="youtubeNewLink" value="https://discord.gg/G8gQKnkUg4" placeholder="New Discord invite or URL">
       <button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace Discord invites in selected videos</button>
       <div id="youtubeLinkProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
@@ -1569,14 +1568,11 @@ async function retryFailedYoutubeLinks() {
 }
 async function applyYoutubeLinkFix() {
   const ids = selectedYoutubeIds();
-  const oldLink = $("youtubeOldLink")?.value.trim();
   const newLink = $("youtubeNewLink")?.value.trim();
   if (!ids.length) return status("Select at least one video.");
   if (!newLink) return status("Enter the new Discord invite link.");
-  if (oldLink && oldLink === newLink) return status("The old and new links are identical.");
-  const replacements = oldLink ? [{ oldLink, newLink }] : [];
-  if (!confirm((oldLink ? "Replace this exact link" : "Replace ALL Discord invite links") +
-      " in " + ids.length + " selected descriptions? All videos will run automatically in batches of 50.")) return;
+  const replacements = [];
+  if (!confirm("Replace EVERY Discord server invite link, regardless of invite code, with the new link in " + ids.length + " selected descriptions? All videos will run automatically in batches of 50.")) return;
   youtubeLinkBatchJob = {
     videoIds: ids,
     replacements,
