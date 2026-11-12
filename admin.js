@@ -1485,8 +1485,9 @@ function renderYoutubeLinkProgress() {
       (remaining ? '<button type="button" onclick="processNextYoutubeLinkBatch()">Resume remaining videos (' + remaining + ')</button>' :
         '<p><strong>All selected videos processed.</strong></p>')) +
     (job.failed.length ? '<button type="button" class="secondary" onclick="retryFailedYoutubeLinks()">Retry failed videos (' + job.failed.length + ')</button>' : '') +
-    (job.failed.length ? '<details><summary>Failed videos (' + job.failed.length + ')</summary>' +
-      job.failed.map(v => '<p>' + safe(v.title || v.id) + ' — ' + safe(v.error) + '</p>').join('') + '</details>' : '');
+    (job.failed.length ? '<div class="admin-section" style="border-color:#b45353"><h4>Failed videos (' + job.failed.length + ')</h4><p>Here are the errors returned for the failed videos. Send me a screenshot of the first few lines.</p>' +
+      job.failed.slice(0, 20).map((v, i) => '<div class="admin-record"><strong>' + (i + 1) + '. ' + safe(v.title || v.id) + '</strong><p><strong>Error:</strong> ' + safe(v.error || 'No error details returned.') + '</p><small>Video ID: ' + safe(v.id || '') + '</small></div>').join('') +
+      (job.failed.length > 20 ? '<p>Showing first 20 of ' + job.failed.length + ' failed videos.</p>' : '') + '</div>' : '');
 }
 async function processNextYoutubeLinkBatch() {
   const job = youtubeLinkBatchJob;
