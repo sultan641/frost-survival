@@ -1331,11 +1331,16 @@ function renderYoutubeLinkMatches() {
         ${(scan.uniqueLinks || []).map(link => '<option value="' + safe(link) + '">' + safe(link) + '</option>').join("")}
       </select>
       <p class="hint">The video list below shows every detected link beside the video that contains it. After any replacement, the full scan runs again and shows links still present.</p>
-      <h3>Replace a link only</h3>
-      <p class="hint">Enter the exact old link and new link. Only that text is replaced; the rest of every selected description stays untouched.</p>
-      <label>Old link</label><input id="youtubeOldLink" value="discord.gg/NVf6zsb35" placeholder="Old Discord invite or URL">
-      <label>New link</label><input id="youtubeNewLink" value="discord.gg/G8gQKnkUg4" placeholder="New Discord invite or URL">
-      <button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace link in selected videos</button>
+      <h3>Replace Discord invites in descriptions</h3>
+      <p class="hint">Leave the old-link field empty to replace every detected Discord invite URL in the selected descriptions. Other description text is preserved.</p>
+      <label>Old link (optional — blank means all Discord invites)</label><input id="youtubeOldLink" placeholder="Specific old invite, or leave blank for all">
+      <label>New link</label><input id="youtubeNewLink" value="https://discord.gg/G8gQKnkUg4" placeholder="New Discord invite or URL">
+      <button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace Discord invites in selected videos</button>
+      <hr>
+      <h3>Audit existing comments</h3>
+      <p class="hint">Scans public comment threads across the connected channel, including replies returned by YouTube. Only comments authored by the connected channel can be edited.</p>
+      <button id="youtubeScanCommentsBtn" class="secondary" onclick="scanYoutubeDiscordComments()">Scan all channel comments</button>
+      <div id="youtubeCommentResults"></div>
       <hr>
       <h3>Replace complete descriptions (optional)</h3>
       <p class="hint">This replaces the entire description of every selected video with the text below. Use this only when you really want the same full description on all selected videos.</p>
@@ -1412,16 +1417,68 @@ async function applyYoutubeLinkFix() {
   const oldLink = $("youtubeOldLink")?.value.trim(), newLink = $("youtubeNewLink")?.value.trim();
   if (!ids.length) return status("Select at least one video.");
   if (ids.length > 50) return status("Select no more than 50 videos per batch.");
-  if (!oldLink || !newLink) return status("Enter both the old and new links.");
-  if (oldLink === newLink) return status("The old and new links are identical.");
-  if (!confirm("Replace only this link in " + ids.length + " selected descriptions? All other description text will remain unchanged.")) return;
+  if (!newLink) return status("Enter the new Discord invite link.");
+  if (oldLink && oldLink === newLink) return status("The old and new links are identical.");
+  const replacements = oldLink ? [{ oldLink, newLink }] : [];
+  if (!confirm((oldLink ? "Replace this exact link" : "Replace ALL Discord invite links") + " in " + ids.length + " selected descriptions? All other description text will remain unchanged.")) return;
   const btn = $("youtubeApplyBtn"); if (btn) btn.disabled = true;
   status("Replacing selected links…");
   try {
-    const result = await runYoutubeBatch("apply-links", { videoIds: ids, replacements: [{ oldLink, newLink }] }, "Link replacement");
+    const result = await runYoutubeBatch("apply-links", { videoIds: ids, replacements }, "Discord invite replacement");
     status("Link update finished: " + result.succeeded.length + " done, " + result.failed.length + " not done.");
   } catch (e) { status("Link replacement failed: " + e.message); }
   finally { if (btn) btn.disabled = false; }
+}
+let youtubeCommentMatches = [];
+async function scanYoutubeDiscordComments() {
+  const button = $("youtubeScanCommentsBtn"), area = $("youtubeCommentResults");
+  if (button) button.disabled = true;
+  if (area) area.textContent = "Scanning channel comments and replies…";
+  try {
+    const all = [];
+    let pageToken = "", pages = 0;
+    do {
+      const page = await youtubeLinkRequest("scan-comments", pageToken ? { pageToken } : {});
+      all.push(...(page.comments || []));
+      pageToken = page.nextPageToken || "";
+      pages++;
+      if (area) area.textContent = "Scanning comments… " + all.length + " Discord-link comments found (" + pages + " pages).";
+    } while (pageToken);
+    youtubeCommentMatches = all.filter(c => c.text);
+    renderYoutubeDiscordComments();
+  } catch (e) {
+    if (area) area.textContent = "Comment scan failed: " + e.message;
+  } finally { if (button) button.disabled = false; }
+}
+function renderYoutubeDiscordComments() {
+  const area = $("youtubeCommentResults");
+  if (!area) return;
+  area.innerHTML = '<h4>Discord links found in comments: ' + youtubeCommentMatches.length + '</h4>' +
+    (youtubeCommentMatches.length ? '<p>Select the comments you want to update. Comments without editable original text are not included.</p><div class="actions"><button type="button" class="secondary" onclick="selectAllYoutubeComments(true)">Select all</button><button type="button" class="secondary" onclick="selectAllYoutubeComments(false)">Select none</button><button type="button" onclick="replaceSelectedYoutubeComments()">Replace selected comment links</button></div>' +
+      youtubeCommentMatches.map((c,i) => '<div class="admin-record"><label><input type="checkbox" class="youtube-comment-choice" value="' + i + '" checked style="width:auto"> <strong>' + safe(c.videoId || "Channel comment") + '</strong></label><p style="white-space:pre-wrap">' + safe(c.text) + '</p></div>').join("") : '<p>No editable Discord invite links were found in the comments returned by YouTube.</p>');
+}
+function selectAllYoutubeComments(checked) {
+  document.querySelectorAll(".youtube-comment-choice").forEach(el => { el.checked = checked; });
+}
+async function replaceSelectedYoutubeComments() {
+  const indexes = Array.from(document.querySelectorAll(".youtube-comment-choice:checked")).map(el => Number(el.value));
+  if (!indexes.length) return status("Select at least one comment.");
+  const selected = indexes.map(i => youtubeCommentMatches[i]).filter(Boolean);
+  if (!confirm("Replace Discord invite links in " + selected.length + " selected comments? Only comments you own can be edited.")) return;
+  const area = $("youtubeCommentResults");
+  let done = 0, failed = [];
+  for (let i = 0; i < selected.length; i += 50) {
+    const batch = selected.slice(i, i + 50);
+    if (area) area.textContent = "Updating comments… " + done + " of " + selected.length + " completed.";
+    try {
+      const result = await youtubeLinkRequest("replace-comments", { comments: batch });
+      done += result.succeeded?.length || 0;
+      failed.push(...(result.failed || []));
+    } catch (e) { failed.push(...batch.map(c => ({ id:c.id, error:e.message }))); }
+  }
+  if (area) area.innerHTML = '<h4>Comment update results</h4><p><strong>Updated:</strong> ' + done + ' · <strong>Not updated:</strong> ' + failed.length + '</p>' +
+    (failed.length ? '<details open><summary>Comments that could not be updated</summary>' + failed.map(f => '<p>' + safe(f.id) + ' — ' + safe(f.error) + '</p>').join("") + '</details>' : '<p>All selected comments were updated.</p>');
+  await scanYoutubeDiscordComments();
 }
 async function postYoutubeComments() {
   const ids = selectedYoutubeIds(), comment = $("youtubeBulkComment")?.value.trim();
@@ -1449,7 +1506,7 @@ async function saveYoutubeVideoDescription(videoId) {
 async function applyYoutubeBulkDescription() {
   const ids = selectedYoutubeIds(), description = $("youtubeBulkDescription")?.value;
   if (!ids.length) return status("Select at least one video.");
-  if (ids.length > 100) return status("Select no more than 50 videos per batch.");
+  if (ids.length > 50) return status("Select no more than 50 videos per batch.");
   if (!description?.trim()) return status("Enter the complete description first.");
   if (!confirm("WARNING: This will replace the ENTIRE description on " + ids.length + " selected videos with the same text. Continue?")) return;
   const btn = $("youtubeBulkDescriptionBtn"); if (btn) btn.disabled = true;
