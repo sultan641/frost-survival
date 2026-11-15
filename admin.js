@@ -1252,7 +1252,7 @@ let youtubeLinkScan = null;
 let youtubeRetryJob = null;
 let youtubeLinkBatchJob = null;
 let youtubeVideoSelection = new Set();
-let youtubeVisibleVideoCount = 2;
+let youtubeVisibleVideoCount = 254;
 function showYoutubeLinkFixer() {
   youtubeLinkScan = null;
   if (!window.__frostYoutubeFixerHistory) {
@@ -1371,41 +1371,33 @@ function renderYoutubeLinkMatches() {
   if (!area || !scan) return;
   const videos = scan.videos || [];
   area.innerHTML = `
-    <div class="admin-section">
-      <h3>Channel videos</h3>
-      <p>Loaded ${Number(scan.totalVideos || videos.length)} videos · ${Number(scan.matchedVideos || 0)} contain the previously configured old invite links.</p>
-      <div class="actions">
-        <button onclick="selectAllYoutubeMatches(true)">Select all</button>
-        <button class="secondary" onclick="selectAllYoutubeMatches(false)">Select none</button>
-      </div>
-      <h3>Complete link audit</h3>
-      <p>Found ${scan.uniqueLinks?.length || 0} unique links across all descriptions. Old configured invite occurrences: ${Number(scan.totalOccurrences || 0)}.</p>
-      <label>All links found in your channel</label>
-      <select id="youtubeDetectedLink">
-        <option value="">Choose a detected link to inspect or replace</option>
-        ${(scan.uniqueLinks || []).map(link => '<option value="' + safe(link) + '">' + safe(link) + '</option>').join("")}
-      </select>
-      <p class="hint">The video list below shows every detected link beside the video that contains it. After any replacement, the full scan runs again and shows links still present.</p>
-      <h3>Replace Discord invites in descriptions</h3>
-      <p class="hint">This replaces EVERY Discord server invite link in each selected description, even if invite codes differ. You do not need to select or enter an old link. Other description text is preserved.</p>
-      <label>New link</label><input id="youtubeNewLink" value="https://discord.gg/G8gQKnkUg4" placeholder="New Discord invite or URL">
-      <button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace Discord invites in selected videos</button>
-      <div id="youtubeLinkProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
-      <hr>
-      <h3>Audit existing comments</h3>
-      <p class="hint">Scans public comment threads across the connected channel, including replies returned by YouTube. Only comments authored by the connected channel can be edited.</p>
-      <button id="youtubeScanCommentsBtn" class="secondary" onclick="scanYoutubeDiscordComments()">Scan all channel comments</button>
-      <div id="youtubeCommentEditProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
-      <div id="youtubeCommentResults"></div>
-      <hr>
-      <h3>Replace complete descriptions (optional)</h3>
-      <p class="hint">This replaces the entire description of every selected video with the text below. Use this only when you really want the same full description on all selected videos.</p>
-      <textarea id="youtubeBulkDescription" rows="7" placeholder="Enter the complete new description for all selected videos"></textarea>
-      <button class="danger" id="youtubeBulkDescriptionBtn" onclick="applyYoutubeBulkDescription()">Replace full descriptions of selected videos</button><div id="youtubeDescriptionProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
-      <hr>
-      <h3>Post a comment on selected videos</h3>
-      <p class="hint">This posts the same public YouTube comment under each selected video. Comments may be disabled or held for review by YouTube.</p>
-      <textarea id="youtubeBulkComment" rows="12" placeholder="Write the comment to post on selected videos">❄️ FROST SURVIVAL — GAME HUB
+    <style>
+      .ytm{display:grid;gap:14px;margin-top:14px}.ytm-card{background:var(--card,rgba(20,30,48,.72));border:1px solid var(--line,rgba(150,170,200,.2));border-radius:14px;padding:14px}
+      .ytm-top{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.ytm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+      .ytm-stat{padding:12px;border-radius:10px;background:rgba(120,150,190,.10);text-align:center}.ytm-stat strong{display:block;font-size:21px}.ytm-search{width:100%;box-sizing:border-box;padding:13px;border-radius:10px;border:1px solid var(--line,rgba(150,170,200,.3));background:var(--input,rgba(0,0,0,.15));color:inherit;font-size:16px}
+      .ytm-video{padding:12px 0;border-top:1px solid var(--line,rgba(150,170,200,.18))}.ytm-video:first-child{border-top:0}.ytm-video label{display:flex;gap:10px;align-items:flex-start}.ytm-video input[type=checkbox]{width:auto;margin-top:4px}.ytm-muted{opacity:.75;font-size:13px}.ytm details summary{cursor:pointer;font-weight:600;padding:8px 0}.ytm textarea{width:100%;box-sizing:border-box}.ytm-actions{display:flex;gap:8px;flex-wrap:wrap}
+      @media(max-width:520px){.ytm-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.ytm-stat{padding:9px 4px}.ytm-stat strong{font-size:18px}}
+    </style>
+    <div class="ytm">
+      <section class="ytm-card">
+        <div class="ytm-top"><strong>Channel overview</strong><span class="ytm-muted">Connected channel</span></div>
+        <div class="ytm-stats">
+          <div class="ytm-stat"><strong>${videos.length}</strong><span class="ytm-muted">Videos loaded</span></div>
+          <div class="ytm-stat"><strong>${Number(scan.uniqueLinks?.length || 0)}</strong><span class="ytm-muted">Unique links</span></div>
+          <div class="ytm-stat"><strong>${Number(scan.totalOccurrences || 0)}</strong><span class="ytm-muted">Old invites</span></div>
+        </div>
+        <div class="ytm-actions" style="margin-top:12px">
+          <button type="button" onclick="selectAllYoutubeMatches(true)">Select all videos</button>
+          <button type="button" class="secondary" onclick="selectAllYoutubeMatches(false)">Clear selection</button>
+        </div>
+        <p class="ytm-muted" style="margin-bottom:0">Choose videos below, then use the actions when needed.</p>
+      </section>
+
+      <section class="ytm-card">
+        <strong>Post your Frost Survival comment</strong>
+        <p class="ytm-muted">Post to selected videos, or choose all videos. Review the text before posting.</p>
+        <details style="margin-top:8px"><summary>View / edit promotional comment</summary>
+          <textarea id="youtubeBulkComment" rows="10" placeholder="Write the comment to post on selected videos">❄️ FROST SURVIVAL — GAME HUB
 
 ⬇️ Main Website & Downloads:
 https://sultan641.github.io/frost-survival/
@@ -1435,31 +1427,90 @@ Check the website for the latest gift codes and updates!
 Join our Discord for support, news, downloads and community events.
 
 FROST SURVIVAL — Your Ultimate 4X Gaming Hub!</textarea>
-      <button id="youtubePostCommentBtn" onclick="postYoutubeComments()">Post comment on selected videos</button>
-      <button type="button" class="secondary" onclick="postYoutubeCommentsToAll()">Post this comment on ALL channel videos</button><div id="youtubePostCommentProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
-      <div id="youtubeBatchResults" class="admin-section" aria-live="polite"></div>
-    </div>
-    <div id="youtubeMatchList">
-      ${videos.slice(0, youtubeVisibleVideoCount).map(v => `
-        <div class="admin-record">
-          <label style="display:flex;gap:9px;align-items:center">
-            <input type="checkbox" class="youtube-link-choice" value="${safe(v.id)}" ${youtubeVideoSelection.has(v.id) ? "checked" : ""} onchange="toggleYoutubeVideoSelection(this)" style="width:auto">
-            <strong>${safe(v.title)}</strong>
-          </label>
-          <p><a href="${safe(v.url)}" target="_blank" rel="noopener">Open video on YouTube</a> · ${Number(v.occurrences || 0)} old invite occurrences</p>
-          <p><strong>Links found:</strong> ${v.links?.length ? v.links.map(link => '<code>' + safe(link) + '</code>').join(' · ') : 'No links detected'}</p>
-          <details><summary>View / edit complete description</summary>
-            <textarea id="youtube-description-${safe(v.id)}" rows="9" style="width:100%;box-sizing:border-box">${safe(v.description)}</textarea>
-            <button onclick="saveYoutubeVideoDescription('${safe(v.id)}')">Save this video's full description</button>
-          </details>
+        </details>
+        <div class="ytm-actions" style="margin-top:10px">
+          <button id="youtubePostCommentBtn" onclick="postYoutubeComments()">Post to selected</button>
+          <button type="button" class="secondary" onclick="postYoutubeCommentsToAll()">Post to all videos</button>
         </div>
-      `).join("")}
+        <div id="youtubePostCommentProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
+        <div id="youtubeBatchResults" class="admin-section" aria-live="polite"></div>
+      </section>
+
+      <section class="ytm-card">
+        <strong>Find a video</strong>
+        <p class="ytm-muted">Search by any part of the title. Approximate matches are shown first.</p>
+        <input id="youtubeVideoSearch" class="ytm-search" type="search" placeholder="Search videos by title…" oninput="filterYoutubeVideos(this.value)">
+        <div class="ytm-actions" style="margin-top:10px">
+          <button type="button" class="secondary" onclick="scanYoutubeOldLinks()">Refresh video list</button>
+          <button type="button" class="secondary" onclick="selectAllYoutubeMatches(true)">Select all</button>
+          <button type="button" class="secondary" onclick="selectAllYoutubeMatches(false)">Select none</button>
+        </div>
+        <div id="youtubeMatchList" style="margin-top:12px">
+          ${videos.slice(0, youtubeVisibleVideoCount).map(v => renderYoutubeVideoRow(v)).join("")}
+        </div>
+        ${videos.length > youtubeVisibleVideoCount ? '<button type="button" class="secondary" onclick="showMoreYoutubeVideos()">Show 10 more videos (' + (videos.length - youtubeVisibleVideoCount) + ' remaining)</button>' : ''}
+        <p class="ytm-muted" id="youtubeVideoCount" style="margin-bottom:0">Showing ${Math.min(videos.length, youtubeVisibleVideoCount)} of ${videos.length} videos. Select all includes every video.</p>
+      </section>
+
+      <details class="ytm-card">
+        <summary><strong>Advanced tools — descriptions & link audit</strong></summary>
+        <p class="ytm-muted">Replace old Discord invites without changing other description text.</p>
+        <label>New Discord invite</label><input id="youtubeNewLink" value="https://discord.gg/G8gQKnkUg4" placeholder="New Discord invite">
+        <button id="youtubeApplyBtn" onclick="applyYoutubeLinkFix()">Replace invites in selected videos</button>
+        <div id="youtubeLinkProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
+        <hr>
+        <label>Detected links</label>
+        <select id="youtubeDetectedLink"><option value="">Choose a link to inspect</option>${(scan.uniqueLinks || []).map(link => '<option value="' + safe(link) + '">' + safe(link) + '</option>').join("")}</select>
+        <hr>
+        <button id="youtubeScanCommentsBtn" class="secondary" onclick="scanYoutubeDiscordComments()">Scan existing channel comments</button>
+        <div id="youtubeCommentEditProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
+        <div id="youtubeCommentResults"></div>
+        <hr>
+        <label>Replace entire description (use carefully)</label>
+        <textarea id="youtubeBulkDescription" rows="5" placeholder="Enter the complete description"></textarea>
+        <button class="danger" id="youtubeBulkDescriptionBtn" onclick="applyYoutubeBulkDescription()">Replace full descriptions of selected videos</button>
+        <div id="youtubeDescriptionProgress" class="admin-record" aria-live="polite" style="margin-top:10px;display:none"></div>
+      </details>
     </div>
-    ${videos.length > youtubeVisibleVideoCount ? '<button type="button" class="secondary" onclick="showMoreYoutubeVideos()">Show 10 more videos (' + (videos.length - youtubeVisibleVideoCount) + ' remaining)</button>' : ''}
-    <p class="hint">Showing ${Math.min(videos.length, youtubeVisibleVideoCount)} of ${videos.length} videos. Select all includes hidden videos.</p>
-      <p class="hint">Bulk actions run in batches of 50. Use the progress controls under each action to continue and review failed items.</p>
   `;
 }
+function renderYoutubeVideoRow(v) {
+  return `<div class="ytm-video" data-youtube-video-row="${safe(v.id)}">
+    <label><input type="checkbox" class="youtube-link-choice" value="${safe(v.id)}" ${youtubeVideoSelection.has(v.id) ? "checked" : ""} onchange="toggleYoutubeVideoSelection(this)">
+      <span><strong>${safe(v.title)}</strong><br><span class="ytm-muted">${Number(v.occurrences || 0)} old invite(s) in description</span></span>
+    </label>
+    <div class="ytm-actions" style="margin:7px 0 0 26px"><a href="${safe(v.url)}" target="_blank" rel="noopener">Open video</a></div>
+    <details style="margin-left:26px"><summary>View / edit description & links</summary>
+      <p class="ytm-muted">${v.links?.length ? v.links.map(link => '<code>' + safe(link) + '</code>').join(' · ') : 'No links detected'}</p>
+      <textarea id="youtube-description-${safe(v.id)}" rows="6">${safe(v.description)}</textarea>
+      <button onclick="saveYoutubeVideoDescription('${safe(v.id)}')">Save description</button>
+    </details>
+  </div>`;
+}
+function filterYoutubeVideos(query) {
+  const list = $("youtubeMatchList");
+  if (!list || !youtubeLinkScan) return;
+  const q = String(query || "").toLowerCase().trim();
+  const videos = youtubeLinkScan.videos || [];
+  const scored = videos.map(v => {
+    const title = String(v.title || "").toLowerCase();
+    let score = 0;
+    if (!q) score = 1;
+    else if (title.includes(q)) score = 100 + q.length;
+    else {
+      const words = q.split(/\\s+/).filter(Boolean);
+      score = words.reduce((n, word) => n + (title.includes(word) ? 12 : 0), 0);
+      if (title.split(/\\s+/).some(word => word.startsWith(q))) score += 8;
+      if (score && title.length) score -= Math.min(5, Math.abs(title.length - q.length) / 20);
+    }
+    return { video:v, score };
+  }).filter(x => !q || x.score > 0).sort((a,b) => b.score-a.score);
+  const matches = scored.map(x=>x.video);
+  list.innerHTML = matches.length ? matches.map(v=>renderYoutubeVideoRow(v)).join("") : '<p class="ytm-muted">No close title matches found.</p>';
+  const count = $("youtubeVideoCount");
+  if (count) count.textContent = q ? matches.length + " closest matches from " + videos.length + " videos." : "Showing all " + matches.length + " videos.";
+}
+
 function selectAllYoutubeMatches(checked) {
   youtubeVideoSelection = new Set(checked ? (youtubeLinkScan?.videos || []).map(v => v.id) : []);
   document.querySelectorAll(".youtube-link-choice").forEach(el => { el.checked = checked; });
