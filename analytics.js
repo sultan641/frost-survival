@@ -75,7 +75,7 @@
         else if (/tools\.html/.test(internalPath)) record("tool_use", host);
         return;
       }
-      if (path.includes("promotion") && /top\.gg|discord\.com\/servers|reddit\.com|bing\.com|google\.com/.test(href)) record("promotion_click", host);
+      if (path.includes("promotion")) record("promotion_click", host);
       else if (host.includes("discord.gg") || host.includes("discord.com")) record("discord_click", host);
       else if (host.includes("youtube.com") || host.includes("youtu.be")) record("youtube_click", host);
       else if (/wos-v4|v5-europe|v5-china|kingshot-v4|landing\.|passport\.|europeeu1/.test(href)) record("game_click", host);
