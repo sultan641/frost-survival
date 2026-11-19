@@ -921,6 +921,17 @@ async function copyAgentAll(id,title,kind) {
   try { await agentCopy(details.join("\\n")); status("All account details copied."); }
   catch(e) { status("Copy failed: "+e.message); }
 }
+
+function toggleAgentPassword(id,b) { const f=$(id); if(!f) return; f.type=f.type==="password"?"text":"password"; b.textContent=f.type==="password"?"Show":"Hide"; }
+async function saveAgentAccount(id,game,b,kind) {
+  if(b) b.disabled=true;
+  try {
+    await callAgentVault("save",{game,url:$(id+"Url").value.trim(),username:$(id+"User").value.trim(),password:$(id+"Pass").value,referral_code:$(id+"Referral")?.value.trim()||""});
+    status("Saved securely: "+(kind==="live"?"livestreaming account":"agent panel")+".");
+    const refreshed=await callAgentVault("list"); agentVaultRecords=refreshed.accounts||[];
+  } catch(e) { status("Save failed: "+e.message); }
+  finally { if(b) b.disabled=false; }
+}
 // AUTH SESSION
 // Avoid calling Supabase auth methods from inside onAuthStateChange.
 // Login submits directly to Supabase, then refreshes the dashboard.
