@@ -6,7 +6,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Frost Survival Admin</title>
   <link rel="stylesheet" href="style.css?v=20261101-audit1">
-  <style>#adminBox[hidden], #loginBox[hidden] { display: none !important; }</style>
+  <style>
+    #adminBox[hidden], #loginBox[hidden] { display: none !important; }
+    /* Admin pages use a bright, readable workspace instead of the public site's dark theme. */
+    body:has(#adminBox:not([hidden])) { background:#eef5fc !important; color:#17324d !important; }
+    body:has(#adminBox:not([hidden])):before { display:none !important; }
+    body:has(#adminBox:not([hidden])) main.wrap { max-width:1120px; }
+    body:has(#adminBox:not([hidden])) .hero { display:none !important; }
+    body:has(#adminBox:not([hidden])) .form-card { max-width:1120px; background:#fff !important; color:#17324d !important; border:1px solid #c6d8e9 !important; box-shadow:0 8px 28px #17324d12 !important; }
+    body:has(#adminBox:not([hidden])) #adminBox,
+    body:has(#adminBox:not([hidden])) #adminContent { color:#17324d !important; }
+    body:has(#adminBox:not([hidden])) #adminContent h1,
+    body:has(#adminBox:not([hidden])) #adminContent h2,
+    body:has(#adminBox:not([hidden])) #adminContent h3,
+    body:has(#adminBox:not([hidden])) #adminContent h4,
+    body:has(#adminBox:not([hidden])) #adminContent p,
+    body:has(#adminBox:not([hidden])) #adminContent label,
+    body:has(#adminBox:not([hidden])) #adminContent .hint,
+    body:has(#adminBox:not([hidden])) #adminContent .small,
+    body:has(#adminBox:not([hidden])) #adminContent .status { color:#17324d !important; }
+    body:has(#adminBox:not([hidden])) #adminContent .admin-section,
+    body:has(#adminBox:not([hidden])) #adminContent .admin-record { background:#f7fbff !important; color:#17324d !important; border-color:#c8d9e8 !important; }
+    body:has(#adminBox:not([hidden])) #adminContent input:not([type=checkbox]),
+    body:has(#adminBox:not([hidden])) #adminContent textarea,
+    body:has(#adminBox:not([hidden])) #adminContent select { background:#fff !important; color:#172f48 !important; border:1px solid #9fb5ca !important; }
+    body:has(#adminBox:not([hidden])) #adminContent input[type=checkbox] { accent-color:#087bdb; }
+    body:has(#adminBox:not([hidden])) #adminStatus { color:#0757a2 !important; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0';this.onerror=function(){window.frostSupabaseLoadFailed=true;var s=document.getElementById('adminStatus');if(s)s.textContent='Supabase login library failed to load from both CDNs. Switch network or browser and reload.';};"></script>
   <script>window.frostAdminJsReady=false;window.frostAdminSubmitGuard=function(e){if(!window.frostAdminJsReady){e.preventDefault();var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin login script did not start. Reload the page; if it repeats, switch network or browser.';}return false;}return true;};</script>
 </head>
@@ -59,7 +85,7 @@
     <div class="wrap"><a href="index.html">Back to site</a></div>
   </footer>
 
-  <script src="admin.js?v=20261120-style1-v5" onerror="var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin JavaScript file failed to load. Refresh the page and try again.';}"></script><script src="analytics.js?v=7"></script>
+  <script src="admin.js?v=20261120-readable-v6" onerror="var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin JavaScript file failed to load. Refresh the page and try again.';}"></script><script src="analytics.js?v=7"></script>
 <script src="back-navigation.js?v=2"></script>
 </body>
 </html>
