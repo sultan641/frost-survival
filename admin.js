@@ -89,6 +89,7 @@ async function refreshAuth() {
 
   $("loginBox").hidden = true;
   $("adminBox").hidden = false;
+  document.body.classList.add("admin-active");
   status("Admin login successful.");
   showDashboard();
 }
@@ -127,6 +128,7 @@ $("loginForm").addEventListener("submit", async event => {
     }
     $("loginBox").hidden = true;
     $("adminBox").hidden = false;
+    document.body.classList.add("admin-active");
     $("email").value = "";
     $("password").value = "";
     status("Admin login successful.");
@@ -151,6 +153,7 @@ async function signOut() {
 
   $("loginBox").hidden = false;
   $("adminBox").hidden = true;
+  document.body.classList.remove("admin-active");
   $("email").value = "";
   $("password").value = "";
   status("Signed out. Please sign in again.");
@@ -177,7 +180,8 @@ window.addEventListener("unhandledrejection", event => {
 
 // MAIN DASHBOARD
 
-function showDashboard() {
+function showDashboard(skipHistory = false) {
+  if (!skipHistory) history.replaceState({ frostAdminView: "dashboard" }, "", location.pathname + location.search);
   // Keep the two dashboard shortcuts only in the main quick-card area.
   // This also cleans up older cached HTML that still has duplicate top shortcuts.
   const topActions = document.querySelector("#adminBox > .actions");
@@ -296,8 +300,9 @@ function addAdminStyles() {
 
 // GAME DASHBOARD
 
-async function openGame(index) {
+async function openGame(index, skipHistory = false) {
   selectedGame = games[index];
+  if (!skipHistory) history.pushState({ frostAdminView: "game", gameIndex: index }, "", "#game-" + index);
 
   $("adminContent").innerHTML = `
     <button class="secondary" onclick="showDashboard()">
@@ -315,11 +320,12 @@ async function openGame(index) {
     <div id="gameSection"></div>
   `;
 
-  await showGameSection("settings");
+  await showGameSection("settings", true);
 }
 
-async function showGameSection(section) {
+async function showGameSection(section, skipHistory = false) {
   if (!selectedGame) return;
+  if (!skipHistory) history.pushState({ frostAdminView: "game-section", gameIndex: games.indexOf(selectedGame), section }, "", "#game-" + games.indexOf(selectedGame) + "-" + section);
 
   if (section === "settings") {
     await loadGameSettings();
@@ -743,7 +749,8 @@ async function loadTrafficAnalytics(days = 7) {
   `;
 }
 
-async function showTab(tab) {
+async function showTab(tab, skipHistory = false) {
+  if (!skipHistory) history.pushState({ frostAdminView: "tab", tab }, "", "#admin-" + tab);
   if(tab==="youtube-links"||tab==="youtube-suite"){showYoutubeSuite("studio");return;}
   if(tab==="agents"){await showAgentStreaming();return;}
   if(tab==="ai"){showDeveloperAI();return;}
@@ -1281,8 +1288,32 @@ async function refreshYoutubeManagerConnection() {
     hint.textContent = "Could not verify YouTube connection. Reconnect YouTube if video loading fails.";
   }
 }
-window.addEventListener("popstate", () => {
-  if (window.__frostYoutubeFixerHistory) showDashboard();
+window.addEventListener("popstate", event => {
+  const view = event.state && event.state.frostAdminView;
+  if (view === "dashboard") {
+    showDashboard(true);
+    return;
+  }
+  if (view === "game") {
+    openGame(Number(event.state.gameIndex), true);
+    return;
+  }
+  if (view === "game-section") {
+    const index = Number(event.state.gameIndex);
+    if (Number.isInteger(index) && games[index]) {
+      selectedGame = games[index];
+      openGame(index, true).then(() => showGameSection(event.state.section || "settings", true));
+    }
+    return;
+  }
+  if (view === "tab") {
+    showTab(event.state.tab, true);
+    return;
+  }
+  if (window.__frostYoutubeFixerHistory) {
+    window.__frostYoutubeFixerHistory = false;
+    showDashboard(true);
+  }
 });
 async function youtubeLinkRequest(action, payload = {}) {
   const { data: sessionData } = await db.auth.getSession();
