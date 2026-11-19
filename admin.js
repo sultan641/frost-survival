@@ -735,7 +735,7 @@ async function loadTrafficAnalytics(days = 7) {
   `;
 }
 
-async async function showTab(tab) {
+async function showTab(tab) {
   if(tab==="youtube-links"||tab==="youtube-suite"){showYoutubeSuite("studio");return;}
   if(tab==="agents"){await showAgentStreaming();return;}
   if(tab==="ai"){showDeveloperAI();return;}
