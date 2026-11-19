@@ -34,6 +34,43 @@
     body.admin-active #adminContent input[type=checkbox] { accent-color:#087bdb; }
     body.admin-active #adminStatus { color:#0757a2 !important; }
     body.admin-active footer { display:none !important; }
+    /* Strong, consistent contrast for every admin tool and sub-page. */
+    body.admin-active #adminContent,
+    body.admin-active #adminContent p,
+    body.admin-active #adminContent span,
+    body.admin-active #adminContent strong,
+    body.admin-active #adminContent b,
+    body.admin-active #adminContent small,
+    body.admin-active #adminContent label,
+    body.admin-active #adminContent h1,
+    body.admin-active #adminContent h2,
+    body.admin-active #adminContent h3,
+    body.admin-active #adminContent h4,
+    body.admin-active #adminContent li,
+    body.admin-active #adminContent a { color:#17324d !important; text-shadow:none !important; }
+    body.admin-active #adminContent button { color:#fff !important; }
+    body.admin-active #adminContent button.secondary,
+    body.admin-active #adminContent .secondary { color:#0757a2 !important; background:#e6f2ff !important; border-color:#b8d4ee !important; }
+    body.admin-active #adminContent input,
+    body.admin-active #adminContent textarea,
+    body.admin-active #adminContent select { color:#17324d !important; background:#fff !important; border:1px solid #9db5cc !important; }
+    body.admin-active #adminContent .admin-section,
+    body.admin-active #adminContent .admin-record,
+    body.admin-active #adminContent .agent-detail-card,
+    body.admin-active #adminContent .fs-dashboard-section,
+    body.admin-active #adminContent .fs-tool-card,
+    body.admin-active #adminContent .fs-game-card,
+    body.admin-active #adminContent .card,
+    body.admin-active #adminContent section:not(.fs-admin-hero):not(.agent-vault-heading):not(.agent-game-banner) { background:#fff !important; color:#17324d !important; border-color:#c8d9e8 !important; }
+    body.admin-active #adminContent .fs-admin-hero,
+    body.admin-active #adminContent .agent-vault-heading,
+    body.admin-active #adminContent .agent-game-banner,
+    body.admin-active #adminContent .fs-discord { background:linear-gradient(110deg,#063b78,#087bd8) !important; }
+    body.admin-active #adminContent .fs-admin-hero *,
+    body.admin-active #adminContent .agent-vault-heading *,
+    body.admin-active #adminContent .agent-game-banner *,
+    body.admin-active #adminContent .fs-discord * { color:#fff !important; }
+    body.admin-active #adminBackButton { display:inline-flex !important; visibility:visible !important; opacity:1 !important; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2.119.0';this.onerror=function(){window.frostSupabaseLoadFailed=true;var s=document.getElementById('adminStatus');if(s)s.textContent='Supabase login library failed to load from both CDNs. Switch network or browser and reload.';};"></script>
   <script>window.frostAdminJsReady=false;window.frostAdminSubmitGuard=function(e){if(!window.frostAdminJsReady){e.preventDefault();var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin login script did not start. Reload the page; if it repeats, switch network or browser.';}return false;}return true;};</script>
@@ -85,7 +122,7 @@
 
   
 
-  <script src="admin.js?v=20261120-internal-stack-v9" onerror="var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin JavaScript file failed to load. Refresh the page and try again.';}"></script><script src="analytics.js?v=7"></script>
+  <script src="admin.js?v=20261120-admin-fix-v10" onerror="var s=document.getElementById('adminStatus');if(s){s.hidden=false;s.style.display='block';s.textContent='Admin JavaScript file failed to load. Refresh the page and try again.';}"></script><script src="analytics.js?v=7"></script>
 
 </body>
 </html>
