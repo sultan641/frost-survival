@@ -182,7 +182,11 @@ window.addEventListener("unhandledrejection", event => {
 
 function showDashboard(skipHistory = false) {
   if (!skipHistory) {
-    window.__frostAdminStack = [{ frostAdminView: "dashboard" }];
+    if (!window.__frostAdminStack || !window.__frostAdminStack.length) {
+      window.__frostAdminStack = [{ frostAdminView: "dashboard" }];
+    } else {
+      window.__frostAdminStack = [{ frostAdminView: "dashboard" }];
+    }
     history.replaceState({ frostAdminView: "dashboard" }, "", location.pathname + location.search);
   }
   // Keep the two dashboard shortcuts only in the main quick-card area.
@@ -190,7 +194,7 @@ function showDashboard(skipHistory = false) {
   const topActions = document.querySelector("#adminBox > .actions");
   if (topActions) {
     topActions.querySelectorAll("a, button").forEach(control => {
-      if (control.id !== "signOutButton") control.remove();
+      if (control.id !== "signOutButton" && control.id !== "adminBackButton") control.remove();
     });
   }
   if(window.__frostYoutubeFixerHistory){window.__frostYoutubeFixerHistory=false;history.replaceState(null,"",location.pathname+location.search);}
@@ -764,7 +768,7 @@ function showGrowthCenter(view="home") {
   else $("growthCenterPanel").innerHTML='<div class="admin-section"><h2>Frost Growth Center</h2><p>Open the growth workspace for promotion planning, campaigns and community growth.</p><a class="btn" href="growth-center.html">Open Frost Growth Center →</a></div><div class="admin-section"><h3>Promotion Analytics</h3><p>Review website traffic, game clicks, campaign links and social engagement.</p><button onclick="showGrowthCenter(\'analytics\')">Open Analytics →</button></div>';
 }
 async function showManagementCenter(view="apps") {
-  $("adminContent").innerHTML='<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="fs-admin-hero"><h1>Apps, Bug Reports &amp; Developer Dashboard</h1><p>Applications, player issues and developer controls in one place.</p></div><div class="fs-subnav"><button onclick="showManagementCenter(\'apps\')">Applications</button><button onclick="showManagementCenter(\'bugs\')">Bug Reports</button><button onclick="showManagementCenter(\'developer\')">Developer Dashboard</button></div><div id="managementCenterPanel"></div>';
+  $("adminContent").innerHTML='<div class="fs-admin-hero"><h1>Apps, Bug Reports &amp; Developer Dashboard</h1><p>Applications, player issues and developer controls in one place.</p></div><div class="fs-subnav"><button onclick="showManagementCenter(\'apps\')">Applications</button><button onclick="showManagementCenter(\'bugs\')">Bug Reports</button><button onclick="showManagementCenter(\'developer\')">Developer Dashboard</button></div><div id="managementCenterPanel"></div>';
   if(view==="developer"){await showDeveloperDashboard();return;}
   const table=view==="apps"?"team_applications":"bug_reports", title=view==="apps"?"Applications":"Bug Reports";
   $("managementCenterPanel").innerHTML='<h2>'+title+'</h2><div id="managementRecords">Loading…</div>';
@@ -1316,6 +1320,8 @@ function pushAdminView(state, hash) {
   history.pushState(state, "", hash);
 }
 function adminGoBack() {
+  const backControl = $("adminBackButton");
+  if (backControl) backControl.style.display = "inline-flex";
   const stack = window.__frostAdminStack || [];
   if (stack.length > 1) {
     stack.pop();
