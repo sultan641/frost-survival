@@ -178,6 +178,14 @@ window.addEventListener("unhandledrejection", event => {
 // MAIN DASHBOARD
 
 function showDashboard() {
+  // Keep the two dashboard shortcuts only in the main quick-card area.
+  // This also cleans up older cached HTML that still has duplicate top shortcuts.
+  const topActions = document.querySelector("#adminBox > .actions");
+  if (topActions) {
+    topActions.querySelectorAll("a, button").forEach(control => {
+      if (control.id !== "signOutButton") control.remove();
+    });
+  }
   if(window.__frostYoutubeFixerHistory){window.__frostYoutubeFixerHistory=false;history.replaceState(null,"",location.pathname+location.search);}
   selectedGame=""; addAdminStyles();
   const items=[["Whiteout Survival V4","❄️"],["Whiteout Survival V5 Europe","🇪🇺"],["Whiteout Survival V5 China","🇨🇳"],["Whiteout Survival UV V6","🧊"],["KingShot V4","👑"]];
