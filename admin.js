@@ -277,7 +277,12 @@ function addAdminStyles() {
     .fs-subnav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.fs-subnav button{border:1px solid #b9d7f4;border-radius:10px;padding:10px 14px;background:#eaf5ff;color:#0757a2;font-weight:750}
     .fs-youtube-frame{width:100%;height:850px;border:1px solid #bdd8f2;border-radius:14px;background:#fff}
     @media(max-width:650px){.fs-quick-grid,.fs-tools-grid{grid-template-columns:1fr}.fs-games-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fs-game-card{grid-column:span 1;min-height:150px}.fs-game-card:first-child{grid-column:span 2}.fs-dashboard-section{padding:12px}}
-  document.head.appendChild(style);
+  
+    body:has(#adminBox:not([hidden])){background:#eef6ff!important;color:#12365d!important}
+    body:has(#adminBox:not([hidden])) .form-card{background:transparent!important;border:0!important;box-shadow:none!important}
+    body:has(#adminBox:not([hidden])) main.wrap{max-width:1120px}
+    body:has(#adminBox:not([hidden])) .status{color:#0757a2}
+document.head.appendChild(style);
 }
 
 // GAME DASHBOARD
