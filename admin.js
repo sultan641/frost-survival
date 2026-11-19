@@ -181,7 +181,10 @@ window.addEventListener("unhandledrejection", event => {
 // MAIN DASHBOARD
 
 function showDashboard(skipHistory = false) {
-  if (!skipHistory) history.replaceState({ frostAdminView: "dashboard" }, "", location.pathname + location.search);
+  if (!skipHistory) {
+    window.__frostAdminStack = [{ frostAdminView: "dashboard" }];
+    history.replaceState({ frostAdminView: "dashboard" }, "", location.pathname + location.search);
+  }
   // Keep the two dashboard shortcuts only in the main quick-card area.
   // This also cleans up older cached HTML that still has duplicate top shortcuts.
   const topActions = document.querySelector("#adminBox > .actions");
@@ -302,7 +305,7 @@ function addAdminStyles() {
 
 async function openGame(index, skipHistory = false) {
   selectedGame = games[index];
-  if (!skipHistory) history.pushState({ frostAdminView: "game", gameIndex: index }, "", "#game-" + index);
+  if (!skipHistory) pushAdminView({ frostAdminView: "game", gameIndex: index }, "#game-" + index);
 
   $("adminContent").innerHTML = `
     
@@ -323,7 +326,7 @@ async function openGame(index, skipHistory = false) {
 
 async function showGameSection(section, skipHistory = false) {
   if (!selectedGame) return;
-  if (!skipHistory) history.pushState({ frostAdminView: "game-section", gameIndex: games.indexOf(selectedGame), section }, "", "#game-" + games.indexOf(selectedGame) + "-" + section);
+  if (!skipHistory) pushAdminView({ frostAdminView: "game-section", gameIndex: games.indexOf(selectedGame), section }, "#game-" + games.indexOf(selectedGame) + "-" + section);
 
   if (section === "settings") {
     await loadGameSettings();
@@ -748,7 +751,7 @@ async function loadTrafficAnalytics(days = 7) {
 }
 
 async function showTab(tab, skipHistory = false) {
-  if (!skipHistory) history.pushState({ frostAdminView: "tab", tab }, "", "#admin-" + tab);
+  if (!skipHistory) pushAdminView({ frostAdminView: "tab", tab }, "#admin-" + tab);
   if(tab==="youtube-links"||tab==="youtube-suite"){showYoutubeSuite("studio");return;}
   if(tab==="agents"){await showAgentStreaming();return;}
   if(tab==="ai"){showDeveloperAI();return;}
@@ -830,7 +833,7 @@ function openAgentUrlInChrome(id) {
   } catch(e) { status("Invalid link: "+e.message); }
 }
 function showAgentGameList(skipHistory = false) {
-  if (!skipHistory) history.pushState({ frostAdminView: "agents-list" }, "", "#admin-agents");
+  if (!skipHistory) pushAdminView({ frostAdminView: "agents-list" }, "#admin-agents");
   const cards=agentGameCatalog.map((g,i)=>'<button class="agent-game-tile" type="button" onclick="openAgentGame('+i+')"><span class="agent-game-icon">'+g.icon+'</span><span class="agent-game-name">'+safe(g.label)+'</span><span class="agent-game-sub">Agent Panel + Live Streaming</span><span class="agent-game-arrow">›</span></button>').join("");
   $("agentVaultCards").innerHTML='<div class="agent-game-grid">'+cards+'</div>';
 }
@@ -848,7 +851,7 @@ async function showAgentStreaming(skipHistory = false) {
 function getAgentRecord(key) { return agentVaultRecords.find(x=>x.game===key)||{}; }
 function openAgentGame(index, skipHistory = false) {
   const g=agentGameCatalog[index]; if(!g) return;
-  if (!skipHistory) history.pushState({ frostAdminView: "agent-detail", agentIndex: index }, "", "#agent-" + index);
+  if (!skipHistory) pushAdminView({ frostAdminView: "agent-detail", agentIndex: index }, "#agent-" + index);
   const panel=getAgentRecord(g.key), live=getAgentRecord(g.liveKey);
   const panelId="detailPanel", liveId="detailLive";
   const makeCard=(kind,record,id,url,key,title)=> {
@@ -1305,17 +1308,35 @@ function renderAdminHistoryState(state) {
   if (view === "agents-list") { showAgentStreaming(true); return; }
   if (view === "agent-detail") { openAgentGame(Number(state.agentIndex), true); return; }
 }
+function pushAdminView(state, hash) {
+  if (!window.__frostAdminStack || !window.__frostAdminStack.length) {
+    window.__frostAdminStack = [{ frostAdminView: "dashboard" }];
+  }
+  window.__frostAdminStack.push(state);
+  history.pushState(state, "", hash);
+}
 function adminGoBack() {
-  const current = history.state && history.state.frostAdminView;
-  if (current && current !== "dashboard" && history.length > 1) {
-    history.back();
+  const stack = window.__frostAdminStack || [];
+  if (stack.length > 1) {
+    stack.pop();
+    const previous = stack[stack.length - 1];
+    history.replaceState(previous, "", location.pathname + location.search + (previous.frostAdminView === "dashboard" ? "" : "#admin-back"));
+    renderAdminHistoryState(previous);
   } else {
+    // Stay inside Admin Console; never jump directly to the public homepage.
     showDashboard(true);
   }
 }
 $("adminBackButton").addEventListener("click", adminGoBack);
 window.addEventListener("popstate", event => {
-  renderAdminHistoryState(event.state);
+  // Browser/device Back also follows the same in-admin navigation stack.
+  const stack = window.__frostAdminStack || [];
+  if (stack.length > 1) {
+    stack.pop();
+    renderAdminHistoryState(stack[stack.length - 1]);
+  } else {
+    showDashboard(true);
+  }
 });
 async function youtubeLinkRequest(action, payload = {}) {
   const { data: sessionData } = await db.auth.getSession();
