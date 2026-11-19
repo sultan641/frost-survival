@@ -747,7 +747,7 @@ function showGrowthCenter(view="home") {
   if(view==="analytics"){$("growthCenterPanel").innerHTML='<h2>Promotion Analytics</h2><div id="globalRecords">Loading analytics…</div>';loadTrafficAnalytics(7);}
   else $("growthCenterPanel").innerHTML='<div class="admin-section"><h2>Frost Growth Center</h2><p>Open the growth workspace for promotion planning, campaigns and community growth.</p><a class="btn" href="growth-center.html">Open Frost Growth Center →</a></div><div class="admin-section"><h3>Promotion Analytics</h3><p>Review website traffic, game clicks, campaign links and social engagement.</p><button onclick="showGrowthCenter(\'analytics\')">Open Analytics →</button></div>';
 }
-function showManagementCenter(view="apps") {
+async function showManagementCenter(view="apps") {
   $("adminContent").innerHTML='<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="fs-admin-hero"><h1>Apps, Bug Reports &amp; Developer Dashboard</h1><p>Applications, player issues and developer controls in one place.</p></div><div class="fs-subnav"><button onclick="showManagementCenter(\'apps\')">Applications</button><button onclick="showManagementCenter(\'bugs\')">Bug Reports</button><button onclick="showManagementCenter(\'developer\')">Developer Dashboard</button></div><div id="managementCenterPanel"></div>';
   if(view==="developer"){await showDeveloperDashboard();return;}
   const table=view==="apps"?"team_applications":"bug_reports", title=view==="apps"?"Applications":"Bug Reports";
