@@ -1333,7 +1333,17 @@ function adminGoBack() {
     showDashboard(true);
   }
 }
-$("adminBackButton").addEventListener("click", adminGoBack);
+const adminBackControl = $("adminBackButton");
+if (adminBackControl) {
+  // Keep exactly one Back control visible above every admin page.
+  document.body.appendChild(adminBackControl);
+  adminBackControl.type = "button";
+  adminBackControl.textContent = "← Back";
+  adminBackControl.style.cssText = "position:fixed!important;left:16px!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;z-index:2147483000!important;display:inline-flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;padding:12px 20px!important;border-radius:999px!important;background:#087fc4!important;color:#fff!important;border:2px solid #39bfe9!important;box-shadow:0 4px 18px #0005!important;font-weight:800!important;";
+  adminBackControl.addEventListener("click", adminGoBack);
+} else {
+  console.error("Admin Back button element is missing from admin.html");
+}
 window.addEventListener("popstate", event => {
   // Browser/device Back also follows the same in-admin navigation stack.
   const stack = window.__frostAdminStack || [];
