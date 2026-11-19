@@ -269,6 +269,26 @@ function addAdminStyles() {
       border-radius:10px;
       overflow-wrap:anywhere;
     }
+
+    .agent-vault-shell{color:#102b4c}
+    .agent-vault-heading{display:flex;align-items:center;gap:14px;padding:18px 20px;margin:18px 0 12px;border-radius:18px;background:linear-gradient(115deg,#063b78,#168ce9);color:#fff}
+    .agent-vault-heading>span{font-size:36px}.agent-vault-heading h2{margin:0;color:#fff}.agent-vault-heading p{margin:3px 0 0;color:#e4f3ff}
+    .agent-vault-intro{color:#47627f;margin-bottom:18px}
+    .agent-game-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:18px 0}
+    .agent-game-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-height:145px;padding:20px;border:1px solid #9acafa;border-radius:16px;background:linear-gradient(145deg,#fff,#eaf5ff);color:#102b4c;text-align:left;box-shadow:0 5px 16px #145b9720;cursor:pointer}
+    .agent-game-icon{font-size:30px}.agent-game-name{font-size:19px;font-weight:850}.agent-game-sub{color:#2563a0;font-size:13px}.agent-game-arrow{position:absolute;right:17px;bottom:13px;font-size:28px;color:#087cf0}
+    .agent-game-banner{display:flex;align-items:center;gap:14px;padding:18px;margin:16px 0;border-radius:16px;background:linear-gradient(110deg,#073c78,#168de7);color:white}
+    .agent-game-banner>span{font-size:38px}.agent-game-banner h2{margin:0;color:white}.agent-game-banner p{margin:4px 0 0;color:#e5f4ff}
+    .agent-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:16px 0}
+    .agent-detail-card{padding:18px;border:1px solid #b9d9f7;border-radius:16px;background:#fff;box-shadow:0 6px 18px #145b971a;min-width:0}
+    .agent-card-title{display:flex;align-items:center;gap:10px;margin-bottom:14px}.agent-card-title>span{font-size:27px}.agent-card-title h3{margin:0;color:#123b66}.agent-card-title small{color:#5e7893}
+    .agent-detail-card label{display:block;margin:12px 0 5px;color:#345573;font-weight:700}
+    .agent-url-line{display:flex;gap:6px;align-items:center}.agent-url-line .input{min-width:0;flex:1;margin:0!important}
+    .agent-copy-btn,.agent-link-actions button,.agent-card-actions button{border:0;border-radius:9px;background:#087cf0;color:white;padding:10px 12px;font-weight:750;cursor:pointer;white-space:nowrap}
+    .agent-link-actions,.agent-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .agent-link-actions .secondary,.agent-card-actions .secondary{background:#e7f2ff;color:#0757a2;border:1px solid #b7d8f6}
+    .agent-card-actions button{flex:1}
+    @media(max-width:520px){.agent-detail-grid{grid-template-columns:1fr}.agent-url-line{flex-wrap:wrap}.agent-url-line .input{flex-basis:100%}.agent-card-actions button{width:100%}}
   `;
 
   document.head.appendChild(style);
