@@ -848,9 +848,9 @@ async function showAgentStreaming(skipHistory = false) {
   try {
     const result=await callAgentVault("list");
     agentVaultRecords=result.accounts||[];
-    $("agentVaultStatus").textContent="Secure owner-only vault connected.";
+    if ($("agentVaultStatus")) $("agentVaultStatus").textContent="Secure owner-only vault connected.";
     showAgentGameList();
-  } catch(e) { $("agentVaultStatus").textContent="Secure vault unavailable: "+e.message; }
+  } catch(e) { if ($("agentVaultStatus")) $("agentVaultStatus").textContent="Secure vault unavailable: "+e.message; }
 }
 function getAgentRecord(key) { return agentVaultRecords.find(x=>x.game===key)||{}; }
 function openAgentGame(index, skipHistory = false) {
