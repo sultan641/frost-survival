@@ -729,103 +729,44 @@ async function loadTrafficAnalytics(days = 7) {
   `;
 }
 
-async function showTab(tab) {
-  if (tab === "youtube-links") { showYoutubeLinkFixer(); return; }
-  if (tab === "agents") { await showAgentStreaming(); return; }
-  if (tab === "ai") { showDeveloperAI(); return; }
-  if (tab === "developer") { await showDeveloperDashboard(); return; }
-  if (tab === "analytics") {
-    $("adminContent").innerHTML = `
-      <button class="secondary" onclick="showDashboard()">← Dashboard</button>
-      <h2>Promotion & Traffic Analytics</h2>
-      <p>Track website views, traffic sources, campaign links, game clicks and social engagement.</p>
-      <div id="globalRecords">Loading analytics…</div>
-    `;
-    await loadTrafficAnalytics(7);
-    return;
-  }
-  const table = tab === "apps" ? "team_applications" : "bug_reports";
-  const title = tab === "apps" ? "Applications" : "Bug Reports";
-
-  $("adminContent").innerHTML = `
-    <button class="secondary" onclick="showDashboard()">← Dashboard</button>
-    <h2>${title}</h2>
-    <div id="globalRecords">Loading...</div>
-  `;
-
-  const { data, error } = await db
-    .from(table)
-    .select("*")
-    .order("id", { ascending: false })
-    .limit(100);
-
-  const area = $("globalRecords");
-  if (error) {
-    area.textContent = "Error: " + error.message;
-    return;
-  }
-  if (!data || !data.length) {
-    area.textContent = "No records found.";
-    return;
-  }
-
-  area.innerHTML = "";
-  for (const record of data) {
-    const card = document.createElement("div");
-    card.className = "admin-record";
-
-    if (tab === "apps") {
-      card.innerHTML = `
-        <h3>${safe(record.name || "Application")}</h3>
-        <p><strong>Role:</strong> ${safe(record.role)}</p>
-        <p><strong>Discord:</strong> ${safe(record.contact)}</p>
-        <p><strong>Channel:</strong> ${safe(record.social_links)}</p>
-        <p><strong>Experience:</strong> ${safe(record.experience)}</p>
-        <p><strong>Message:</strong><br>${safe(record.message)}</p>
-        <small>${safe(record.created_at)}</small>
-      `;
-    } else {
-      card.innerHTML = `
-        <h3>${safe(record.game_name)} — #${safe(record.id)}</h3>
-        <p><strong>Player:</strong> ${safe(record.player_name)}</p>
-        <p><strong>Issue:</strong><br>${safe(record.issue)}</p>
-        <p><strong>Steps:</strong><br>${safe(record.steps_to_reproduce || "Not provided")}</p>
-        <p><strong>Status:</strong> ${safe(record.status)}</p>
-        <div class="bug-screenshot">Loading screenshot...</div>
-        <label>Update status</label>
-        <select class="bug-status">
-          <option value="new" ${record.status === "new" ? "selected" : ""}>New</option>
-          <option value="reviewing" ${record.status === "reviewing" ? "selected" : ""}>Reviewing</option>
-          <option value="resolved" ${record.status === "resolved" ? "selected" : ""}>Resolved</option>
-        </select>
-        <button type="button" class="save-bug-status">Save Status</button>
-        <small>${safe(record.created_at)}</small>
-      `;
-      const screenshotArea = card.querySelector(".bug-screenshot");
-      if (record.screenshot_path) {
-        const { data: signed, error: signedError } = await db.storage
-          .from("bug-screenshots")
-          .createSignedUrl(record.screenshot_path, 300);
-        if (signedError) {
-          screenshotArea.textContent = "Screenshot unavailable: " + signedError.message;
-        } else {
-          screenshotArea.innerHTML = `<a href="${safe(signed.signedUrl)}" target="_blank" rel="noopener">Open private screenshot</a>`;
-        }
-      } else {
-        screenshotArea.textContent = "No screenshot attached.";
-      }
-      card.querySelector(".save-bug-status").addEventListener("click", async () => {
-        const nextStatus = card.querySelector(".bug-status").value;
-        const { error: updateError } = await db.from("bug_reports")
-          .update({ status: nextStatus }).eq("id", record.id);
-        status(updateError ? "Status update failed: " + updateError.message : "Bug report status updated.");
-        if (!updateError) await showTab("bugs");
-      });
+async async function showTab(tab) {
+  if(tab==="youtube-links"||tab==="youtube-suite"){showYoutubeSuite("studio");return;}
+  if(tab==="agents"){await showAgentStreaming();return;}
+  if(tab==="ai"){showDeveloperAI();return;}
+  if(tab==="developer"||tab==="apps"||tab==="bugs"||tab==="management"){showManagementCenter(tab==="apps"||tab==="bugs"||tab==="developer"?tab:"apps");return;}
+  if(tab==="analytics"||tab==="growth"){showGrowthCenter(tab==="analytics"?"analytics":"home");return;}
+}
+function showGrowthCenter(view="home") {
+  $("adminContent").innerHTML='<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="fs-admin-hero"><h1>Promotion &amp; Growth Center</h1><p>Analytics and community growth tools in one place.</p></div><div class="fs-subnav"><button onclick="showGrowthCenter(\'analytics\')">Promotion Analytics</button><button onclick="window.location.href=\'growth-center.html\'">Frost Growth Center</button></div><div id="growthCenterPanel"></div>';
+  if(view==="analytics"){$("growthCenterPanel").innerHTML='<h2>Promotion Analytics</h2><div id="globalRecords">Loading analytics…</div>';loadTrafficAnalytics(7);}
+  else $("growthCenterPanel").innerHTML='<div class="admin-section"><h2>Frost Growth Center</h2><p>Open the growth workspace for promotion planning, campaigns and community growth.</p><a class="btn" href="growth-center.html">Open Frost Growth Center →</a></div><div class="admin-section"><h3>Promotion Analytics</h3><p>Review website traffic, game clicks, campaign links and social engagement.</p><button onclick="showGrowthCenter(\'analytics\')">Open Analytics →</button></div>';
+}
+function showManagementCenter(view="apps") {
+  $("adminContent").innerHTML='<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="fs-admin-hero"><h1>Apps, Bug Reports &amp; Developer Dashboard</h1><p>Applications, player issues and developer controls in one place.</p></div><div class="fs-subnav"><button onclick="showManagementCenter(\'apps\')">Applications</button><button onclick="showManagementCenter(\'bugs\')">Bug Reports</button><button onclick="showManagementCenter(\'developer\')">Developer Dashboard</button></div><div id="managementCenterPanel"></div>';
+  if(view==="developer"){await showDeveloperDashboard();return;}
+  const table=view==="apps"?"team_applications":"bug_reports", title=view==="apps"?"Applications":"Bug Reports";
+  $("managementCenterPanel").innerHTML='<h2>'+title+'</h2><div id="managementRecords">Loading…</div>';
+  const {data,error}=await db.from(table).select("*").order("id",{ascending:false}).limit(100);
+  const area=$("managementRecords");if(error){area.textContent="Error: "+error.message;return;}
+  if(!data?.length){area.textContent="No records found.";return;}
+  area.innerHTML="";
+  for(const record of data){
+    const card=document.createElement("div");card.className="admin-record";
+    if(view==="apps")card.innerHTML='<h3>'+safe(record.name||"Application")+'</h3><p><strong>Role:</strong> '+safe(record.role)+'</p><p><strong>Discord:</strong> '+safe(record.contact)+'</p><p><strong>Channel:</strong> '+safe(record.social_links)+'</p><p><strong>Experience:</strong> '+safe(record.experience)+'</p><p><strong>Message:</strong><br>'+safe(record.message)+'</p><small>'+safe(record.created_at)+'</small>';
+    else {
+      card.innerHTML='<h3>'+safe(record.game_name)+' — #'+safe(record.id)+'</h3><p><strong>Player:</strong> '+safe(record.player_name)+'</p><p><strong>Issue:</strong><br>'+safe(record.issue)+'</p><p><strong>Steps:</strong><br>'+safe(record.steps_to_reproduce||"Not provided")+'</p><p><strong>Status:</strong> '+safe(record.status)+'</p><div class="bug-screenshot">Loading screenshot…</div><label>Update status</label><select class="bug-status"><option value="new" '+(record.status==="new"?"selected":"")+'>New</option><option value="reviewing" '+(record.status==="reviewing"?"selected":"")+'>Reviewing</option><option value="resolved" '+(record.status==="resolved"?"selected":"")+'>Resolved</option></select><button type="button" class="save-bug-status">Save Status</button>';
+      const shot=card.querySelector(".bug-screenshot");
+      if(record.screenshot_path){const {data:signed,error:e}=await db.storage.from("bug-screenshots").createSignedUrl(record.screenshot_path,300);shot.innerHTML=e?"Screenshot unavailable":'<a href="'+safe(signed.signedUrl)+'" target="_blank" rel="noopener">Open private screenshot</a>';}else shot.textContent="No screenshot attached.";
+      card.querySelector(".save-bug-status").onclick=async()=>{const {error:e}=await db.from("bug_reports").update({status:card.querySelector(".bug-status").value}).eq("id",record.id);status(e?"Update failed: "+e.message:"Bug report updated.");if(!e)showManagementCenter("bugs");};
     }
     area.appendChild(card);
   }
 }
-
+function showYoutubeSuite(view="studio") {
+  $("adminContent").innerHTML='<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="fs-admin-hero"><h1>YouTube Studio &amp; Link Fixer</h1><p>Manage uploads, AI editing, publishing and channel links in one workspace.</p></div><div class="fs-subnav"><button onclick="showYoutubeSuite(\'studio\')">▶ YouTube Studio</button><button onclick="showYoutubeSuite(\'links\')">🔗 Link Fixer</button></div><div id="youtubeSuitePanel"></div>';
+  if(view==="studio")$("youtubeSuitePanel").innerHTML='<p>Private YouTube workspace. Sign in to manage uploads and publishing.</p><iframe class="fs-youtube-frame" src="youtube-studio.html" title="Frost Survival YouTube Studio"></iframe><p><a href="youtube-studio.html" target="_blank" rel="noopener">Open YouTube Studio in a new tab →</a></p>';
+  else {$("youtubeSuitePanel").innerHTML='<div id="youtubeLinkFixerContent"></div>';showYoutubeLinkFixerContent();}
+}
 async function callAgentVault(action, payload = {}) {
   const { data: s } = await db.auth.getSession();
   if (!s?.session?.access_token) throw new Error("Please sign in again.");
@@ -1269,13 +1210,13 @@ let youtubeRetryJob = null;
 let youtubeLinkBatchJob = null;
 let youtubeVideoSelection = new Set();
 let youtubeVisibleVideoCount = 254;
-function showYoutubeLinkFixer() {
+function showYoutubeLinkFixerContent() {
   youtubeLinkScan = null;
   if (!window.__frostYoutubeFixerHistory) {
     history.pushState({ frostAdminView: "youtube-links" }, "", "#youtube-links");
     window.__frostYoutubeFixerHistory = true;
   }
-  $("adminContent").innerHTML = `
+  $("youtubeLinkFixerContent").innerHTML = `
     <button class="secondary" onclick="showDashboard()">← Admin Dashboard</button>
     <h2>🔗 YouTube Video & Description Manager</h2>
     <p>Scan every uploaded video, inspect its complete description and links, replace only selected links, or edit a complete description.</p>
