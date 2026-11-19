@@ -762,12 +762,14 @@ async function showTab(tab, skipHistory = false) {
   if(tab==="developer"||tab==="apps"||tab==="bugs"||tab==="management"){showManagementCenter(tab==="apps"||tab==="bugs"||tab==="developer"?tab:"apps");return;}
   if(tab==="analytics"||tab==="growth"){showGrowthCenter(tab==="analytics"?"analytics":"home");return;}
 }
-function showGrowthCenter(view="home") {
+function showGrowthCenter(view="home", skipHistory=false) {
+  if (!skipHistory) pushAdminView({ frostAdminView:"growth", view }, "#admin-growth-" + view);
   $("adminContent").innerHTML='<div class="fs-admin-hero"><h1>Promotion &amp; Growth Center</h1><p>Analytics and community growth tools in one place.</p></div><div class="fs-subnav"><button onclick="showGrowthCenter(\'analytics\')">Promotion Analytics</button><button onclick="window.location.href=\'growth-center.html\'">Frost Growth Center</button></div><div id="growthCenterPanel"></div>';
   if(view==="analytics"){$("growthCenterPanel").innerHTML='<h2>Promotion Analytics</h2><div id="globalRecords">Loading analytics…</div>';loadTrafficAnalytics(7);}
   else $("growthCenterPanel").innerHTML='<div class="admin-section"><h2>Frost Growth Center</h2><p>Open the growth workspace for promotion planning, campaigns and community growth.</p><a class="btn" href="growth-center.html">Open Frost Growth Center →</a></div><div class="admin-section"><h3>Promotion Analytics</h3><p>Review website traffic, game clicks, campaign links and social engagement.</p><button onclick="showGrowthCenter(\'analytics\')">Open Analytics →</button></div>';
 }
-async function showManagementCenter(view="apps") {
+async function showManagementCenter(view="apps", skipHistory=false) {
+  if (!skipHistory) pushAdminView({ frostAdminView:"management", view }, "#admin-management-" + view);
   $("adminContent").innerHTML='<div class="fs-admin-hero"><h1>Apps, Bug Reports &amp; Developer Dashboard</h1><p>Applications, player issues and developer controls in one place.</p></div><div class="fs-subnav"><button onclick="showManagementCenter(\'apps\')">Applications</button><button onclick="showManagementCenter(\'bugs\')">Bug Reports</button><button onclick="showManagementCenter(\'developer\')">Developer Dashboard</button></div><div id="managementCenterPanel"></div>';
   if(view==="developer"){await showDeveloperDashboard();return;}
   const table=view==="apps"?"team_applications":"bug_reports", title=view==="apps"?"Applications":"Bug Reports";
@@ -788,7 +790,8 @@ async function showManagementCenter(view="apps") {
     area.appendChild(card);
   }
 }
-function showYoutubeSuite(view="studio") {
+function showYoutubeSuite(view="studio", skipHistory=false) {
+  if (!skipHistory) pushAdminView({ frostAdminView:"youtube-suite", view }, "#admin-youtube-" + view);
   $("adminContent").innerHTML='<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="fs-admin-hero"><h1>YouTube Studio &amp; Link Fixer</h1><p>Manage uploads, AI editing, publishing and channel links in one workspace.</p></div><div class="fs-subnav"><button onclick="showYoutubeSuite(\'studio\')">▶ YouTube Studio</button><button onclick="showYoutubeSuite(\'links\')">🔗 Link Fixer</button></div><div id="youtubeSuitePanel"></div>';
   if(view==="studio")$("youtubeSuitePanel").innerHTML='<p>Private YouTube workspace. Sign in to manage uploads and publishing.</p><iframe class="fs-youtube-frame" src="youtube-studio.html" title="Frost Survival YouTube Studio"></iframe><p><a href="youtube-studio.html" target="_blank" rel="noopener">Open YouTube Studio in a new tab →</a></p>';
   else {$("youtubeSuitePanel").innerHTML='<div id="youtubeLinkFixerContent"></div>';showYoutubeLinkFixerContent();}
@@ -842,7 +845,7 @@ function showAgentGameList(skipHistory = false) {
   $("agentVaultCards").innerHTML='<div class="agent-game-grid">'+cards+'</div>';
 }
 async function showAgentStreaming(skipHistory = false) {
-  if (!skipHistory) history.pushState({ frostAdminView: "agents-list" }, "", "#admin-agents");
+  if (!skipHistory) pushAdminView({ frostAdminView: "agents-list" }, "#admin-agents");
   addAdminStyles();
   $("adminContent").innerHTML='<div class="agent-vault-shell"><button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="agent-vault-heading"><span>❄</span><div><h2>Frost Survival</h2><p>Live Streaming &amp; Agent Panels</p></div></div><p class="agent-vault-intro">Choose a game to manage its private Agent Panel and Live Streaming account.</p><div id="agentVaultStatus">Loading secure accounts…</div><div id="agentVaultCards"></div></div>';
   try {
@@ -910,8 +913,8 @@ async function callDeveloper(action, payload = {}) {
   if (error || data?.error) throw new Error(data?.error || error.message);
   return data;
 }
-async function showDeveloperDashboard() {
-  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🔒 Private Developer Dashboard</h2><p>Owner-only controls. Customers cannot access these tools.</p><div class="actions"><button onclick="loadDeveloperDashboard()">Refresh</button></div><div id="developerStats">Loading…</div><div class="admin-section"><h3>Activate Free Premium</h3><form id="freePremiumForm"><label>Customer registered email</label><input class="input" type="email" name="email" required placeholder="customer@example.com"><label>Premium period</label><select class="input" name="cycle"><option value="monthly">1 month — $5 value</option><option value="yearly">1 year — $49.99 value</option></select><button type="submit">Activate Free Premium</button></form><p class="hint">No payment is collected. Owner-granted subscription.</p></div><div id="developerCustomers">Loading customers…</div>';
+async function showDeveloperDashboard(skipHistory=false) {
+  if (!skipHistory) pushAdminView({ frostAdminView:"developer-dashboard" }, "#admin-developer-dashboard");  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🔒 Private Developer Dashboard</h2><p>Owner-only controls. Customers cannot access these tools.</p><div class="actions"><button onclick="loadDeveloperDashboard()">Refresh</button></div><div id="developerStats">Loading…</div><div class="admin-section"><h3>Activate Free Premium</h3><form id="freePremiumForm"><label>Customer registered email</label><input class="input" type="email" name="email" required placeholder="customer@example.com"><label>Premium period</label><select class="input" name="cycle"><option value="monthly">1 month — $5 value</option><option value="yearly">1 year — $49.99 value</option></select><button type="submit">Activate Free Premium</button></form><p class="hint">No payment is collected. Owner-granted subscription.</p></div><div id="developerCustomers">Loading customers…</div>';
   $("freePremiumForm").onsubmit = activateFreePremium;
   await loadDeveloperDashboard();
 }
@@ -1047,8 +1050,8 @@ async function callDeveloperAI(action,payload={}) {
   if(error||data?.error)throw new Error(data?.error||error.message);
   return data;
 }
-async function showDeveloperAI() {
-  loadDeveloperAIThreads();
+async function showDeveloperAI(skipHistory=false) {
+  if (!skipHistory) pushAdminView({ frostAdminView:"developer-ai" }, "#admin-developer-ai");  loadDeveloperAIThreads();
   try { await loadDeveloperAICloudThreads(); }
   catch(e) { status("Cloud chat history unavailable; showing local backup. "+e.message); }
   if(developerAIThreads.length){
@@ -1309,6 +1312,11 @@ function renderAdminHistoryState(state) {
     return;
   }
   if (view === "tab") { showTab(state.tab, true); return; }
+  if (view === "management") { showManagementCenter(state.view || "apps", true); return; }
+  if (view === "youtube-suite") { showYoutubeSuite(state.view || "studio", true); return; }
+  if (view === "growth") { showGrowthCenter(state.view || "home", true); return; }
+  if (view === "developer-dashboard") { showDeveloperDashboard(true); return; }
+  if (view === "developer-ai") { showDeveloperAI(true); return; }
   if (view === "agents-list") { showAgentStreaming(true); return; }
   if (view === "agent-detail") { openAgentGame(Number(state.agentIndex), true); return; }
 }
@@ -1316,6 +1324,7 @@ function pushAdminView(state, hash) {
   if (!window.__frostAdminStack || !window.__frostAdminStack.length) {
     window.__frostAdminStack = [{ frostAdminView: "dashboard" }];
   }
+  // Keep URL history and the internal stack in sync for every admin sub-page.
   window.__frostAdminStack.push(state);
   history.pushState(state, "", hash);
 }
