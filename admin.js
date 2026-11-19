@@ -177,50 +177,19 @@ window.addEventListener("unhandledrejection", event => {
 // MAIN DASHBOARD
 
 function showDashboard() {
-  // Clear the in-panel YouTube fixer history entry when returning to the dashboard.
-  if (window.__frostYoutubeFixerHistory) {
-    window.__frostYoutubeFixerHistory = false;
-    history.replaceState(null, "", location.pathname + location.search);
-  }
-  selectedGame = "";
-
-  $("adminContent").innerHTML = `
-    <h2>Game Management</h2>
-    <p>Select a game to manage its information.</p>
-
-    <div class="admin-game-grid">
-      ${games.map((game, index) => `
-        <button class="admin-game-card"
-          onclick="openGame(${index})">
-          <strong>${safe(game)}</strong>
-          <span>Manage Game →</span>
-        </button>
-      `).join("")}
-    </div>
-
-    <hr>
-
-    <h2>Global Management</h2>
-
-    <div class="actions">
-      <button onclick="showTab('apps')">Applications</button>
-      <button onclick="showTab('bugs')">Bug Reports</button>
-      <button onclick="showTab('developer')">🔒 Developer Dashboard</button>
-      <button onclick="showTab('ai')">🤖 Developer AI</button>
-      <button onclick="showTab('agents')">🔐 Agent Livestreaming</button>
-      <button onclick="showTab('youtube-links')">🔗 YouTube Link Fixer</button>
-    </div>
-  `;
-
-  addAdminStyles();
-  try {
-    if (sessionStorage.getItem("frost-open-analytics") === "1") {
-      sessionStorage.removeItem("frost-open-analytics");
-      setTimeout(() => showTab("analytics"), 0);
-    }
-  } catch (_) {}
+  if(window.__frostYoutubeFixerHistory){window.__frostYoutubeFixerHistory=false;history.replaceState(null,"",location.pathname+location.search);}
+  selectedGame=""; addAdminStyles();
+  const items=[["Whiteout Survival V4","❄️"],["Whiteout Survival V5 Europe","🇪🇺"],["Whiteout Survival V5 China","🇨🇳"],["Whiteout Survival UV V6","🧊"],["KingShot V4","👑"]];
+  const cards=items.map(([name,icon])=>'<button class="fs-game-card" onclick="openGameByName(\''+safe(name)+'\')"><span>'+icon+'</span><strong>'+safe(name.replace("Whiteout Survival UV V6","Whiteout Survival V6"))+'</strong><b>Manage Game →</b></button>').join("");
+  $("adminContent").innerHTML='<section class="fs-admin-hero"><small>❄ RESTRICTED MANAGEMENT AREA</small><h1>Frost Survival Admin Console</h1><p>Manage games, community, growth and content in one place.</p></section>'+
+  '<div class="fs-quick-grid"><a class="fs-quick-card fs-discord" href="discord-control/"><span>🎮</span><div><strong>Discord Control Panel</strong><small>Manage server, roles and community</small></div><b>›</b></a><button class="fs-quick-card" onclick="showTab(\'growth\')"><span>📊</span><div><strong>Promotion &amp; Growth Center</strong><small>Analytics and community growth tools</small></div><b>›</b></button></div>'+
+  '<section class="fs-dashboard-section"><h2>🎮 Game Management</h2><p>Select a game to manage its information, downloads and updates.</p><div class="fs-games-grid">'+cards+'</div></section>'+
+  '<section class="fs-dashboard-section"><h2>▰ Management Tools</h2><p>Core tools for development, support, YouTube and livestreaming.</p><div class="fs-tools-grid">'+
+  '<button class="fs-tool-card" onclick="showTab(\'management\')"><span>🛠️</span><strong>Apps, Bug Reports &amp; Developer Dashboard</strong><small>Applications, bug reports and developer tools in one place.</small><b>Open Center →</b></button>'+
+  '<button class="fs-tool-card" onclick="showTab(\'youtube-suite\')"><span>▶️</span><strong>YouTube Studio &amp; Link Fixer</strong><small>Manage videos, uploads, editing and channel links.</small><b>Open YouTube →</b></button>'+
+  '<button class="fs-tool-card" onclick="showTab(\'agents\')"><span>📡</span><strong>Agent Livestreaming</strong><small>Manage agent panels and livestreaming accounts for all games.</small><b>Open Accounts →</b></button></div></section>';
 }
-
+function openGameByName(name){let i=games.indexOf(name);if(i<0){games.push(name);i=games.length-1;}openGame(i);}
 function addAdminStyles() {
   if ($("adminExtraStyles")) return;
 
@@ -291,6 +260,23 @@ function addAdminStyles() {
     @media(max-width:520px){.agent-detail-grid{grid-template-columns:1fr}.agent-url-line{flex-wrap:wrap}.agent-url-line .input{flex-basis:100%}.agent-card-actions button{width:100%}}
   `;
 
+
+    .fs-admin-hero{padding:24px 20px;margin:14px 0 18px;border-radius:20px;background:linear-gradient(110deg,#06366f,#087bd8 65%,#b8e2ff);color:#fff}
+    .fs-admin-hero h1{font-size:clamp(26px,5vw,40px);margin:12px 0 6px;color:#fff}.fs-admin-hero p{margin:0;color:#e8f5ff}
+    .fs-quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 20px}
+    .fs-quick-card{display:flex;align-items:center;gap:12px;text-align:left;padding:15px;border:1px solid #a9d3fb;border-radius:16px;background:linear-gradient(145deg,#fff,#eaf5ff);color:#12365d;text-decoration:none;box-shadow:0 5px 15px #145b971b;cursor:pointer;min-width:0}
+    .fs-quick-card>span{font-size:28px}.fs-quick-card div{display:grid;gap:4px}.fs-quick-card small{color:#55718e}.fs-quick-card>b{margin-left:auto;font-size:25px;color:#087cf0}.fs-discord{background:linear-gradient(115deg,#087cf0,#0752b5);color:#fff}.fs-discord small{color:#e3f2ff}
+    .fs-dashboard-section{padding:16px;margin:14px 0;border:1px solid #c7def5;border-radius:18px;background:linear-gradient(160deg,#fff,#f2f8ff);box-shadow:0 5px 16px #164d7d12}.fs-dashboard-section h2{color:#112e50}
+    .fs-games-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+    .fs-game-card{display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:8px;min-height:150px;padding:13px;border:1px solid #9cccf7;border-radius:16px;background:linear-gradient(145deg,#0755a8,#0d9de8);color:white;text-align:left;box-shadow:0 6px 14px #0867b82b;cursor:pointer;overflow:hidden;grid-column:span 2}
+    .fs-game-card>span{font-size:36px}.fs-game-card strong{font-size:15px;line-height:1.2}.fs-game-card b{width:100%;padding:8px 10px;border-radius:9px;background:#fff;color:#064b91;font-size:12px;box-sizing:border-box}
+    .fs-game-card:nth-child(2){background:linear-gradient(145deg,#073d83,#2a9fe9);border-radius:26px 12px 26px 12px}.fs-game-card:nth-child(3){background:linear-gradient(145deg,#253b8c,#7957d7);border-radius:12px 26px 12px 26px}.fs-game-card:nth-child(4){background:linear-gradient(145deg,#052b65,#087fbd);clip-path:polygon(0 0,90% 0,100% 14%,100% 100%,10% 100%,0 86%)}.fs-game-card:nth-child(5){background:linear-gradient(145deg,#312d85,#8754d8)}
+    .fs-tools-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .fs-tool-card{display:flex;flex-direction:column;align-items:flex-start;gap:9px;padding:16px;border:1px solid #c3dcf6;border-radius:16px;background:#fff;color:#14375c;text-align:left;box-shadow:0 5px 15px #164d7d12;cursor:pointer;min-width:0}
+    .fs-tool-card>span{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:#e3f1ff;font-size:25px}.fs-tool-card small{color:#5b7692;line-height:1.4}.fs-tool-card>b{margin-top:auto;padding:9px 12px;border-radius:9px;background:#e4f2ff;color:#0757a2;width:100%;box-sizing:border-box;text-align:center}
+    .fs-subnav{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.fs-subnav button{border:1px solid #b9d7f4;border-radius:10px;padding:10px 14px;background:#eaf5ff;color:#0757a2;font-weight:750}
+    .fs-youtube-frame{width:100%;height:850px;border:1px solid #bdd8f2;border-radius:14px;background:#fff}
+    @media(max-width:650px){.fs-quick-grid,.fs-tools-grid{grid-template-columns:1fr}.fs-games-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.fs-game-card{grid-column:span 1;min-height:150px}.fs-game-card:first-child{grid-column:span 2}.fs-dashboard-section{padding:12px}}
   document.head.appendChild(style);
 }
 
