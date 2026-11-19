@@ -20,6 +20,7 @@ const games = [
   "Whiteout Survival V4",
   "Whiteout Survival V5 Europe",
   "Whiteout Survival V5 China",
+  "Whiteout Survival UV V6",
   "KingShot V4"
 ];
 
