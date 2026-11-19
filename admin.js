@@ -305,9 +305,7 @@ async function openGame(index, skipHistory = false) {
   if (!skipHistory) history.pushState({ frostAdminView: "game", gameIndex: index }, "", "#game-" + index);
 
   $("adminContent").innerHTML = `
-    <button class="secondary" onclick="showDashboard()">
-      ← All Games
-    </button>
+    
 
     <h2>${safe(selectedGame)}</h2>
 
@@ -758,7 +756,7 @@ async function showTab(tab, skipHistory = false) {
   if(tab==="analytics"||tab==="growth"){showGrowthCenter(tab==="analytics"?"analytics":"home");return;}
 }
 function showGrowthCenter(view="home") {
-  $("adminContent").innerHTML='<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="fs-admin-hero"><h1>Promotion &amp; Growth Center</h1><p>Analytics and community growth tools in one place.</p></div><div class="fs-subnav"><button onclick="showGrowthCenter(\'analytics\')">Promotion Analytics</button><button onclick="window.location.href=\'growth-center.html\'">Frost Growth Center</button></div><div id="growthCenterPanel"></div>';
+  $("adminContent").innerHTML='<div class="fs-admin-hero"><h1>Promotion &amp; Growth Center</h1><p>Analytics and community growth tools in one place.</p></div><div class="fs-subnav"><button onclick="showGrowthCenter(\'analytics\')">Promotion Analytics</button><button onclick="window.location.href=\'growth-center.html\'">Frost Growth Center</button></div><div id="growthCenterPanel"></div>';
   if(view==="analytics"){$("growthCenterPanel").innerHTML='<h2>Promotion Analytics</h2><div id="globalRecords">Loading analytics…</div>';loadTrafficAnalytics(7);}
   else $("growthCenterPanel").innerHTML='<div class="admin-section"><h2>Frost Growth Center</h2><p>Open the growth workspace for promotion planning, campaigns and community growth.</p><a class="btn" href="growth-center.html">Open Frost Growth Center →</a></div><div class="admin-section"><h3>Promotion Analytics</h3><p>Review website traffic, game clicks, campaign links and social engagement.</p><button onclick="showGrowthCenter(\'analytics\')">Open Analytics →</button></div>';
 }
@@ -831,11 +829,13 @@ function openAgentUrlInChrome(id) {
     }
   } catch(e) { status("Invalid link: "+e.message); }
 }
-function showAgentGameList() {
+function showAgentGameList(skipHistory = false) {
+  if (!skipHistory) history.pushState({ frostAdminView: "agents-list" }, "", "#admin-agents");
   const cards=agentGameCatalog.map((g,i)=>'<button class="agent-game-tile" type="button" onclick="openAgentGame('+i+')"><span class="agent-game-icon">'+g.icon+'</span><span class="agent-game-name">'+safe(g.label)+'</span><span class="agent-game-sub">Agent Panel + Live Streaming</span><span class="agent-game-arrow">›</span></button>').join("");
   $("agentVaultCards").innerHTML='<div class="agent-game-grid">'+cards+'</div>';
 }
-async function showAgentStreaming() {
+async function showAgentStreaming(skipHistory = false) {
+  if (!skipHistory) history.pushState({ frostAdminView: "agents-list" }, "", "#admin-agents");
   addAdminStyles();
   $("adminContent").innerHTML='<div class="agent-vault-shell"><button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="agent-vault-heading"><span>❄</span><div><h2>Frost Survival</h2><p>Live Streaming &amp; Agent Panels</p></div></div><p class="agent-vault-intro">Choose a game to manage its private Agent Panel and Live Streaming account.</p><div id="agentVaultStatus">Loading secure accounts…</div><div id="agentVaultCards"></div></div>';
   try {
@@ -846,8 +846,9 @@ async function showAgentStreaming() {
   } catch(e) { $("agentVaultStatus").textContent="Secure vault unavailable: "+e.message; }
 }
 function getAgentRecord(key) { return agentVaultRecords.find(x=>x.game===key)||{}; }
-function openAgentGame(index) {
+function openAgentGame(index, skipHistory = false) {
   const g=agentGameCatalog[index]; if(!g) return;
+  if (!skipHistory) history.pushState({ frostAdminView: "agent-detail", agentIndex: index }, "", "#agent-" + index);
   const panel=getAgentRecord(g.key), live=getAgentRecord(g.liveKey);
   const panelId="detailPanel", liveId="detailLive";
   const makeCard=(kind,record,id,url,key,title)=> {
@@ -860,7 +861,7 @@ function openAgentGame(index) {
       '<label>Password</label><div class="agent-url-line"><input class="input" id="'+id+'Pass" type="password" value="'+safe(record.password||"")+'" maxlength="1000" autocomplete="new-password" placeholder="Add password"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'Pass\')">Copy</button><button type="button" class="agent-copy-btn" onclick="toggleAgentPassword(\''+id+'Pass\',this)">Show</button></div>'+
       '<div class="agent-card-actions"><button type="button" onclick="saveAgentAccount(\''+id+'\',\''+safe(key)+'\',this,\''+kind+'\')">🔒 Save Account</button><button type="button" class="secondary" onclick="copyAgentAll(\''+id+'\',\''+safe(title)+'\',\''+kind+'\')">▣ Copy All Details</button></div></section>';
   };
-  $("agentVaultCards").innerHTML='<button class="secondary" onclick="showAgentGameList()">← All Games</button><div class="agent-game-banner"><span>'+g.icon+'</span><div><h2>'+safe(g.label)+'</h2><p>Agent Panel &amp; Live Streaming Accounts</p></div></div><div class="agent-detail-grid">'+makeCard("panel",panel,panelId,g.panelUrl,g.key,g.label)+makeCard("live",live,liveId,g.liveUrl,g.liveKey,g.label)+'</div>';
+  $("agentVaultCards").innerHTML='<div class="agent-game-banner"><span>'+g.icon+'</span><div><h2>'+safe(g.label)+'</h2><p>Agent Panel &amp; Live Streaming Accounts</p></div></div><div class="agent-detail-grid">'+makeCard("panel",panel,panelId,g.panelUrl,g.key,g.label)+makeCard("live",live,liveId,g.liveUrl,g.liveKey,g.label)+'</div>';
 }
 async function copyAgentAll(id,title,kind) {
   const url=$(id+"Url")?.value?.trim()||"", username=$(id+"User")?.value?.trim()||"", password=$(id+"Pass")?.value||"", referral=$(id+"Referral")?.value?.trim()||"";
@@ -1288,32 +1289,33 @@ async function refreshYoutubeManagerConnection() {
     hint.textContent = "Could not verify YouTube connection. Reconnect YouTube if video loading fails.";
   }
 }
-window.addEventListener("popstate", event => {
-  const view = event.state && event.state.frostAdminView;
-  if (view === "dashboard") {
-    showDashboard(true);
-    return;
-  }
-  if (view === "game") {
-    openGame(Number(event.state.gameIndex), true);
-    return;
-  }
+function renderAdminHistoryState(state) {
+  const view = state && state.frostAdminView;
+  if (view === "dashboard") { showDashboard(true); return; }
+  if (view === "game") { openGame(Number(state.gameIndex), true); return; }
   if (view === "game-section") {
-    const index = Number(event.state.gameIndex);
+    const index = Number(state.gameIndex);
     if (Number.isInteger(index) && games[index]) {
       selectedGame = games[index];
-      openGame(index, true).then(() => showGameSection(event.state.section || "settings", true));
+      openGame(index, true).then(() => showGameSection(state.section || "settings", true));
     }
     return;
   }
-  if (view === "tab") {
-    showTab(event.state.tab, true);
-    return;
-  }
-  if (window.__frostYoutubeFixerHistory) {
-    window.__frostYoutubeFixerHistory = false;
+  if (view === "tab") { showTab(state.tab, true); return; }
+  if (view === "agents-list") { showAgentStreaming(true); return; }
+  if (view === "agent-detail") { openAgentGame(Number(state.agentIndex), true); return; }
+}
+function adminGoBack() {
+  const current = history.state && history.state.frostAdminView;
+  if (current && current !== "dashboard" && history.length > 1) {
+    history.back();
+  } else {
     showDashboard(true);
   }
+}
+$("adminBackButton").addEventListener("click", adminGoBack);
+window.addEventListener("popstate", event => {
+  renderAdminHistoryState(event.state);
 });
 async function youtubeLinkRequest(action, payload = {}) {
   const { data: sessionData } = await db.auth.getSession();
