@@ -1222,7 +1222,7 @@ function showYoutubeLinkFixerContent() {
     window.__frostYoutubeFixerHistory = true;
   }
   $("youtubeLinkFixerContent").innerHTML = `
-    <button class="secondary" onclick="showDashboard()">← Admin Dashboard</button>
+    <button class="secondary" onclick="showYoutubeSuite('studio')">← YouTube Studio & Link Fixer</button>
     <h2>🔗 YouTube Video & Description Manager</h2>
     <p>Scan every uploaded video, inspect its complete description and links, replace only selected links, or edit a complete description.</p>
     <div class="admin-section">
