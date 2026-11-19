@@ -756,11 +756,11 @@ async function loadTrafficAnalytics(days = 7) {
 
 async function showTab(tab, skipHistory = false) {
   if (!skipHistory) pushAdminView({ frostAdminView: "tab", tab }, "#admin-" + tab);
-  if(tab==="youtube-links"||tab==="youtube-suite"){showYoutubeSuite("studio");return;}
-  if(tab==="agents"){await showAgentStreaming();return;}
-  if(tab==="ai"){showDeveloperAI();return;}
-  if(tab==="developer"||tab==="apps"||tab==="bugs"||tab==="management"){showManagementCenter(tab==="apps"||tab==="bugs"||tab==="developer"?tab:"apps");return;}
-  if(tab==="analytics"||tab==="growth"){showGrowthCenter(tab==="analytics"?"analytics":"home");return;}
+  if(tab==="youtube-links"||tab==="youtube-suite"){showYoutubeSuite("studio", true);return;}
+  if(tab==="agents"){await showAgentStreaming(true);return;}
+  if(tab==="ai"){showDeveloperAI(true);return;}
+  if(tab==="developer"||tab==="apps"||tab==="bugs"||tab==="management"){showManagementCenter(tab==="apps"||tab==="bugs"||tab==="developer"?tab:"apps", true);return;}
+  if(tab==="analytics"||tab==="growth"){showGrowthCenter(tab==="analytics"?"analytics":"home", true);return;}
 }
 function showGrowthCenter(view="home", skipHistory=false) {
   if (!skipHistory) pushAdminView({ frostAdminView:"growth", view }, "#admin-growth-" + view);
