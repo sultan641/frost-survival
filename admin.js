@@ -827,83 +827,79 @@ async function callAgentVault(action, payload = {}) {
   if (error || data?.error) throw new Error(data?.error || error.message);
   return data;
 }
-async function showAgentStreaming() {
-  $("adminContent").innerHTML = '<button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><h2>🔐 Private Agent Access</h2><p>Owner-only vault. These links and credentials are never shown on public game pages.</p><div id="agentVaultStatus">Loading secure records…</div><div id="agentVaultCards"></div>';
-  const panels = [
-    {game:"Whiteout Survival V4",url:"https://daili.cqwzcj.com/index",id:"wosv4"},
-    {game:"Whiteout Survival V5 China",url:"https://admin.wjdr2.top/ops-panel.html",id:"wosv5cn"},
-    {game:"Whiteout Survival UV V6",url:"https://play.whiteoutsurvivalhq.com/seller",id:"wosuv6"},
-    {game:"Whiteout Survival V5 Europe",url:"https://panel.europeeu1.com/login",id:"wosv5eu"},
-    {game:"KingShot V4",url:"https://dlcms.bbwgtg.xyz/login",id:"ksv4"}
-  ];
-  const live = [
-    {game:"Livestreaming Account — Whiteout Survival V4",label:"Whiteout Survival V4",url:"https://live-landing.hzcomg.com/",id:"livewosv4"},
-    {game:"Livestreaming Account — Whiteout Survival V5 Europe",label:"Whiteout Survival V5 Europe",url:"https://promo.europeeu1.com",id:"livewosv5eu"},
-    {game:"Livestreaming Account — KingShot V4",label:"KingShot V4",url:"",id:"liveksv4"}
-  ];
-  try {
-    const result = await callAgentVault("list");
-    const records = result.accounts || [];
-    const card = (item, title, url, id, kind) => {
-      const linkField = '<label>'+ (kind==="panel" ? "Agent panel URL" : "Livestreaming account download / invite link") +'</label><input class="input" id="'+id+'Url" value="'+safe(url||item.url||'')+'" '+(kind==="panel"?'readonly':'')+' placeholder="'+(kind==="live"?'Add private download or invite link':'')+'">';
-      const parsedPanelUrl = kind==="panel" ? new URL(url) : null;
-      const chromeIntent = parsedPanelUrl ? 'intent://'+parsedPanelUrl.host+parsedPanelUrl.pathname+parsedPanelUrl.search+parsedPanelUrl.hash+'#Intent;scheme=https;package=com.android.chrome;end' : '';
-      return '<section class="admin-section"><h3>'+safe(title)+'</h3>'+linkField+
-        (kind==="panel" ? '<div style="display:flex;gap:9px;flex-wrap:wrap;margin:10px 0 14px"><a href="'+safe(chromeIntent)+'" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;background:#087cf0;color:#fff;border-radius:9px;font-weight:800;text-decoration:none;box-shadow:0 3px 12px #0069df66">🌐 OPEN IN CHROME</a><a href="'+safe(url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;background:#17416c;color:#fff;border:1px solid #387bb8;border-radius:9px;font-weight:700;text-decoration:none">Open Panel</a></div>' : '')+
-        '<label>Username</label><input class="input" id="'+id+'User" value="'+safe(item.username||'')+'" maxlength="300" autocomplete="off">'+
-        (kind==="panel" ? '<label>Referral / Promo Code</label><input class="input" id="'+id+'Referral" value="'+safe(item.referral_code||'')+'" maxlength="100" autocomplete="off">' : '')+
-        '<label>Password</label><div><input class="input" id="'+id+'Pass" type="password" value="'+safe(item.password||'')+'" maxlength="1000" autocomplete="new-password"><button type="button" data-toggle="'+id+'Pass">Show</button></div>'+
-        '<div class="actions"><button type="button" data-save="'+id+'" data-game="'+safe(item.gameKey)+'" data-kind="'+kind+'">🔒 Save</button><button type="button" data-share="'+id+'" data-title="'+safe(title)+'">↗ Share</button></div></section>';
-    };
-    const panelHtml = panels.map(p => {
-      const item = records.find(x=>x.game===p.game)||{};
-      return card({...item,gameKey:p.game},p.game,p.url,p.id,"panel");
-    }).join("");
-    const liveHtml = live.map(p => {
-      const item = records.find(x=>x.game===p.game)||{};
-      return card({...item,gameKey:p.game},p.label,p.url,p.id,"live");
-    }).join("");
-    $("agentVaultCards").innerHTML = '<h3>Agent Management Panels</h3>'+panelHtml+'<hr><h3>Agent Livestreaming Accounts</h3>'+liveHtml;
-    $("agentVaultStatus").textContent = "Secure owner-only vault connected.";
-    $("agentVaultCards").querySelectorAll("[data-open-chrome]").forEach(b=>b.onclick=()=>openAgentPanelInChrome($(b.dataset.openChrome)?.value||""));
-    $("agentVaultCards").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleAgentPassword(b.dataset.toggle,b));
-    $("agentVaultCards").querySelectorAll("[data-save]").forEach(b=>b.onclick=()=>saveAgentAccount(b.dataset.save,b.dataset.game,b,b.dataset.kind));
-    $("agentVaultCards").querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareAgentAccount(b.dataset.share,b.dataset.title));
-  } catch(e) { $("agentVaultStatus").textContent = "Secure vault unavailable: " + e.message; }
+
+// PRIVATE AGENT + LIVESTREAMING VAULT — GAME-BY-GAME UI
+const agentGameCatalog = [
+  {key:"Whiteout Survival V4", label:"Whiteout Survival V4", panelUrl:"https://daili.cqwzcj.com/index", liveKey:"Livestreaming Account — Whiteout Survival V4", liveUrl:"https://live-landing.hzcomg.com/", icon:"❄"},
+  {key:"Whiteout Survival V5 China", label:"Whiteout Survival V5", panelUrl:"https://admin.wjdr2.top/ops-panel.html", liveKey:"Livestreaming Account — Whiteout Survival V5 China", liveUrl:"", icon:"❄"},
+  {key:"Whiteout Survival V5 Europe", label:"Whiteout Survival V5 Europe", panelUrl:"https://panel.europeeu1.com/login", liveKey:"Livestreaming Account — Whiteout Survival V5 Europe", liveUrl:"https://promo.europeeu1.com", icon:"🇪🇺"},
+  {key:"Whiteout Survival UV V6", label:"Whiteout Survival V6", panelUrl:"https://play.whiteoutsurvivalhq.com/seller", liveKey:"Livestreaming Account — Whiteout Survival UV V6", liveUrl:"", icon:"❄"},
+  {key:"KingShot V4", label:"KingShot V4", panelUrl:"https://dlcms.bbwgtg.xyz/login", liveKey:"Livestreaming Account — KingShot V4", liveUrl:"", icon:"👑"}
+];
+let agentVaultRecords = [];
+function agentCopy(text) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+  const t=document.createElement("textarea"); t.value=text; t.style.position="fixed"; t.style.opacity="0";
+  document.body.appendChild(t); t.select(); const ok=document.execCommand("copy"); t.remove();
+  if(!ok) throw new Error("Copy is not available in this browser.");
+  return Promise.resolve();
 }
-function openAgentPanelInChrome(url) {
-  if(!url) return status("Agent panel URL is missing.");
+async function copyAgentField(id) {
+  const el=$(id); if(!el) return;
+  try { await agentCopy(el.value || ""); status("Copied."); }
+  catch(e) { status("Copy failed: "+e.message); }
+}
+function openAgentUrlInChrome(id) {
+  const value=$(id)?.value?.trim()||"";
+  if(!value) return status("Link is not added yet.");
   try {
-    const parsed = new URL(url);
-    if(parsed.protocol !== "https:") return status("Only secure HTTPS panel links can be opened.");
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    if(isAndroid) {
-      const intent = "intent://" + parsed.host + parsed.pathname + parsed.search + parsed.hash +
-        "#Intent;scheme=https;package=com.android.chrome;end";
-      window.location.href = intent;
+    const u=new URL(value);
+    if(u.protocol!=="https:") return status("Only secure HTTPS links are allowed.");
+    if(/Android/i.test(navigator.userAgent)) {
+      window.location.href="intent://"+u.host+u.pathname+u.search+u.hash+"#Intent;scheme=https;package=com.android.chrome;end";
     } else {
-      const opened = window.open(parsed.href, "_blank");
-      if(!opened) status("Chrome could not be opened. Allow pop-ups or copy the panel URL.");
+      const w=window.open(u.href,"_blank","noopener");
+      if(!w) status("Allow pop-ups or copy the link.");
     }
-  } catch(e) { status("Could not open the agent panel: " + e.message); }
+  } catch(e) { status("Invalid link: "+e.message); }
 }
-function toggleAgentPassword(id,b) { const f=$(id); if(!f) return; f.type=f.type==="password"?"text":"password"; b.textContent=f.type==="password"?"Show":"Hide"; }
-async function saveAgentAccount(id,game,b,kind) {
-  if(b) b.disabled=true;
-  try {
-    await callAgentVault("save",{game,url:$(id+"Url").value.trim(),username:$(id+"User").value.trim(),password:$(id+"Pass").value,referral_code:$(id+"Referral")?.value.trim()||""});
-    status("Saved securely: "+(kind==="live"?"livestreaming account":"agent panel")+".");
-  } catch(e) { status("Save failed: "+e.message); }
-  finally { if(b) b.disabled=false; }
+function showAgentGameList() {
+  const cards=agentGameCatalog.map((g,i)=>'<button class="agent-game-tile" type="button" onclick="openAgentGame('+i+')"><span class="agent-game-icon">'+g.icon+'</span><span class="agent-game-name">'+safe(g.label)+'</span><span class="agent-game-sub">Agent Panel + Live Streaming</span><span class="agent-game-arrow">›</span></button>').join("");
+  $("agentVaultCards").innerHTML='<div class="agent-game-grid">'+cards+'</div>';
 }
-async function shareAgentAccount(id,game) {
-  const url=$(id+"Url")?.value.trim()||"", username=$(id+"User")?.value.trim()||"", password=$(id+"Pass")?.value||"";
-  if(!confirm("Share these confidential credentials? Only send them to an authorized agent. Continue?")) return;
-  const details=["FROST SURVIVAL — CONFIDENTIAL AGENT ACCESS","Game: "+game,"Download / panel link: "+(url||"(not added yet)"),"Username: "+username,"Password: "+password,"Keep private. Do not forward."].join("\\n");
+async function showAgentStreaming() {
+  addAdminStyles();
+  $("adminContent").innerHTML='<div class="agent-vault-shell"><button class="secondary" onclick="showDashboard()">← Admin Dashboard</button><div class="agent-vault-heading"><span>❄</span><div><h2>Frost Survival</h2><p>Live Streaming &amp; Agent Panels</p></div></div><p class="agent-vault-intro">Choose a game to manage its private Agent Panel and Live Streaming account.</p><div id="agentVaultStatus">Loading secure accounts…</div><div id="agentVaultCards"></div></div>';
   try {
-    if(navigator.share) { await navigator.share({title:"Confidential agent access — "+game,text:details}); status("Share sheet opened."); }
-    else { await navigator.clipboard.writeText(details); status("Confidential details copied. Share privately only."); }
-  } catch(e) { if(e?.name!=="AbortError") status("Sharing was cancelled or unavailable."); }
+    const result=await callAgentVault("list");
+    agentVaultRecords=result.accounts||[];
+    $("agentVaultStatus").textContent="Secure owner-only vault connected.";
+    showAgentGameList();
+  } catch(e) { $("agentVaultStatus").textContent="Secure vault unavailable: "+e.message; }
+}
+function getAgentRecord(key) { return agentVaultRecords.find(x=>x.game===key)||{}; }
+function openAgentGame(index) {
+  const g=agentGameCatalog[index]; if(!g) return;
+  const panel=getAgentRecord(g.key), live=getAgentRecord(g.liveKey);
+  const panelId="detailPanel", liveId="detailLive";
+  const makeCard=(kind,record,id,url,key,title)=> {
+    const isLive=kind==="live", savedUrl=record.url||url||"";
+    return '<section class="agent-detail-card '+(isLive?"live":"panel")+'"><div class="agent-card-title"><span>'+(isLive?"🎥":"🛡️")+'</span><div><h3>'+(isLive?"Live Streaming Account":"Agent Management Panel")+'</h3><small>'+(isLive?"Content Creator Account":"Agent / Promoter Account")+'</small></div></div>'+
+      '<label>'+(isLive?"Livestreaming URL":"Agent Panel URL")+'</label><div class="agent-url-line"><input class="input" id="'+id+'Url" value="'+safe(savedUrl)+'" '+(isLive?'placeholder="Add private livestreaming URL"':'readonly')+'><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'Url\')">Copy</button></div>'+
+      '<div class="agent-link-actions"><button type="button" onclick="openAgentUrlInChrome(\''+id+'Url\')">🌐 Open in Chrome</button><button type="button" class="secondary" onclick="openAgentUrlInChrome(\''+id+'Url\')">Open Link</button></div>'+
+      '<label>Username</label><div class="agent-url-line"><input class="input" id="'+id+'User" value="'+safe(record.username||"")+'" maxlength="300" autocomplete="off" placeholder="Add username"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'User\')">Copy</button></div>'+
+      (isLive?'':'<label>Referral / Promo Code</label><div class="agent-url-line"><input class="input" id="'+id+'Referral" value="'+safe(record.referral_code||"")+'" maxlength="100" placeholder="Optional"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'Referral\')">Copy</button></div>')+
+      '<label>Password</label><div class="agent-url-line"><input class="input" id="'+id+'Pass" type="password" value="'+safe(record.password||"")+'" maxlength="1000" autocomplete="new-password" placeholder="Add password"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'Pass\')">Copy</button><button type="button" class="agent-copy-btn" onclick="toggleAgentPassword(\''+id+'Pass\',this)">Show</button></div>'+
+      '<div class="agent-card-actions"><button type="button" onclick="saveAgentAccount(\''+id+'\',\''+safe(key)+'\',this,\''+kind+'\')">🔒 Save Account</button><button type="button" class="secondary" onclick="copyAgentAll(\''+id+'\',\''+safe(title)+'\',\''+kind+'\')">▣ Copy All Details</button></div></section>';
+  };
+  $("agentVaultCards").innerHTML='<button class="secondary" onclick="showAgentGameList()">← All Games</button><div class="agent-game-banner"><span>'+g.icon+'</span><div><h2>'+safe(g.label)+'</h2><p>Agent Panel &amp; Live Streaming Accounts</p></div></div><div class="agent-detail-grid">'+makeCard("panel",panel,panelId,g.panelUrl,g.key,g.label)+makeCard("live",live,liveId,g.liveUrl,g.liveKey,g.label)+'</div>';
+}
+async function copyAgentAll(id,title,kind) {
+  const url=$(id+"Url")?.value?.trim()||"", username=$(id+"User")?.value?.trim()||"", password=$(id+"Pass")?.value||"", referral=$(id+"Referral")?.value?.trim()||"";
+  const details=["FROST SURVIVAL — PRIVATE ACCOUNT", "Game: "+title, (kind==="live"?"Livestreaming URL: ":"Agent Panel URL: ")+url, "Username: "+username, "Password: "+password];
+  if(referral) details.push("Referral / Promo Code: "+referral);
+  try { await agentCopy(details.join("\\n")); status("All account details copied."); }
+  catch(e) { status("Copy failed: "+e.message); }
 }
 // AUTH SESSION
 // Avoid calling Supabase auth methods from inside onAuthStateChange.
