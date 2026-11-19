@@ -259,8 +259,6 @@ function addAdminStyles() {
     .agent-link-actions .secondary,.agent-card-actions .secondary{background:#e7f2ff;color:#0757a2;border:1px solid #b7d8f6}
     .agent-card-actions button{flex:1}
     @media(max-width:520px){.agent-detail-grid{grid-template-columns:1fr}.agent-url-line{flex-wrap:wrap}.agent-url-line .input{flex-basis:100%}.agent-card-actions button{width:100%}}
-  `;
-
 
     .fs-admin-hero{padding:24px 20px;margin:14px 0 18px;border-radius:20px;background:linear-gradient(110deg,#06366f,#087bd8 65%,#b8e2ff);color:#fff}
     .fs-admin-hero h1{font-size:clamp(26px,5vw,40px);margin:12px 0 6px;color:#fff}.fs-admin-hero p{margin:0;color:#e8f5ff}
@@ -283,7 +281,9 @@ function addAdminStyles() {
     body:has(#adminBox:not([hidden])) .form-card{background:transparent!important;border:0!important;box-shadow:none!important}
     body:has(#adminBox:not([hidden])) main.wrap{max-width:1120px}
     body:has(#adminBox:not([hidden])) .status{color:#0757a2}
-document.head.appendChild(style);
+  `;
+
+  document.head.appendChild(style);
 }
 
 // GAME DASHBOARD
