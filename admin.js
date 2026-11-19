@@ -851,6 +851,7 @@ async function showAgentStreaming() {
       return '<section class="admin-section"><h3>'+safe(title)+'</h3>'+linkField+
         (kind==="panel" ? '<div style="display:flex;gap:9px;flex-wrap:wrap;margin:10px 0 14px"><a href="'+safe(chromeIntent)+'" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;background:#087cf0;color:#fff;border-radius:9px;font-weight:800;text-decoration:none;box-shadow:0 3px 12px #0069df66">🌐 OPEN IN CHROME</a><a href="'+safe(url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;background:#17416c;color:#fff;border:1px solid #387bb8;border-radius:9px;font-weight:700;text-decoration:none">Open Panel</a></div>' : '')+
         '<label>Username</label><input class="input" id="'+id+'User" value="'+safe(item.username||'')+'" maxlength="300" autocomplete="off">'+
+        (kind==="panel" ? '<label>Referral / Promo Code</label><input class="input" id="'+id+'Referral" value="'+safe(item.referral_code||'')+'" maxlength="100" autocomplete="off">' : '')+
         '<label>Password</label><div><input class="input" id="'+id+'Pass" type="password" value="'+safe(item.password||'')+'" maxlength="1000" autocomplete="new-password"><button type="button" data-toggle="'+id+'Pass">Show</button></div>'+
         '<div class="actions"><button type="button" data-save="'+id+'" data-game="'+safe(item.gameKey)+'" data-kind="'+kind+'">🔒 Save</button><button type="button" data-share="'+id+'" data-title="'+safe(title)+'">↗ Share</button></div></section>';
     };
@@ -890,7 +891,7 @@ function toggleAgentPassword(id,b) { const f=$(id); if(!f) return; f.type=f.type
 async function saveAgentAccount(id,game,b,kind) {
   if(b) b.disabled=true;
   try {
-    await callAgentVault("save",{game,url:$(id+"Url").value.trim(),username:$(id+"User").value.trim(),password:$(id+"Pass").value});
+    await callAgentVault("save",{game,url:$(id+"Url").value.trim(),username:$(id+"User").value.trim(),password:$(id+"Pass").value,referral_code:$(id+"Referral")?.value.trim()||""});
     status("Saved securely: "+(kind==="live"?"livestreaming account":"agent panel")+".");
   } catch(e) { status("Save failed: "+e.message); }
   finally { if(b) b.disabled=false; }
