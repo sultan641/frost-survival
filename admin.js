@@ -808,7 +808,7 @@ async function callAgentVault(action, payload = {}) {
 const agentGameCatalog = [
   {key:"Whiteout Survival V4", label:"Whiteout Survival V4", panelUrl:"https://daili.cqwzcj.com/index", liveKey:"Livestreaming Account — Whiteout Survival V4", liveUrl:"https://live-landing.hzcomg.com/", icon:"❄"},
   {key:"Whiteout Survival V5 China", label:"Whiteout Survival V5", panelUrl:"https://admin.wjdr2.top/ops-panel.html", liveKey:"Livestreaming Account — Whiteout Survival V5 China", liveUrl:"", icon:"❄"},
-  {key:"Whiteout Survival V5 Europe", label:"Whiteout Survival V5 Europe", panelUrl:"https://panel.europeeu1.com/login", liveKey:"Livestreaming Account — Whiteout Survival V5 Europe", liveUrl:"https://promo.europeeu1.com", icon:"🇪🇺"},
+  {key:"Whiteout Survival V5 Europe", label:"Whiteout Survival V5 Europe", panelUrl:"https://panel.europeeu1.com/login", panel2Key:"Whiteout Survival V5 Europe — Voz Pakistan Agent Panel", panel2Name:"Voz Pakistan Agent Panel", liveKey:"Livestreaming Account — Whiteout Survival V5 Europe", liveUrl:"https://promo.europeeu1.com", icon:"🇪🇺"},
   {key:"Whiteout Survival UV V6", label:"Whiteout Survival V6", panelUrl:"https://play.whiteoutsurvivalhq.com/seller", liveKey:"Livestreaming Account — Whiteout Survival UV V6", liveUrl:"", icon:"❄"},
   {key:"KingShot V4", label:"KingShot V4", panelUrl:"https://dlcms.bbwgtg.xyz/login", liveKey:"Livestreaming Account — KingShot V4", liveUrl:"", icon:"👑"}
 ];
@@ -859,13 +859,14 @@ function getAgentRecord(key) { return agentVaultRecords.find(x=>x.game===key)||{
 function openAgentGame(index, skipHistory = false) {
   const g=agentGameCatalog[index]; if(!g) return;
   if (!skipHistory) pushAdminView({ frostAdminView: "agent-detail", agentIndex: index }, "#agent-" + index);
-  const panel=getAgentRecord(g.key), live=getAgentRecord(g.liveKey);
+  const panel=getAgentRecord(g.key), panel2=g.panel2Key?getAgentRecord(g.panel2Key):null, live=getAgentRecord(g.liveKey);
   const panelId="detailPanel", liveId="detailLive";
-  const makeCard=(kind,record,id,url,key,title)=> {
+  const makeCard=(kind,record,id,url,key,title,cardName)=> {
     const isLive=kind==="live", savedUrl=record.url||url||"";
-    return '<section class="agent-detail-card '+(isLive?"live":"panel")+'"><div class="agent-card-title"><span>'+(isLive?"🎥":"🛡️")+'</span><div><h3>'+(isLive?"Live Streaming Account":"Agent Management Panel")+'</h3><small>'+(isLive?"Content Creator Account":"Agent / Promoter Account")+'</small></div></div>'+
+    return '<section class="agent-detail-card '+(isLive?"live":"panel")+'"><div class="agent-card-title"><span>'+(isLive?"🎥":"🛡️")+'</span><div><h3>'+(isLive?"Live Streaming Account":safe(cardName||"Agent Management Panel"))+'</h3><small>'+(isLive?"Content Creator Account":"Agent / Promoter Account")+'</small></div></div>'+
       '<label>'+(isLive?"Livestreaming URL":"Agent Panel URL")+'</label><div class="agent-url-line"><input class="input" id="'+id+'Url" value="'+safe(savedUrl)+'" '+(isLive?'placeholder="Add private livestreaming URL"':'readonly')+'><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'Url\')">Copy</button></div>'+
       '<div class="agent-link-actions"><button type="button" onclick="openAgentUrlInChrome(\''+id+'Url\')">🌐 Open in Chrome</button><button type="button" class="secondary" onclick="openAgentUrlInChrome(\''+id+'Url\')">Open Link</button></div>'+
+      (isLive?'':'<label>Agent ID</label><div class="agent-url-line"><input class="input" id="'+id+'AgentId" value="'+safe(record.agent_id||"")+'" maxlength="120" placeholder="Optional agent ID"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'AgentId\')">Copy</button></div>')+
       '<label>Username</label><div class="agent-url-line"><input class="input" id="'+id+'User" value="'+safe(record.username||"")+'" maxlength="300" autocomplete="off" placeholder="Add username"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'User\')">Copy</button></div>'+
       (isLive?'':'<label>Referral / Promo Code</label><div class="agent-url-line"><input class="input" id="'+id+'Referral" value="'+safe(record.referral_code||"")+'" maxlength="100" placeholder="Optional"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'Referral\')">Copy</button></div>')+
       '<label>Password</label><div class="agent-url-line"><input class="input" id="'+id+'Pass" type="password" value="'+safe(record.password||"")+'" maxlength="1000" autocomplete="new-password" placeholder="Add password"><button type="button" class="agent-copy-btn" onclick="copyAgentField(\''+id+'Pass\')">Copy</button><button type="button" class="agent-copy-btn" onclick="toggleAgentPassword(\''+id+'Pass\',this)">Show</button></div>'+
@@ -874,8 +875,10 @@ function openAgentGame(index, skipHistory = false) {
   $("agentVaultCards").innerHTML='<div class="agent-game-banner"><span>'+g.icon+'</span><div><h2>'+safe(g.label)+'</h2><p>Agent Panel &amp; Live Streaming Accounts</p></div></div><div class="agent-detail-grid">'+makeCard("panel",panel,panelId,g.panelUrl,g.key,g.label)+makeCard("live",live,liveId,g.liveUrl,g.liveKey,g.label)+'</div>';
 }
 async function copyAgentAll(id,title,kind) {
-  const url=$(id+"Url")?.value?.trim()||"", username=$(id+"User")?.value?.trim()||"", password=$(id+"Pass")?.value||"", referral=$(id+"Referral")?.value?.trim()||"";
-  const details=["FROST SURVIVAL — PRIVATE ACCOUNT", "Game: "+title, (kind==="live"?"Livestreaming URL: ":"Agent Panel URL: ")+url, "Username: "+username, "Password: "+password];
+  const url=$(id+"Url")?.value?.trim()||"", agentId=$(id+"AgentId")?.value?.trim()||"", username=$(id+"User")?.value?.trim()||"", password=$(id+"Pass")?.value||"", referral=$(id+"Referral")?.value?.trim()||"";
+  const details=["FROST SURVIVAL — PRIVATE ACCOUNT", "Game: "+title, (kind==="live"?"Livestreaming URL: ":"Agent Panel URL: ")+url];
+  if(agentId) details.push("Agent ID: "+agentId);
+  details.push("Username: "+username, "Password: "+password);
   if(referral) details.push("Referral / Promo Code: "+referral);
   try { await agentCopy(details.join("\\n")); status("All account details copied."); }
   catch(e) { status("Copy failed: "+e.message); }
@@ -885,7 +888,7 @@ function toggleAgentPassword(id,b) { const f=$(id); if(!f) return; f.type=f.type
 async function saveAgentAccount(id,game,b,kind) {
   if(b) b.disabled=true;
   try {
-    await callAgentVault("save",{game,url:$(id+"Url").value.trim(),username:$(id+"User").value.trim(),password:$(id+"Pass").value,referral_code:$(id+"Referral")?.value.trim()||""});
+    await callAgentVault("save",{game,url:$(id+"Url").value.trim(),agent_id:$(id+"AgentId")?.value.trim()||"",username:$(id+"User").value.trim(),password:$(id+"Pass").value,referral_code:$(id+"Referral")?.value.trim()||""});
     status("Saved securely: "+(kind==="live"?"livestreaming account":"agent panel")+".");
     const refreshed=await callAgentVault("list"); agentVaultRecords=refreshed.accounts||[];
   } catch(e) { status("Save failed: "+e.message); }
