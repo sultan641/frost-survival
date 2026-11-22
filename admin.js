@@ -860,6 +860,7 @@ function openAgentGame(index, skipHistory = false) {
   const g=agentGameCatalog[index]; if(!g) return;
   if (!skipHistory) pushAdminView({ frostAdminView: "agent-detail", agentIndex: index }, "#agent-" + index);
   const panel=getAgentRecord(g.key), panel2=g.panel2Key?getAgentRecord(g.panel2Key):null, live=getAgentRecord(g.liveKey);
+  // Voz Pakistan credentials: keep Agent ID blank; the supplied ID belongs in Username.
   const panelId="detailPanel", liveId="detailLive";
   const makeCard=(kind,record,id,url,key,title,cardName)=> {
     const isLive=kind==="live", savedUrl=record.url||url||"";
