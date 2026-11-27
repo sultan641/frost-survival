@@ -48,3 +48,37 @@ body[data-game] .game-hero-copy .actions{gap:7px;margin:12px 0}
 body[data-game] .game-hero-caption{font-size:10px}
 body[data-game] .code-list{gap:7px}
 @media(max-width:760px){body[data-game] .game-hero-inner{min-height:250px;padding-top:18px;padding-bottom:18px}body[data-game] .game-hero-copy h1{font-size:39px}body[data-game] .game-content .steps{grid-template-columns:1fr}}
+
+/* 2026 cinematic mixed Aurora/Glacier homepage refresh */
+.hero-castle{background:linear-gradient(100deg,#03162d 0%,#062d52 48%,#031126 100%);isolation:isolate}
+.hero-castle:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#031126f5 0%,#031a31e8 34%,#041b2b55 66%,#03112655 100%),url("frost-banner.png") center 43%/cover no-repeat;opacity:.9}
+.hero-castle .hero-backdrop{background:radial-gradient(ellipse at 78% 40%,#00d9ff36,transparent 42%),linear-gradient(180deg,#03112633,#03112655)}
+.hero-castle .hero-inner{min-height:345px;padding:38px 0 28px}
+.hero-castle .hero-copy{width:51%;padding-bottom:12px}
+.hero-castle .hero-kicker{border-color:#22d9ff;color:#b8f5ff;background:#031a31b8;box-shadow:0 0 18px #00bfff38}
+.hero-castle .hero-copy h1{color:#f3fbff;font-size:clamp(54px,6.5vw,88px);text-shadow:0 3px 20px #00152e}
+.hero-castle .hero-copy h1 em{font-style:normal;color:#18e2d1}
+.hero-castle .hero-figure{width:56%;background:linear-gradient(90deg,#03162d00,#03162d08),url("frost-banner.png") center/cover no-repeat;opacity:.95;mask-image:linear-gradient(90deg,transparent 0%,#000 20%)}
+.hero-castle .ice-mountain{display:none}
+.hero-castle .hero-team-mark{position:absolute;right:10%;bottom:9%;font-size:clamp(80px,12vw,150px);color:#d5f8ff55;text-shadow:0 0 45px #00cfff;display:none}
+.hero-stats{position:relative;display:grid;grid-template-columns:repeat(4,1fr) 1.25fr;gap:0;align-items:center;margin:0 auto 18px;border:1px solid #16c8e8;border-radius:16px;background:linear-gradient(100deg,#062642eF,#04172deF);box-shadow:0 0 25px #00bfff35;overflow:hidden}
+.hero-stats>div,.hero-stats>a{min-height:62px;padding:10px 16px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid #147c9c}
+.hero-stats b{font:800 23px/1 var(--display);color:#25e2df}
+.hero-stats span{font-size:12px;color:#d5eafa}
+.hero-stats>a{border:0;align-items:center;text-align:center;color:#fff;font-weight:800;background:linear-gradient(110deg,#8e6413,#ffca38,#8e6413);text-shadow:0 1px 2px #523800}
+.extra-hub-section{padding-top:5px}
+.extra-hub-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:11px}
+.extra-hub-card{min-width:0;display:flex;align-items:center;gap:10px;padding:13px 11px;border:1px solid #087fae;border-radius:13px;background:linear-gradient(145deg,#082b49,#04172c 75%);box-shadow:inset 0 1px #ffffff12,0 7px 18px #0004;transition:.2s}
+.extra-hub-card:hover{transform:translateY(-3px);border-color:#2ce6f0;box-shadow:0 0 20px #00cfff30}
+.extra-hub-card>b{font-size:25px;color:#24dfeb;flex:none}
+.extra-hub-card span{min-width:0;flex:1}
+.extra-hub-card strong,.extra-hub-card small{display:block;overflow:hidden;text-overflow:ellipsis}
+.extra-hub-card strong{font-size:13px;color:#f4fbff;white-space:nowrap}
+.extra-hub-card small{font-size:10px;color:#aac9dc;line-height:1.35}
+.extra-hub-card i{font-style:normal;color:#2ce6f0;font-size:22px}
+.extra-hub-card.premium-card{border-color:#a67c22;background:linear-gradient(145deg,#352a16,#101d31)}
+.extra-hub-card.premium-card>b{color:#ffd35a}
+.extra-hub-card.ai-card{border-color:#7c4ec3;background:linear-gradient(145deg,#241b4b,#071a31)}
+.extra-hub-card.ai-card>b{color:#d58cff}
+@media(max-width:1000px){.extra-hub-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-stats{grid-template-columns:repeat(3,1fr)}.hero-stats>a{grid-column:span 3;min-height:48px}}
+@media(max-width:650px){.hero-castle .hero-inner{min-height:385px;padding-top:30px}.hero-castle .hero-copy{width:100%;padding-bottom:20px}.hero-castle .hero-figure{width:100%;height:76%;top:24%;right:-10%;opacity:.36;mask-image:linear-gradient(90deg,transparent,#000 20%)}.hero-castle .hero-copy h1{font-size:55px;max-width:350px}.hero-stats{grid-template-columns:repeat(2,1fr);margin-bottom:14px}.hero-stats>div{min-height:55px;padding:8px 10px}.hero-stats>a{grid-column:span 2}.extra-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.extra-hub-card{padding:10px 8px;gap:7px}.extra-hub-card>b{font-size:21px}.extra-hub-card strong{font-size:11px}.extra-hub-card small{font-size:9px}}
