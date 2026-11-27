@@ -1,0 +1,16 @@
+# Frost Survival — clean page URLs
+Options -MultiViews
+
+RewriteEngine On
+
+# Send the homepage filename to the domain root.
+RewriteRule ^index\.html$ / [R=301,L,NC]
+
+# Redirect old .html links to clean URLs (keep query strings).
+RewriteCond %{THE_REQUEST} \s/+(.+?)\.html(?:[\s?]) [NC]
+RewriteRule ^(.+)\.html$ /$1 [R=301,L,NE]
+
+# Internally serve matching .html files for extensionless URLs.
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]
