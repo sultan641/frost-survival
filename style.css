@@ -82,3 +82,35 @@ body[data-game] .code-list{gap:7px}
 .extra-hub-card.ai-card>b{color:#d58cff}
 @media(max-width:1000px){.extra-hub-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.hero-stats{grid-template-columns:repeat(3,1fr)}.hero-stats>a{grid-column:span 3;min-height:48px}}
 @media(max-width:650px){.hero-castle .hero-inner{min-height:385px;padding-top:30px}.hero-castle .hero-copy{width:100%;padding-bottom:20px}.hero-castle .hero-figure{width:100%;height:76%;top:24%;right:-10%;opacity:.36;mask-image:linear-gradient(90deg,transparent,#000 20%)}.hero-castle .hero-copy h1{font-size:55px;max-width:350px}.hero-stats{grid-template-columns:repeat(2,1fr);margin-bottom:14px}.hero-stats>div{min-height:55px;padding:8px 10px}.hero-stats>a{grid-column:span 2}.extra-hub-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.extra-hub-card{padding:10px 8px;gap:7px}.extra-hub-card>b{font-size:21px}.extra-hub-card strong{font-size:11px}.extra-hub-card small{font-size:9px}}
+
+/* Approved Frost Survival homepage reference refresh */
+.home-page .top{background:linear-gradient(90deg,#020b19f5,#061c34f5);border-bottom:1px solid #087bb4}
+.home-page .nav{min-height:66px;gap:12px}
+.home-page nav{gap:clamp(8px,1.35vw,20px);font-size:12px}
+.home-page nav a{padding:8px 4px}
+.home-page nav a.active{color:#fff;background:linear-gradient(110deg,#00dce8,#087dff);border:1px solid #4bf5ff;border-radius:13px;padding:9px 17px;box-shadow:0 0 20px #00cfff7a}
+.home-page .brand-copy{font-size:23px}
+.home-page .hero-castle .hero-inner{min-height:285px;padding:26px 0 20px}
+.home-page .hero-castle .hero-copy{width:47%;padding-bottom:8px}
+.home-page .hero-castle .hero-kicker{border-color:#e4bd43;color:#fff0a2;background:#241d08c9;box-shadow:0 0 14px #f6c94c66}
+.home-page .hero-castle .hero-copy h1{font:900 clamp(48px,5.5vw,76px)/.95 var(--display);font-style:italic;letter-spacing:-1px}
+.home-page .hero-castle .hero-copy h1 em{color:#12e4d6}
+.home-page .hero-tagline{font-weight:800;color:#d9f7ff;line-height:1.35;margin:7px 0}
+.home-page .hero-castle .hero-copy>p:not(.hero-tagline){max-width:480px;font-size:13px;line-height:1.45}
+.home-page .hero-castle .hero-figure{width:55%;background:url("frost-banner.png") center 43%/cover no-repeat;mask-image:linear-gradient(90deg,transparent 0%,#000 13%);opacity:1}
+.home-page .hero-castle:before{background:linear-gradient(90deg,#031126f7 0%,#031a31ed 32%,#041b2b25 63%,#03112610 100%),url("frost-banner.png") center 43%/cover no-repeat}
+.home-page .hero-castle .hero-backdrop{background:linear-gradient(180deg,#03112622,#03112644),radial-gradient(ellipse at 72% 40%,#00eaff28,transparent 40%)}
+.home-page .hero-stats{grid-template-columns:repeat(5,minmax(0,1fr)) 1.35fr;margin-bottom:15px;border-radius:15px}
+.home-page .hero-stats>div,.home-page .hero-stats>a{min-height:58px;padding:8px 12px}
+.home-page .hero-stats b{font-size:21px}
+.home-page .games-section{padding-top:13px}
+.home-page .game-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.home-page .game{border-radius:15px;border-color:#1a9dd2;background:linear-gradient(145deg,#06345b,#031326)}
+.home-page .game-art{height:125px}
+.home-page .extra-hub-section{padding-top:0}
+.home-page .extra-hub-grid{gap:10px}
+.home-page .extra-hub-card{border-radius:13px;background:linear-gradient(145deg,#063b61,#04172c);box-shadow:inset 0 1px #ffffff18,0 5px 16px #0005}
+.home-page .extra-hub-card:nth-child(n+7){background:linear-gradient(145deg,#132f65,#07162e)}
+.home-page .site-footer{border-top:2px solid #08c8ef}
+@media(max-width:1050px){.home-page .nav{flex-wrap:wrap;padding:8px 0}.home-page nav{order:3;width:100%;overflow-x:auto}.home-page .game-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.home-page .hero-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.home-page .hero-stats>a{grid-column:span 3}}
+@media(max-width:650px){.home-page .hero-castle .hero-inner{min-height:385px;padding-top:26px}.home-page .hero-castle .hero-copy{width:100%}.home-page .hero-castle .hero-copy h1{font-size:54px}.home-page .hero-castle .hero-figure{width:100%;height:76%;top:24%;right:-8%;opacity:.38}.home-page .hero-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.home-page .hero-stats>a{grid-column:span 2}.home-page .game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
