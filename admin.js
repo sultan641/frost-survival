@@ -810,7 +810,8 @@ const agentGameCatalog = [
   {key:"Whiteout Survival V5 China", label:"Whiteout Survival V5", panelUrl:"https://admin.wjdr2.top/ops-panel.html", liveKey:"Livestreaming Account — Whiteout Survival V5 China", liveUrl:"", icon:"❄"},
   {key:"Whiteout Survival V5 Europe", label:"Whiteout Survival V5 Europe", panelUrl:"https://panel.europeeu1.com/login", panel2Key:"Whiteout Survival V5 Europe — Voz Pakistan Agent Panel", panel2Name:"Voz Pakistan Agent Panel", liveKey:"Livestreaming Account — Whiteout Survival V5 Europe", liveUrl:"https://promo.europeeu1.com", icon:"🇪🇺"},
   {key:"Whiteout Survival UV V6", label:"Whiteout Survival V6", panelUrl:"https://play.whiteoutsurvivalhq.com/seller", liveKey:"Livestreaming Account — Whiteout Survival UV V6", liveUrl:"", icon:"❄"},
-  {key:"KingShot V4", label:"KingShot V4", panelUrl:"https://dlcms.bbwgtg.xyz/login", liveKey:"Livestreaming Account — KingShot V4", liveUrl:"", icon:"👑"}
+  {key:"KingShot V4", label:"KingShot V4", panelUrl:"https://dlcms.bbwgtg.xyz/login", liveKey:"Livestreaming Account — KingShot V4", liveUrl:"", icon:"👑"},
+  {key:"Sword Legend Global", label:"Sword Legend Global", panelUrl:"https://pxy.dlzjzty.com/login", liveKey:"Livestreaming Account — Sword Legend Global", liveUrl:"", icon:"⚔️"}
 ];
 let agentVaultRecords = [];
 function agentCopy(text) {
